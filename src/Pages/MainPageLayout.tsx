@@ -12,7 +12,11 @@ interface FolderType {
 interface AgentType {
   id: string;
   name: string;
+  type:string;
+  voice:string;
+  phone:number;
   folderId: string;
+  createdAt: Date;
   // add more agent fields as needed
 }
 
@@ -37,12 +41,16 @@ const MainPageLayout = () => {
   };
 
   // Add a new agent to the selected folder
-  const addAgent = (name: string) => {
+  const addAgent = (name: string, type: string, voice: string, phone: number) => {
     if (!selectedFolderId) return;
     const newAgent: AgentType = {
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
       name,
-      folderId: selectedFolderId
+      type,
+      voice,
+      phone,
+      folderId: selectedFolderId,
+      createdAt: new Date()
     };
     setAgents([...agents, newAgent]);
   };

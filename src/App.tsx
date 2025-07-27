@@ -6,6 +6,7 @@ import {
 import './App.css'
 import MainPage from './Pages/MainPageLayout';
 
+
 // ✅ Create router with future flag
 const router = createBrowserRouter(
   [
@@ -13,6 +14,7 @@ const router = createBrowserRouter(
       path: "/",
       element: <MainPage />,
     },
+    
   ],
 );
 
