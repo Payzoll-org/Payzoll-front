@@ -7,15 +7,16 @@ import AgentConfiguration from '../Components/AgentConfiguration'
 
 const AgentPlaygroung = () => {
   return (
-    <div className="h-screen flex relative flex-col overflow-hidden bg-gray-100 p-3 w-screen">
+    <div className="h-screen flex relative flex-col overflow-hidden  bg-gray-100 p-3 w-screen">
       
       <AgentPlagroundNavbar />
-      <div className="flex w-full h-full  gap-3">
-            <div className="bg-white px-3  pt-2 overflow-x-auto whitespace-nowrap h-full overflow-y-auto  rounded-md w-full">
+      <div className="flex w-full h-[calc(100vh-80px)]  gap-3">
+
+            <div className="bg-white px-3  pt-2 py-2   overflow-y-auto  rounded-md w-full">
                 <AgentConfiguration />
             </div>
 
-            <div className="bg-white px-3 pt-2 rounded-md w-200">
+            <div className="bg-white px-3 pt-2 overflow-y-auto rounded-md w-200">
                 <AgentSetting />
             </div>
 

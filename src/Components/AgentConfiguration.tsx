@@ -74,7 +74,7 @@ const AgentConfiguration: React.FC = () => {
   };
 
   return (
-    <div className="h-full overflow-y-auto">
+    <div >
         <div className="flex  gap-3 py-3">
             <div className="bg-gray-100 flex items-center rounded-sm  ">
                <div className="flex py-1 px-2 text-sm items-center gap-3 border-r">
@@ -97,7 +97,7 @@ const AgentConfiguration: React.FC = () => {
         </div>
 
         <div>
-            <textarea className="border  border-gray-300  rounded-md w-full min-h-50 h-100" name="Prompte" id="Prompte"></textarea>
+            <textarea className="border p-3 text-sm  border-gray-300  rounded-md w-full min-h-50 h-100" name="Prompte" id="Prompte"></textarea>
             <p className="text-sm">Use {'{{}}'} to add variables. (Learn more)</p>
         </div>
 
@@ -284,13 +284,13 @@ const AgentConfiguration: React.FC = () => {
         </div>
       )}
     </div>
-    <div className="border mt-3 h-64 w-full rounded-md overflow-hidden">
+    <div className="border mt-3 flex items-center justify-center relative mb-2 h-64 w-full rounded-md overflow-hidden">
       <img 
         src="./tree_preview.webp" 
-        className="w-full h-full object-cover" 
+        className="w-full  object-cover" 
         alt="Tree Preview" 
       />
-
+      <div className="z-10 border-gray-300 absolute bg-white border rounded-sm px-3 py-1">Edit Prompt Tree</div>
     </div>
 
 
