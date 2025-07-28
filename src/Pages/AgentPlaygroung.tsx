@@ -2,6 +2,8 @@ import AgentInput from "../Components/AgentInput"
 import AgentPlagroundNavbar from "../Components/AgentPlagroundNavbar"
 import MessageHistory from "../Components/UI/MessageHistory"
 import AgentSetting from "../Components/AgentSetting"
+import AgentHistory from "../Components/AgentHistory"
+import AgentConfiguration from '../Components/AgentConfiguration'
 
 const AgentPlaygroung = () => {
   return (
@@ -9,8 +11,8 @@ const AgentPlaygroung = () => {
       
       <AgentPlagroundNavbar />
       <div className="flex w-full h-full  gap-3">
-            <div className="bg-white  rounded-md w-full">
-
+            <div className="bg-white px-3  pt-2 overflow-x-auto whitespace-nowrap h-full overflow-y-auto  rounded-md w-full">
+                <AgentConfiguration />
             </div>
 
             <div className="bg-white px-3 pt-2 rounded-md w-200">
@@ -21,8 +23,8 @@ const AgentPlaygroung = () => {
                 <AgentInput />
             </div>
 
-            <div className="bg-white  rounded-md w-200">
-
+            <div className="bg-white px-3  pt-2 rounded-md w-200">
+                <AgentHistory />
             </div>
       </div>
 

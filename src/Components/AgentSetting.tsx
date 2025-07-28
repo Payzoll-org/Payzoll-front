@@ -70,7 +70,7 @@ const AgentSetting = () => {
   };
 
   return (
-    <div className="h-full px-1 w-full">
+    <div className="h-full px-1 w-full overflow-y-auto">
       {SETTINGS.map((setting) => {
         const isOpen = openKeys.includes(setting.key);
         const contentRef = useRef<HTMLDivElement>(null);

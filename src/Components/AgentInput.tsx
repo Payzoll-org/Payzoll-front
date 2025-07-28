@@ -33,7 +33,7 @@ const AgentInput = () => {
   return (
     <div className="h-full w-full flex flex-col">
       {/* Tab Navigation */}
-      <div className="flex gap-3 border-b py-4 items-center ">
+      <div className="flex gap-3 border-b py-3 items-center ">
         <div className="flex justify-between py-1 px-2 gap-2 rounded-sm w-full bg-gray-100">
           <div 
             className={`rounded-sm flex gap-2 items-center py-1 w-full justify-center cursor-pointer text-sm transition-colors duration-200 ${
