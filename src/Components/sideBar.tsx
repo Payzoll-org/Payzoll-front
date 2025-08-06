@@ -14,7 +14,7 @@ import {
   Settings,
   Search
 } from 'lucide-react';
-import { ThemeToggle } from './../Components/UI/toggleTheme';
+import { ThemeToggle } from './UI/toggleTheme';
 import { IoNotificationsOutline } from "react-icons/io5";
 
 

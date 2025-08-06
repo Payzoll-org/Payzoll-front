@@ -87,7 +87,7 @@ const AgentSetting = () => {
         return (
           <div className="border-b" key={setting.key}>
             <div
-              className="flex items-center py-3 justify-between hover:underline cursor-pointer transition"
+              className="flex text-sm items-center py-3 justify-between hover:underline cursor-pointer transition"
               onClick={() => handleToggle(setting.key)}
             >
               <div className="flex items-center gap-2">

@@ -9,11 +9,7 @@ interface Message {
   timestamp: Date;
 }
 
-interface ChatUIProps {
-  onSendMessage: (message: string) => void;
-}
-
-const ChatUI = ({ onSendMessage }: ChatUIProps) => {
+const ChatUI = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -22,7 +18,9 @@ const ChatUI = ({ onSendMessage }: ChatUIProps) => {
       timestamp: new Date()
     }
   ]);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [inputMessage, setInputMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -35,35 +33,36 @@ const ChatUI = ({ onSendMessage }: ChatUIProps) => {
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
-
-    const newMessage: Message = {
+  
+    const userMessage: Message = {
       id: Date.now().toString(),
       text: inputMessage,
       sender: "user",
-      timestamp: new Date()
+      timestamp: new Date(),
     };
-
-    setMessages(prev => [...prev, newMessage]);
-    
+  
+    setMessages((prev) => [...prev, userMessage]);
+  
     try {
-      await sendChatMessage(inputMessage);
-      onSendMessage(inputMessage);
+      const { message: agentReply, sessionId: updatedSessionId } = await sendChatMessage(inputMessage, sessionId || undefined);
+  
+      // Update sessionId after first message
+      if (!sessionId) {
+        setSessionId(updatedSessionId);
+      }
+  
+      const agentMessage: Message = {
+        id: Date.now().toString() + "_agent",
+        text: agentReply.content,
+        sender: "agent",
+        timestamp: new Date(),
+      };
+  
+      setMessages((prev) => [...prev, agentMessage]);
       setInputMessage("");
-
-      // Simulate agent response
-      setTimeout(() => {
-        const agentResponse: Message = {
-          id: (Date.now() + 1).toString(),
-          text: "I received your message. How can I assist you further?",
-          sender: "agent",
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, agentResponse]);
-      }, 1000);
+  
     } catch (error) {
-      console.error("Error sending chat message:", error);
-      // Remove the message if sending failed
-      setMessages(prev => prev.filter(msg => msg.id !== newMessage.id));
+      console.error("Failed to send message:", error);
     }
   };
 
@@ -74,13 +73,8 @@ const ChatUI = ({ onSendMessage }: ChatUIProps) => {
     }
   };
 
-
-
   return (
     <div className="flex flex-col h-full">
-      {/* Chat Header */}
-      
-
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto py-4 space-y-4">
         {messages.map((message) => (
@@ -96,7 +90,6 @@ const ChatUI = ({ onSendMessage }: ChatUIProps) => {
               }`}
             >
               <p className="text-sm">{message.text}</p>
-              
             </div>
           </div>
         ))}
@@ -116,7 +109,7 @@ const ChatUI = ({ onSendMessage }: ChatUIProps) => {
           />
           <button
             onClick={handleSendMessage}
-            disabled={!inputMessage.trim()}
+            disabled={!inputMessage.trim() || isLoading}
             className="px-4 py-2 bg-black text-white rounded-md  disabled:cursor-not-allowed transition-colors"
           >
             <IoSend className="text-lg" />
@@ -127,4 +120,4 @@ const ChatUI = ({ onSendMessage }: ChatUIProps) => {
   );
 };
 
-export default ChatUI; 
+export default ChatUI;

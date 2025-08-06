@@ -284,6 +284,7 @@ const AgentConfiguration: React.FC = () => {
         </div>
       )}
     </div>
+    
     <div className="border mt-3 flex items-center justify-center relative mb-2 h-64 w-full rounded-md overflow-hidden">
       <img 
         src="./tree_preview.webp" 

@@ -39,6 +39,7 @@ export class MessageService {
     return message;
   }
 
+  
   private async simulateApiCall(message: MessageData): Promise<void> {
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -66,9 +67,40 @@ export class MessageService {
     return this.sendMessage(content, 'call', metadata);
   }
 
-  async sendChatMessage(content: string): Promise<MessageData> {
-    return this.sendMessage(content, 'chat');
+  async sendChatMessage(content: string, sessionId?: string): Promise<{ message: MessageData; sessionId: string }> {
+    const payload = sessionId
+      ? { session_id: sessionId, message: content }
+      : { message: content };
+  
+    console.log("Sending payload to backend:", payload);
+  
+    const response = await fetch("http://127.0.0.1:8000/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status}`);
+    }
+  
+    const data = await response.json();
+    console.log("Received from backend:", data);
+  
+    const message: MessageData = {
+      id: Date.now().toString(),
+      content: data.response, // agent's reply
+      type: "chat",
+      timestamp: new Date(),
+      status: "delivered",
+    };
+  
+    this.messageHistory.push(message);
+  
+    return { message, sessionId: data.session_id };
   }
+
+
 
   private getCallMessageContent(action: 'initiate' | 'end' | 'cancel', phoneNumber: string): string {
     switch (action) {
@@ -96,6 +128,8 @@ export class MessageService {
   }
 }
 
+
+
 // Export a singleton instance
 export const messageService = MessageService.getInstance();
 
@@ -104,10 +138,11 @@ export const sendCallMessage = (phoneNumber: string, action: 'initiate' | 'end' 
   return messageService.sendCallMessage(phoneNumber, action);
 };
 
-export const sendChatMessage = (content: string) => {
-  return messageService.sendChatMessage(content);
+export const sendChatMessage = (content: string, sessionId?: string) => {
+  return messageService.sendChatMessage(content, sessionId);
 };
 
 export const getMessageHistory = () => {
   return messageService.getMessageHistory();
 }; 
+

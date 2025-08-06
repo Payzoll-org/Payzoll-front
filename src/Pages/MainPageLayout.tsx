@@ -1,4 +1,4 @@
-import SideBar from "../Components/sideBar"
+import SideBar from "../Components/SideBar"
 import AgentFolder from './../Components/agentFolder'
 import AgentMenu from "../Components/agentMenu"
 import { useState } from "react";
