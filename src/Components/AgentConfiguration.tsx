@@ -1,9 +1,11 @@
 import { IoSettingsOutline } from "react-icons/io5";
 import { IoIosArrowDown } from "react-icons/io";
 import React, { useState } from 'react';
+import { usePromptStore } from '../Zustand/AgentConfiguration';
 
 
 const AgentConfiguration: React.FC = () => {
+  const { prompt, setPrompt } = usePromptStore();
   const [whoSpeaksFirst, setWhoSpeaksFirst] = useState<'user' | 'agent'>('user');
   const [showOptions, setShowOptions] = useState(false);
   const [agentMessageType, setAgentMessageType] = useState<'dynamic' | 'custom'>('dynamic');
@@ -97,7 +99,13 @@ const AgentConfiguration: React.FC = () => {
         </div>
 
         <div>
-            <textarea className="border p-3 text-sm  border-gray-300  rounded-md w-full min-h-50 h-100" name="Prompte" id="Prompte"></textarea>
+            <textarea value={prompt}
+                onChange={(e) => setPrompt(e.target.value)} 
+                placeholder="Type in a Universal agent for your agent, such its role, conversational style, objective ,etc." 
+                className="border p-3 text-sm  border-gray-300  rounded-md w-full min-h-50 h-100" 
+                name="Prompte" 
+                id="Prompte">
+             </textarea>
             <p className="text-sm">Use {'{{}}'} to add variables. (Learn more)</p>
         </div>
 

@@ -1,3 +1,7 @@
+import { usePromptStore } from '../Zustand/AgentConfiguration';
+
+
+
 export interface MessageData {
   id: string;
   content: string;
@@ -68,9 +72,10 @@ export class MessageService {
   }
 
   async sendChatMessage(content: string, sessionId?: string): Promise<{ message: MessageData; sessionId: string }> {
+    const prompt = usePromptStore.getState().prompt;
     const payload = sessionId
-      ? { session_id: sessionId, message: content }
-      : { message: content };
+      ? { session_id: sessionId, message: content ,prompt: prompt,}
+      : { message: content ,prompt: prompt};
   
     console.log("Sending payload to backend:", payload);
   

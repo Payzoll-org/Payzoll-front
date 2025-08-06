@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { RxCross2 } from "react-icons/rx";
 import { Search } from 'lucide-react';
-import { useChatStore } from "../Zustand/chatStore";
+import { useChatStore } from "../Zustand/chatMessageStore";
 
 
 interface AgentHistoryProps {

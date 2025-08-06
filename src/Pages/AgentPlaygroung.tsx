@@ -7,7 +7,7 @@ import AgentHistory from "../Components/AgentHistory";
 import AgentConfiguration from '../Components/AgentConfiguration';
 
 const AgentPlaygroung = () => {
-  const [showHistory, setShowHistory] = useState<boolean>(true);  // Type-safe state
+  const [showHistory, setShowHistory] = useState<boolean>(false);  // Type-safe state
 
   return (
     <div className="h-screen flex relative flex-col overflow-hidden bg-gray-100 p-3 w-screen">

@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from "react";
 import { IoSend } from "react-icons/io5";
 import { sendChatMessage } from "../../libs/messageUtils";
-import { useChatStore } from "../../Zustand/chatStore"; // Zustand store
+import { useChatStore } from "../../Zustand/chatMessageStore"; // Zustand store
 
 const ChatUI = () => {
   const { messages, addMessage, addSession } = useChatStore(); // Zustand global state
