@@ -1,26 +1,14 @@
-import { useState, useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { IoSend } from "react-icons/io5";
 import { sendChatMessage } from "../../libs/messageUtils";
-
-interface Message {
-  id: string;
-  text: string;
-  sender: "user" | "agent";
-  timestamp: Date;
-}
+import { useChatStore } from "../../Zustand/chatStore"; // Zustand store
 
 const ChatUI = () => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      text: "Hello! How can I help you today?",
-      sender: "agent",
-      timestamp: new Date()
-    }
-  ]);
+  const { messages, addMessage, addSession } = useChatStore(); // Zustand global state
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isAgentTyping, setIsAgentTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -29,40 +17,65 @@ const ChatUI = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, isAgentTyping]);
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
-  
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      text: inputMessage,
-      sender: "user",
-      timestamp: new Date(),
-    };
-  
-    setMessages((prev) => [...prev, userMessage]);
-  
+
     try {
-      const { message: agentReply, sessionId: updatedSessionId } = await sendChatMessage(inputMessage, sessionId || undefined);
-  
-      // Update sessionId after first message
-      if (!sessionId) {
+      setIsLoading(true);
+
+      const tempSessionId = sessionId || Date.now().toString();
+
+      // Add user's message immediately
+      const userMessage = {
+        id: Date.now().toString(),
+        text: inputMessage,
+        sender: "user" as const,
+        timestamp: new Date(),
+        session_id: tempSessionId,
+      };
+      setInputMessage("");
+      addMessage(userMessage);
+
+      // Show agent typing bubble
+      setIsAgentTyping(true);
+
+      // Send message to API and get agent's reply + sessionId
+      const { message: agentReply, sessionId: updatedSessionId } = await sendChatMessage(
+        inputMessage,
+        sessionId || undefined
+      );
+
+      // If sessionId not set, update it and add to sessions list
+      if (!sessionId && updatedSessionId) {
         setSessionId(updatedSessionId);
+        addSession({
+          sessionId: updatedSessionId,
+          createdAt: new Date().toISOString(),
+        });
       }
-  
-      const agentMessage: Message = {
+
+      const finalSessionId = sessionId || updatedSessionId;
+
+      // Add agent's message
+      const agentMessage = {
         id: Date.now().toString() + "_agent",
         text: agentReply.content,
-        sender: "agent",
+        sender: "agent" as const,
         timestamp: new Date(),
+        session_id: finalSessionId,
       };
-  
-      setMessages((prev) => [...prev, agentMessage]);
-      setInputMessage("");
-  
+      addMessage(agentMessage);
+
+      // Clear input
+      
+
     } catch (error) {
       console.error("Failed to send message:", error);
+    } finally {
+      setIsAgentTyping(false);
+      setIsLoading(false);
     }
   };
 
@@ -93,11 +106,25 @@ const ChatUI = () => {
             </div>
           </div>
         ))}
+
+        {/* Agent Typing Loader */}
+        {isAgentTyping && (
+          <div className="flex justify-start">
+            <div className="max-w-xs lg:max-w-md px-4 py-2 rounded-sm bg-gray-100 text-gray-800">
+              <div className="flex gap-1">
+                <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></span>
+                <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
+                <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></span>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input Area */}
-      <div className="py-4 border-t">
+      <div className="py-4 px-1 border-t">
         <div className="flex gap-2">
           <input
             type="text"
@@ -105,12 +132,12 @@ const ChatUI = () => {
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Type your message..."
-            className="flex-1 px-3 py-2 border border-gray-300 ring-black rounded-md focus:outline-none focus:ring-1 focus:ring-black focus:border-transparent"
+            className="flex-1 text-sm px-3 py-2 border border-gray-300 ring-black rounded-md focus:outline-none focus:ring-1 focus:ring-black focus:border-transparent"
           />
           <button
             onClick={handleSendMessage}
             disabled={!inputMessage.trim() || isLoading}
-            className="px-4 py-2 bg-black text-white rounded-md  disabled:cursor-not-allowed transition-colors"
+            className="px-4 py-2 bg-black text-white rounded-md disabled:cursor-not-allowed transition-colors"
           >
             <IoSend className="text-lg" />
           </button>

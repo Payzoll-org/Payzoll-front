@@ -4,7 +4,7 @@ import { IoMdCall } from "react-icons/io";
 import { IoChatbubbles } from "react-icons/io5";
 import CallUI from "./UI/CallUI";
 import ChatUI from "./UI/ChatUI";
-import {  sendChatMessage } from "../libs/messageUtils";
+
 
 const AgentInput = () => {
   const [activeTab, setActiveTab] = useState<'call' | 'chat'>('call');
@@ -13,20 +13,7 @@ const AgentInput = () => {
     setActiveTab(tab);
   };
 
-  const handleSendMessage = async (message: string) => {
-    try {
-      if (activeTab === 'call') {
-        // For call, we'll handle this in the CallUI component
-        console.log('Call message:', message);
-      } else {
-        // For chat messages
-        await sendChatMessage(message);
-        console.log('Chat message sent:', message);
-      }
-    } catch (error) {
-      console.error('Error sending message:', error);
-    }
-  };
+  
 
   
 
@@ -66,9 +53,9 @@ const AgentInput = () => {
       {/* Content Area */}
       <div className="flex-1 overflow-hidden">
         {activeTab === 'call' ? (
-          <CallUI onSendMessage={handleSendMessage} />
+          <CallUI  />
         ) : (
-          <ChatUI onSendMessage={handleSendMessage} />
+          <ChatUI />
         )}
       </div>
     </div>

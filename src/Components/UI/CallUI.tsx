@@ -7,19 +7,15 @@ interface CallUIProps {
   onSendMessage: (message: string) => void;
 }
 
-const CallUI = ({ onSendMessage }: CallUIProps) => {
+const CallUI = () => {
   const [isCalling, setIsCalling] = useState(false);
   const [callStatus, setCallStatus] = useState<"idle" | "calling" | "connected" | "ended">("idle");
 
   const handleCall = async () => {
-    
-    
     setIsCalling(true);
     setCallStatus("calling");
     
     try {
-      
-      
       // Simulate call connection
       setTimeout(() => {
         setCallStatus("connected");
@@ -31,6 +27,7 @@ const CallUI = ({ onSendMessage }: CallUIProps) => {
     }
   };
 
+  
   const handleEndCall = async () => {
     try {
       
