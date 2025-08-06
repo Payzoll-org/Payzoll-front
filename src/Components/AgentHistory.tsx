@@ -3,7 +3,12 @@ import { RxCross2 } from "react-icons/rx";
 import { Search } from 'lucide-react';
 import { useChatStore } from "../Zustand/chatStore";
 
-const AgentHistory = () => {
+
+interface AgentHistoryProps {
+  onToggleHistory: () => void;
+}
+
+const AgentHistory: React.FC<AgentHistoryProps> = ({onToggleHistory}) => {
   const { sessions } = useChatStore();
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -15,9 +20,9 @@ const AgentHistory = () => {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center border-b py-4 justify-between">
+      <div className="flex items-center border-b py-5 justify-between">
         <h1>History</h1>
-        <RxCross2 className="text-lg" />
+        <button onClick={onToggleHistory} ><RxCross2 className="text-lg" /></button>
       </div>
 
       {/* Search Bar */}
