@@ -98,14 +98,20 @@ const AgentConfiguration: React.FC = () => {
             </div>
         </div>
 
-        <div>
+        <div className="relative">
             <textarea value={prompt}
                 onChange={(e) => setPrompt(e.target.value)} 
                 placeholder="Type in a Universal agent for your agent, such its role, conversational style, objective ,etc." 
-                className="border p-3 text-sm  border-gray-300  rounded-md w-full min-h-50 h-100" 
+                className="border  p-3 text-sm  border-gray-300  rounded-md w-full min-h-50 h-100" 
                 name="Prompte" 
                 id="Prompte">
+
+
              </textarea>
+             <div className="absolute flex gap-3 px-4 bottom-10">
+                <div className="text-white bg-black  border-gray-300 border px-4  py-2 rounded-sm">Save</div>
+                <div className="text-black border-gray-300 border px-4 py-2 rounded-sm">Revort</div>
+             </div>
             <p className="text-sm">Use {'{{}}'} to add variables. (Learn more)</p>
         </div>
 

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import AgentInput from "../Components/AgentInput";
 import AgentPlagroundNavbar from "../Components/AgentPlagroundNavbar";
-import MessageHistory from "../Components/UI/MessageHistory";
 import AgentSetting from "../Components/AgentSetting";
 import AgentHistory from "../Components/AgentHistory";
 import AgentConfiguration from '../Components/AgentConfiguration';
@@ -36,7 +35,7 @@ const AgentPlaygroung = () => {
         )}
       </div>
 
-      <MessageHistory />
+   
     </div>
   );
 };
