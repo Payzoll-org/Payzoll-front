@@ -26,50 +26,8 @@ export class MessageService {
     return MessageService.instance;
   }
 
-  async sendMessage(content: string, type: 'call' | 'chat', metadata?: any): Promise<MessageData> {
-    const message: MessageData = {
-      id: Date.now().toString(),
-      content,
-      type,
-      timestamp: new Date(),
-      status: 'sent',
-      metadata
-    };
-
-    // Simulate API call
-    await this.simulateApiCall(message);
-
-    this.messageHistory.push(message);
-    return message;
-  }
 
   
-  private async simulateApiCall(message: MessageData): Promise<void> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        // Simulate different processing times for call vs chat
-        if (message.type === 'call') {
-          message.status = 'delivered';
-          if (message.metadata?.callStatus === 'connected') {
-            message.status = 'read';
-          }
-        } else {
-          message.status = 'delivered';
-        }
-        resolve();
-      }, Math.random() * 1000 + 500); // Random delay between 500-1500ms
-    });
-  }
-
-  async sendCallMessage(phoneNumber: string, action: 'initiate' | 'end' | 'cancel'): Promise<MessageData> {
-    const content = this.getCallMessageContent(action, phoneNumber);
-    const metadata = {
-      phoneNumber,
-      callStatus: action === 'initiate' ? 'initiated' : 'ended'
-    };
-
-    return this.sendMessage(content, 'call', metadata);
-  }
 
   async sendChatMessage(content: string, sessionId?: string): Promise<{ message: MessageData; sessionId: string }> {
     const prompt = usePromptStore.getState().prompt;
@@ -107,18 +65,6 @@ export class MessageService {
 
 
 
-  private getCallMessageContent(action: 'initiate' | 'end' | 'cancel', phoneNumber: string): string {
-    switch (action) {
-      case 'initiate':
-        return `Call initiated to ${phoneNumber}`;
-      case 'end':
-        return `Call ended with ${phoneNumber}`;
-      case 'cancel':
-        return `Call cancelled for ${phoneNumber}`;
-      default:
-        return `Call action: ${action} for ${phoneNumber}`;
-    }
-  }
 
   getMessageHistory(): MessageData[] {
     return [...this.messageHistory];
@@ -139,9 +85,7 @@ export class MessageService {
 export const messageService = MessageService.getInstance();
 
 // Utility functions for external use
-export const sendCallMessage = (phoneNumber: string, action: 'initiate' | 'end' | 'cancel') => {
-  return messageService.sendCallMessage(phoneNumber, action);
-};
+
 
 export const sendChatMessage = (content: string, sessionId?: string) => {
   return messageService.sendChatMessage(content, sessionId);

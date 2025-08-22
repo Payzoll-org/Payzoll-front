@@ -1,11 +1,13 @@
 import { IoSettingsOutline } from "react-icons/io5";
 import { IoIosArrowDown } from "react-icons/io";
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { usePromptStore } from '../Zustand/AgentConfiguration';
 
 
 const AgentConfiguration: React.FC = () => {
   const { prompt, setPrompt } = usePromptStore();
+  const [savedPrompt, setSavedPrompt] = useState<string>("");
+  const [isChanged, setIsChanged] = useState<boolean>(false);
   const [whoSpeaksFirst, setWhoSpeaksFirst] = useState<'user' | 'agent'>('user');
   const [showOptions, setShowOptions] = useState(false);
   const [agentMessageType, setAgentMessageType] = useState<'dynamic' | 'custom'>('dynamic');
@@ -46,6 +48,23 @@ const AgentConfiguration: React.FC = () => {
       setUserStaticMessage('');
     }
   };
+
+  useEffect(() => {
+    setIsChanged(prompt !== savedPrompt);
+  }, [prompt, savedPrompt]);
+
+
+  const handleSavePrompte = (): void => {
+    localStorage.setItem("userPrompt", prompt);
+    setSavedPrompt(prompt);
+    setIsChanged(false);
+  };
+
+  const handleRevert = (): void => {
+    setPrompt(savedPrompt);
+    setIsChanged(false);
+  };
+
 
   const handleAgentType = (id: 'dynamic' | 'custom') => {
     setAgentMessageType(id);
@@ -108,10 +127,22 @@ const AgentConfiguration: React.FC = () => {
 
 
              </textarea>
-             <div className="absolute flex gap-3 px-4 bottom-10">
-                <div className="text-white bg-black  border-gray-300 border px-4  py-2 rounded-sm">Save</div>
-                <div className="text-black border-gray-300 border px-4 py-2 rounded-sm">Revort</div>
-             </div>
+             {isChanged && (
+        <div className="absolute flex gap-3 px-4 bottom-10">
+          <button
+            onClick={handleSavePrompte}
+            className="text-white bg-black border-gray-300 border px-4 py-2 rounded-sm"
+          >
+            Save
+          </button>
+          <button
+            onClick={handleRevert}
+            className="text-black bg-white border-gray-300 border px-4 py-2 rounded-sm"
+          >
+            Revert
+          </button>
+        </div>
+      )}
             <p className="text-sm">Use {'{{}}'} to add variables. (Learn more)</p>
         </div>
 
