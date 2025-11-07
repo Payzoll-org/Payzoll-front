@@ -1,6 +1,7 @@
 import { IoSettingsOutline } from "react-icons/io5";
 import { IoIosArrowDown } from "react-icons/io";
 import React, { useEffect, useState } from 'react';
+import axios from "axios";
 import { usePromptStore } from '../Zustand/AgentConfiguration';
 
 
@@ -8,17 +9,19 @@ const AgentConfiguration: React.FC = () => {
   const { prompt, setPrompt } = usePromptStore();
   const [savedPrompt, setSavedPrompt] = useState<string>("");
   const [isChanged, setIsChanged] = useState<boolean>(false);
+
   const [whoSpeaksFirst, setWhoSpeaksFirst] = useState<'user' | 'agent'>('user');
-  const [showOptions, setShowOptions] = useState(false);
+  const [silenceTime, setSilenceTime] = useState(5);
+  const [userMessageType, setUserMessageType] = useState<'dynamic' | 'custom'>('dynamic');
+  const [userCustomMessage, setUserCustomMessage] = useState('');
   const [agentMessageType, setAgentMessageType] = useState<'dynamic' | 'custom'>('dynamic');
-  const [showAgentTypeOptions, setShowAgentTypeOptions] = useState(false);
-  const [customMessage, setCustomMessage] = useState('');
+  const [aiCustomMessage, setAiCustomMessage] = useState('');
+
+  const [showOptions, setShowOptions] = useState(false);
+  const [showAiMessageOptions, setShowAiMessageOptions] = useState(false);
   const [savedMessage, setSavedMessage] = useState('');
   const [aiAfterSilence, setAiAfterSilence] = useState(false);
-  const [silenceTime, setSilenceTime] = useState(5);
-  const [userMessageType, setUserMessageType] = useState<'dynamic' | 'static'>('dynamic');
   const [showUserMessageOptions, setShowUserMessageOptions] = useState(false);
-  const [userStaticMessage, setUserStaticMessage] = useState('');
   const [savedUserMessage, setSavedUserMessage] = useState('');
 
   const options = [
@@ -33,20 +36,14 @@ const AgentConfiguration: React.FC = () => {
 
   const userMessageOptions = [
     { id: 'dynamic', label: 'Dynamic Message Based on Prompt' },
-    { id: 'static', label: 'Static Message' },
+    { id: 'custom', label: 'Custom Message' },
   ];
 
   const handleWhoSpeaksFirst = (id: 'user' | 'agent') => {
     setWhoSpeaksFirst(id);
+    setShowAiMessageOptions(false);
+    setShowUserMessageOptions(false);
     setShowOptions(false);
-    if (id === 'user') {
-      setAgentMessageType('dynamic');
-      setCustomMessage('');
-    } else {
-      setAiAfterSilence(false);
-      setUserMessageType('dynamic');
-      setUserStaticMessage('');
-    }
   };
 
   useEffect(() => {
@@ -54,10 +51,58 @@ const AgentConfiguration: React.FC = () => {
   }, [prompt, savedPrompt]);
 
 
-  const handleSavePrompte = (): void => {
-    localStorage.setItem("userPrompt", prompt);
-    setSavedPrompt(prompt);
-    setIsChanged(false);
+
+  useEffect(() => {
+  
+    const timer = setTimeout(() => {
+      const configData = {
+        whoSpeaksFirst,
+        aiAfterSilence,
+        silenceTime,
+        userMessageType,
+        userCustomMessage,
+        agentMessageType,
+        aiCustomMessage,
+      };
+
+      axios.post("http://localhost:4000/api/agent/save-config", configData)
+        .then(() => console.log("✅ Config updated:", configData))
+        .catch(err => console.error("❌ Error updating config:", err));
+    }, 500); // wait 500ms after last change
+
+    return () => clearTimeout(timer);
+  }, [
+    whoSpeaksFirst,
+    aiAfterSilence,
+    silenceTime,
+    userMessageType,
+    userCustomMessage,
+    agentMessageType,
+    aiCustomMessage,
+  ]);
+
+
+  const handleSavePrompte = async (): Promise<void> => {
+    try {
+      // ✅ Get current prompt from Zustand
+      const prompt = usePromptStore.getState().prompt;
+  
+      // ✅ Save to localStorage
+      localStorage.setItem("userPrompt", prompt);
+  
+      // ✅ Send request to backend
+      const response = await axios.post("http://localhost:4000/api/savePrompt", {
+        prompt: prompt,
+      });
+  
+      console.log("✅ Prompt saved to backend:", response.data);
+  
+      // ✅ Update local state (if these come from useState)
+      setSavedPrompt(prompt);
+      setIsChanged(false);
+    } catch (error) {
+      console.error("❌ Error saving prompt:", error);
+    }
   };
 
   const handleRevert = (): void => {
@@ -68,26 +113,26 @@ const AgentConfiguration: React.FC = () => {
 
   const handleAgentType = (id: 'dynamic' | 'custom') => {
     setAgentMessageType(id);
-    setShowAgentTypeOptions(false);
+    setShowAiMessageOptions(false);
     if (id === 'dynamic') {
-      setCustomMessage('');
+      setAiCustomMessage('');
     }
   };
 
-  const handleUserMessageType = (id: 'dynamic' | 'static') => {
+  const handleUserMessageType = (id: 'dynamic' | 'custom') => {
     setUserMessageType(id);
     setShowUserMessageOptions(false);
     if (id === 'dynamic') {
-      setUserStaticMessage('');
+      setUserCustomMessage('');
     }
   };
 
   const handleSave = () => {
-    setSavedMessage(customMessage);
+    setSavedMessage(aiCustomMessage);
   };
 
   const handleSaveUserMessage = () => {
-    setSavedUserMessage(userStaticMessage);
+    setSavedUserMessage(userCustomMessage);
   };
 
   const handleSilenceTimeChange = (value: number) => {
@@ -154,7 +199,7 @@ const AgentConfiguration: React.FC = () => {
       {/* Custom Dropdown for Who Speaks First */}
       <div className="relative w-full mb-2">
         <button
-          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-left bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 flex justify-between items-center"
+          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-left bg-white  flex justify-between items-center"
           onClick={() => setShowOptions((prev) => !prev)}
           type="button"
         >
@@ -166,7 +211,7 @@ const AgentConfiguration: React.FC = () => {
             {options.map((option) => (
               <div
                 key={option.id}
-                className={`px-4 py-2 cursor-pointer hover:bg-gray-100 ${whoSpeaksFirst === option.id ? 'bg-gray-100 font-semibold' : ''}`}
+                className={`px-4 py-2 cursor-pointer hover:bg-gray-100 ${whoSpeaksFirst === option.id ? 'bg-gray-100 ' : ''}`}
                 onClick={() => handleWhoSpeaksFirst(option.id as 'user' | 'agent')}
               >
                 {option.label}
@@ -183,7 +228,7 @@ const AgentConfiguration: React.FC = () => {
 
           
 
-          <div className="flex justify-between mb-3 items-center">
+          <div className="flex justify-between mb-3 pl-1 items-center">
 
             <div className="flex items-center gap-3 ">
               <span className="text-sm font-medium">AI starts speaking after silence</span>
@@ -224,7 +269,7 @@ const AgentConfiguration: React.FC = () => {
 
               <div className="relative w-full">
                 <button
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-left bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 flex justify-between items-center"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-left bg-white   flex justify-between items-center"
                   onClick={() => setShowUserMessageOptions((prev) => !prev)}
                   type="button"
                 >
@@ -236,8 +281,8 @@ const AgentConfiguration: React.FC = () => {
                     {userMessageOptions.map((option) => (
                       <div
                         key={option.id}
-                        className={`px-4 py-2 cursor-pointer hover:bg-gray-100 ${userMessageType === option.id ? 'bg-gray-100 font-semibold' : ''}`}
-                        onClick={() => handleUserMessageType(option.id as 'dynamic' | 'static')}
+                        className={`px-4 py-2 cursor-pointer hover:bg-gray-100 ${userMessageType === option.id ? 'bg-gray-100 ' : ''}`}
+                        onClick={() => handleUserMessageType(option.id as 'dynamic' | 'custom')}
                       >
                         {option.label}
                       </div>
@@ -246,21 +291,21 @@ const AgentConfiguration: React.FC = () => {
                 )}
               </div>
 
-              {userMessageType === 'static' && (
+              {userMessageType === 'custom' && (
                 <div className="flex flex-col gap-2">
                   <div className="flex gap-3">
                     <input
                       type="text"
-                      className="border border-gray-300 rounded-sm w-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Enter static message..."
-                      value={userStaticMessage}
-                      onChange={e => setUserStaticMessage(e.target.value)}
+                      className="border border-gray-300 rounded-sm w-full px-3 py-2 text-sm "
+                      placeholder="Enter custom message..."
+                      value={userCustomMessage}
+                      onChange={e => setUserCustomMessage(e.target.value)}
                     />
                     <button
                       className="px-4 py-2 bg-black text-white rounded hover:bg-gray-800 transition whitespace-nowrap"
                       onClick={handleSaveUserMessage}
                       type="button"
-                      disabled={!userStaticMessage.trim()}
+                      disabled={!userCustomMessage.trim()}
                     >
                       Save
                     </button>
@@ -277,22 +322,26 @@ const AgentConfiguration: React.FC = () => {
 
       {/* If Agent Speaks First, show another dropdown */}
       {whoSpeaksFirst === 'agent' && (
-        <div className="mt-2">
+        <div className="mt-2">  
+        <h1 className="text-sm mt-4 mb-2 pl-1 font-medium">Agent Speak Setting</h1>
+             
+
+
           <div className="relative w-full mb-2">
             <button
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-left bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 flex justify-between items-center"
-              onClick={() => setShowAgentTypeOptions((prev) => !prev)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-left bg-white  flex justify-between items-center"
+              onClick={() => setShowAiMessageOptions((prev) => !prev)}
               type="button"
             >
               {agentTypeOptions.find((o) => o.id === agentMessageType)?.label}
-              <IoIosArrowDown className={`ml-2 transition-transform ${showAgentTypeOptions ? 'rotate-180' : ''}`} />
+              <IoIosArrowDown className={`ml-2 transition-transform ${showAiMessageOptions ? 'rotate-180' : ''}`} />
             </button>
-            {showAgentTypeOptions && (
+            {showAiMessageOptions && (
               <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded shadow">
                 {agentTypeOptions.map((option) => (
                   <div
                     key={option.id}
-                    className={`px-4 py-2 cursor-pointer hover:bg-gray-100 ${agentMessageType === option.id ? 'bg-gray-100 font-semibold' : ''}`}
+                    className={`px-4 py-2 cursor-pointer hover:bg-gray-100 ${agentMessageType === option.id ? 'bg-gray-100' : ''}`}
                     onClick={() => handleAgentType(option.id as 'dynamic' | 'custom')}
                   >
                     {option.label}
@@ -307,16 +356,16 @@ const AgentConfiguration: React.FC = () => {
               <div className="flex gap-3">
                 <input
                   type="text"
-                  className="border border-gray-300 rounded-sm w-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="border border-gray-300 rounded-sm w-full px-3 py-2 text-sm "
                   placeholder="Enter custom welcome message..."
-                  value={customMessage}
-                  onChange={e => setCustomMessage(e.target.value)}
+                  value={aiCustomMessage}
+                  onChange={e => setAiCustomMessage(e.target.value)}
                 />
                 <button
                   className="px-4 py-2 bg-black text-white rounded hover:bg-gray-800 transition whitespace-nowrap"
                   onClick={handleSave}
                   type="button"
-                  disabled={!customMessage.trim()}
+                  disabled={!aiCustomMessage.trim()}
                 >
                   Save
                 </button>
