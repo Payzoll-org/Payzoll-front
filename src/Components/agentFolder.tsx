@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { KeyboardEvent, ChangeEvent, MouseEvent } from 'react';
 import { Bot, Plus, Folder, X, Check, MoreVertical, Edit3, Trash2 } from 'lucide-react';
+import axios from "axios";
 
 interface FolderType {
   id: string;
@@ -27,11 +28,23 @@ const AgentFolder: React.FC<AgentFolderProps> = ({ folders, selectedFolderId, on
   const [deleteTargetFolder, setDeleteTargetFolder] = useState<FolderType | null>(null);
   const [deleteConfirmInput, setDeleteConfirmInput] = useState<string>('');
 
-  const createFolder = (): void => {
-    if (newFolderName.trim()) {
-      onAddFolder(newFolderName.trim());
-      setNewFolderName('');
+
+  const createFolder = async (): Promise<void> => {
+    if (!newFolderName.trim()) return;
+  
+    try {
+      const response = await axios.post("/api/folder/create", {
+        name: newFolderName.trim(),
+      });
+  
+      // Handle success
+      console.log("✅ Folder created:", response.data);
+      onAddFolder(response.data); // Optionally add it to your UI
+      setNewFolderName("");
       setIsCreating(false);
+    } catch (error: any) {
+      console.error("❌ Error creating folder:", error.response?.data || error.message);
+      alert("Failed to create folder!");
     }
   };
 
@@ -45,12 +58,25 @@ const AgentFolder: React.FC<AgentFolderProps> = ({ folders, selectedFolderId, on
     setEditingName(folder.name);
   };
 
-  const saveEdit = (): void => {
-    if (editingId && editingName.trim()) {
+  const saveEdit = async (): Promise<void> => {
+    if (!editingId || !editingName.trim()) return;
+  
+    try {
+      const response = await axios.put(
+        `/api/folder/update/${editingId}`,
+        { name: editingName.trim() }
+      );
+  
+      console.log("✅ Folder updated:", response.data);
+  
+      // Update UI
       onEditFolder(editingId, editingName.trim());
+      setEditingId(null);
+      setEditingName("");
+    } catch (error: any) {
+      console.error("❌ Error updating folder:", error.response?.data || error.message);
+      alert("Failed to update folder name!");
     }
-    setEditingId(null);
-    setEditingName('');
   };
 
   const cancelEdit = (): void => {
@@ -86,10 +112,20 @@ const AgentFolder: React.FC<AgentFolderProps> = ({ folders, selectedFolderId, on
     setDeleteConfirmInput('');
   };
 
-  const confirmDelete = (): void => {
-    if (deleteTargetFolder) {
+  const confirmDelete = async (): Promise<void> => {
+    if (!deleteTargetFolder) return;
+  
+    try {
+      await axios.delete(`/api/folder/delete/${deleteTargetFolder.id}`);
+  
+      console.log("🗑️ Folder deleted successfully");
+  
+      // Update UI after delete
       onDeleteFolder(deleteTargetFolder.id);
       closeDeleteModal();
+    } catch (error: any) {
+      console.error("❌ Error deleting folder:", error.response?.data || error.message);
+      alert("Failed to delete folder!");
     }
   };
 

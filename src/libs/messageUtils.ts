@@ -38,7 +38,7 @@ export class MessageService {
   
     console.log("Sending payload to backend:", payload);
   
-    const response = await fetch("http://localhost:8000/chat", {
+    const response = await fetch("/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
