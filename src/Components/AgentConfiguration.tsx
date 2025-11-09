@@ -65,7 +65,7 @@ const AgentConfiguration: React.FC = () => {
         aiCustomMessage,
       };
 
-      axios.post("http://localhost:4000/api/agent/save-config", configData)
+      axios.post("http://localhost:4000/api/agentconfig/save-config", configData)
         .then(() => console.log("✅ Config updated:", configData))
         .catch(err => console.error("❌ Error updating config:", err));
     }, 500); // wait 500ms after last change
@@ -91,7 +91,7 @@ const AgentConfiguration: React.FC = () => {
       localStorage.setItem("userPrompt", prompt);
   
       // ✅ Send request to backend
-      const response = await axios.post("http://localhost:4000/api/savePrompt", {
+      const response = await axios.post("http://localhost:4000/api/prompt/save", {
         prompt: prompt,
       });
   
