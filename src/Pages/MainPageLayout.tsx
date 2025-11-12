@@ -26,14 +26,6 @@ const MainPageLayout = () => {
   const [selectedFolderId, setSelectedFolderId] = useState<string>('1');
   console.log(folders)
   // Add a new folder
-  const addFolder = (name: string) => {
-    const newFolder: FolderType = {
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-      name,
-      createdAt: new Date()
-    };
-    setFolders([...folders, newFolder]);
-  };
 
   // Select a folder
   const selectFolder = (folderId: string) => {
@@ -81,9 +73,12 @@ const MainPageLayout = () => {
         <div className="bg-white rounded-sm w-100 h-full">
           <AgentFolder
             folders={folders}
+            setFolders={setFolders}
             selectedFolderId={selectedFolderId}
             onSelectFolder={selectFolder}
-            onAddFolder={addFolder}
+            setSelectedFolderId={setSelectedFolderId}
+            
+  
             onEditFolder={editFolder}
             onDeleteFolder={deleteFolder}
           />
