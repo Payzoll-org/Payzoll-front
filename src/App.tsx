@@ -10,13 +10,18 @@ import WebHook from './Pages/WebHook'
 import Knowledge from './Pages/Knowledge'
 import ChatHistory from './Pages/ChatHistory';
 import CallHistory from './Pages/CallHistory';
-
+import AuthPage from './Pages/AuthPage';
 
 // ✅ Create router with future flag
 const router = createBrowserRouter(
-  [
+  [{
+    path: "/auth",
+    element: <AuthPage />,
+  },
+ 
+
     {
-      path: "/",
+      path: "/dashboard",
       element: <MainPage />,
     },
     {
