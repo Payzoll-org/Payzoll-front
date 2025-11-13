@@ -1,14 +1,14 @@
-import { ChevronDown, Search, X, MessageSquare, Mic, ArrowRight, Plus } from 'lucide-react';
+import { ChevronDown, Search, X, MessageSquare, Mic, Plus } from 'lucide-react';
 import React, { useState } from 'react';
-import type { ChangeEvent, KeyboardEvent } from 'react';
+
+import axios from 'axios';
 
 interface AgentType {
   id: string;
   name: string;
   folderId: string;
-  type: string;
   voice: string;
-  phone: number;
+  category: string;
   createdAt: Date;
 }
 
@@ -20,7 +20,7 @@ interface FolderType {
 
 interface AgentMenuProps {
   agents: AgentType[];
-  onAddAgent: (name: string, type: string, voice: string, phone: number) => void;
+  onAddAgent: (name: string, category: string, voice: string, phone: number) => void;
   selectedFolderId: string;
   folders: FolderType[];
 }
@@ -38,31 +38,19 @@ const AgentMenu: React.FC<AgentMenuProps> = ({ agents, onAddAgent, selectedFolde
   const [selectedAgentTypeId, setSelectedAgentTypeId] = useState<string>('');
 
   const voiceAgentTypes = [
-    { id: 'customer-service', name: 'Customer Service', description: 'Handle customer inquiries and support', icon: '🎧' },
-    { id: 'sales-agent', name: 'Sales Agent', description: 'Generate leads and close sales', icon: '💰' },
-    { id: 'appointment-scheduler', name: 'Appointment Scheduler', description: 'Schedule and manage appointments', icon: '📅' },
-    { id: 'survey-agent', name: 'Survey Agent', description: 'Conduct surveys and collect feedback', icon: '📊' }
+    { id: 'customer-service', name: 'Customer Service', description: 'Handle customer inquiries and support', icon: '🎧' , voice:'luma'},
+    { id: 'sales-agent', name: 'Sales Agent', description: 'Generate leads and close sales', icon: '💰',voice:'luma' },
+    { id: 'appointment-scheduler', name: 'Appointment Scheduler', description: 'Schedule and manage appointments', icon: '📅',voice:'luma'  },
+    { id: 'survey-agent', name: 'Survey Agent', description: 'Conduct surveys and collect feedback', icon: '📊' ,voice:'luma' }
   ];
 
   const textAgentTypes = [
-    { id: 'chat-support', name: 'Chat Support', description: 'Provide customer support via chat', icon: '💬' },
-    { id: 'lead-qualifier', name: 'Lead Qualifier', description: 'Qualify leads through conversation', icon: '🎯' },
-    { id: 'faq-bot', name: 'FAQ Bot', description: 'Answer frequently asked questions', icon: '❓' },
-    { id: 'conversation-agent', name: 'Conversation Agent', description: 'Engage in general conversations', icon: '🤖' }
+    { id: 'chat-support', name: 'Chat Support', description: 'Provide customer support via chat', icon: '💬' ,voice:'luma' },
+    { id: 'lead-qualifier', name: 'Lead Qualifier', description: 'Qualify leads through conversation', icon: '🎯' ,voice:'luma' },
+    { id: 'faq-bot', name: 'FAQ Bot', description: 'Answer frequently asked questions', icon: '❓' ,voice:'luma' },
+    { id: 'conversation-agent', name: 'Conversation Agent', description: 'Engage in general conversations', icon: '🤖' ,voice:'luma' }
   ];
 
-  const handleCreateAgent = () => {
-    if (selectedAgentType && agentName.trim()) {
-      if (selectedAgentCategory === 'voice') {
-        if (voiceType && phoneNumber) {
-          onAddAgent(agentName.trim(), selectedAgentType, voiceType, parseInt(phoneNumber));
-        }
-      } else {
-        onAddAgent(agentName.trim(), selectedAgentType, '', 0);
-      }
-      resetForm();
-    }
-  };
 
   const resetForm = () => {
     setSelectedAgentCategory(null);
@@ -93,29 +81,57 @@ const AgentMenu: React.FC<AgentMenuProps> = ({ agents, onAddAgent, selectedFolde
     setSelectedAgentTypeId(typeId);
   };
 
-  const handleCreateAgentFromModal = () => {
-    if (selectedAgentTypeId && selectedAgentCategory) {
-      // Generate a default name based on the selected type
-      const agentTypes = selectedAgentCategory === 'voice' ? voiceAgentTypes : textAgentTypes;
-      const selectedType = agentTypes.find(type => type.id === selectedAgentTypeId);
-      const defaultName = `${selectedType?.name} Agent`;
-      
-      // Create the agent with default values
-      if (selectedAgentCategory === 'voice') {
-        onAddAgent(defaultName, selectedAgentTypeId, 'neutral', 1234567890);
+
+console.log(agentName)
+
+
+  const handleCreateAgentFromModal = async () => {
+    if (!selectedAgentTypeId || !selectedAgentCategory) return;
+  
+    // pick correct list
+    const agentList =
+      selectedAgentCategory === 'voice' ? voiceAgentTypes : textAgentTypes;
+  
+    // directly find selected agent type
+    const selectedType = agentList.find((type) => type.id === selectedAgentTypeId);
+    if (!selectedType) return;
+  
+    // build complete agent object (no temporary variables)
+    const agentToSend = {
+      name: `${selectedType.name} Agent`,
+      category: selectedAgentCategory,
+      voice: selectedType.voice || '',
+      folderId: selectedFolderId,
+    };
+
+
+    console.log(agentToSend)
+  
+    try {
+      const response = await axios.post('http://localhost:4000/api/agent/create', agentToSend);
+  
+      if (response.data.success) {
+        console.log('✅ Agent created successfully:', response.data.agent.category);
+  
+        // Update UI instantly
+        onAddAgent(
+          response.data.agent.name,
+          response.data.agent.category,
+          response.data.agent.voice,
+          response.data.agent.phone
+        );
+  
+        resetForm();
+        setShowAgentTypeModal(false);
       } else {
-        onAddAgent(defaultName, selectedAgentTypeId, '', 0);
+        console.error('❌ Error creating agent:', response.data.message);
       }
-      
-      resetForm();
+    } catch (error) {
+      console.error('🚨 Error while sending request:', error);
     }
   };
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleCreateAgent();
-    }
-  };
+
 
   // Find selected folder name
   const selectedFolder = folders.find(f => f.id === selectedFolderId);
@@ -217,12 +233,7 @@ const AgentMenu: React.FC<AgentMenuProps> = ({ agents, onAddAgent, selectedFolde
                         <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
                           {type.description}
                         </p>
-                        {selectedAgentTypeId === type.id && (
-                          <div className="flex items-center text-blue-600 dark:text-blue-400 text-sm font-medium">
-                            <div className="w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full mr-2"></div>
-                            Selected
-                          </div>
-                        )}
+                        
                       </div>
                     </div>
                   </div>
@@ -252,7 +263,8 @@ const AgentMenu: React.FC<AgentMenuProps> = ({ agents, onAddAgent, selectedFolde
 
       <div className='w-full flex justify-between px-4 py-3 bg-gray-100 border-b text-sm rounded-tl-lg mt-8'>
         <h1>Agent Name</h1>
-        <h1>Type</h1>
+        <h1>Voice</h1>
+        <h1>Category</h1>
         <h1>Created</h1>
         {/* Add more columns as needed */}
       </div>
@@ -262,7 +274,8 @@ const AgentMenu: React.FC<AgentMenuProps> = ({ agents, onAddAgent, selectedFolde
         agents.map(agent => (
           <div key={agent.id} className='w-full flex justify-between px-4 py-3 hover:bg-gray-100 border-b text-sm'>
             <h1>{agent.name}</h1>
-            <h1 className="capitalize">{agent.type}</h1>
+            <h1 className="capitalize">{agent.voice}</h1>
+            <h1>{agent.category}</h1>
             <h1>{agent.createdAt.toLocaleDateString()}</h1>
             {/* Add more agent fields as needed */}
           </div>

@@ -12,7 +12,7 @@ interface FolderType {
 interface AgentType {
   id: string;
   name: string;
-  type:string;
+  category:string;
   voice:string;
   phone:number;
   folderId: string;
@@ -25,20 +25,15 @@ const MainPageLayout = () => {
   const [agents, setAgents] = useState<AgentType[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState<string>('1');
   console.log(folders)
-  // Add a new folder
 
-  // Select a folder
-  const selectFolder = (folderId: string) => {
-    setSelectedFolderId(folderId);
-  };
 
   // Add a new agent to the selected folder
-  const addAgent = (name: string, type: string, voice: string, phone: number) => {
+  const addAgent = (name: string, category: string, voice: string, phone: number) => {
     if (!selectedFolderId) return;
     const newAgent: AgentType = {
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
       name,
-      type,
+      category,
       voice,
       phone,
       folderId: selectedFolderId,
@@ -75,10 +70,7 @@ const MainPageLayout = () => {
             folders={folders}
             setFolders={setFolders}
             selectedFolderId={selectedFolderId}
-            onSelectFolder={selectFolder}
             setSelectedFolderId={setSelectedFolderId}
-            
-  
             onEditFolder={editFolder}
             onDeleteFolder={deleteFolder}
           />
