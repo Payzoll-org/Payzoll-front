@@ -1,5 +1,6 @@
 import { ChevronDown, Search, X, MessageSquare, Mic, Plus } from 'lucide-react';
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import axios from 'axios';
 
@@ -20,7 +21,7 @@ interface FolderType {
 
 interface AgentMenuProps {
   agents: AgentType[];
-  onAddAgent: (name: string, category: string, voice: string, phone: number) => void;
+  onAddAgent: (id: string ,name: string, category: string, voice: string ) => void;
   selectedFolderId: string;
   folders: FolderType[];
 }
@@ -36,6 +37,7 @@ const AgentMenu: React.FC<AgentMenuProps> = ({ agents, onAddAgent, selectedFolde
   const [showForm, setShowForm] = useState(false);
   const [showAgentTypeModal, setShowAgentTypeModal] = useState(false);
   const [selectedAgentTypeId, setSelectedAgentTypeId] = useState<string>('');
+  const navigate = useNavigate();
 
   const voiceAgentTypes = [
     { id: 'customer-service', name: 'Customer Service', description: 'Handle customer inquiries and support', icon: '🎧' , voice:'luma'},
@@ -82,7 +84,6 @@ const AgentMenu: React.FC<AgentMenuProps> = ({ agents, onAddAgent, selectedFolde
   };
 
 
-console.log(agentName)
 
 
   const handleCreateAgentFromModal = async () => {
@@ -105,20 +106,20 @@ console.log(agentName)
     };
 
 
-    console.log(agentToSend)
+
   
     try {
       const response = await axios.post('http://localhost:4000/api/agent/create', agentToSend);
   
       if (response.data.success) {
-        console.log('✅ Agent created successfully:', response.data.agent.category);
+        console.log('✅ Agent created successfully:', response.data.agent);
   
         // Update UI instantly
         onAddAgent(
+          response.data.agent._id,
           response.data.agent.name,
           response.data.agent.category,
           response.data.agent.voice,
-          response.data.agent.phone
         );
   
         resetForm();
@@ -272,7 +273,7 @@ console.log(agentName)
         <div className="text-center text-gray-400 py-8">No agents in this folder.</div>
       ) : (
         agents.map(agent => (
-          <div key={agent.id} className='w-full flex justify-between px-4 py-3 hover:bg-gray-100 border-b text-sm'>
+          <div onClick={() => navigate(`/agent/${agent.id}`)}  key={agent.id} className='w-full flex justify-between px-4 py-3 hover:bg-gray-100 border-b text-sm'>
             <h1>{agent.name}</h1>
             <h1 className="capitalize">{agent.voice}</h1>
             <h1>{agent.category}</h1>

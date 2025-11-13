@@ -14,7 +14,6 @@ interface AgentType {
   name: string;
   category:string;
   voice:string;
-  phone:number;
   folderId: string;
   createdAt: Date;
   // add more agent fields as needed
@@ -24,18 +23,17 @@ const MainPageLayout = () => {
   const [folders, setFolders] = useState<FolderType[]>([]);
   const [agents, setAgents] = useState<AgentType[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState<string>('1');
-  console.log(folders)
+
 
 
   // Add a new agent to the selected folder
-  const addAgent = (name: string, category: string, voice: string, phone: number) => {
+  const addAgent = (id:string, name: string, category: string, voice: string,) => {
     if (!selectedFolderId) return;
     const newAgent: AgentType = {
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      id: id,
       name,
       category,
       voice,
-      phone,
       folderId: selectedFolderId,
       createdAt: new Date()
     };

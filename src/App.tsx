@@ -20,7 +20,7 @@ const router = createBrowserRouter(
       element: <MainPage />,
     },
     {
-      path: "/agent",
+      path: "/agent/:id",
       element: <AgentPlaygroung />,
     },
     {
