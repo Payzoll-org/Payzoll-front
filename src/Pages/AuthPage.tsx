@@ -1,5 +1,9 @@
 import { useState } from "react";
 import { Eye, EyeOff} from "lucide-react";
+import axios from "axios";
+
+
+
 
 interface FormData {
   firstName: string;
@@ -21,10 +25,40 @@ export default function AuthPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
-  const handleSubmit = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
-    console.log("Form submitted:", form);
-    // Add your authentication logic here
+  
+    try {
+      let response;
+  
+      if (isSignup) {
+        // SIGNUP REQUEST
+        response = await axios.post("http://localhost:5173/signup", {
+          firstName: form.firstName,
+          lastName: form.lastName,
+          email: form.email,
+          password: form.password,
+        });
+      } else {
+        // LOGIN REQUEST
+        response = await axios.post("http://localhost:5173/login", {
+          email: form.email,
+          password: form.password,
+        });
+      }
+  
+      console.log("Server Response:", response.data);
+  
+      alert(isSignup ? "Signup successful!" : "Login successful!");
+  
+      // Optional: Save token
+      // localStorage.setItem("token", response.data.token);
+  
+    } catch (error: any) {
+      console.error("Error:", error);
+  
+      alert(error.response?.data?.message || "Something went wrong!");
+    }
   };
 
   return (
