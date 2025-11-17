@@ -1,9 +1,9 @@
 import { IoSettingsOutline } from "react-icons/io5";
 import { IoIosArrowDown } from "react-icons/io";
 import React, { useEffect, useState } from 'react';
-import axios from "axios";
 import { usePromptStore } from '../Zustand/AgentConfiguration';
 import { useParams } from "react-router-dom";
+import { AgentManagementApi } from "../services/agentManagementApi";
 
 interface AgentConfig {
   whoSpeaksFirst: 'user' | 'agent';
@@ -64,10 +64,10 @@ const AgentConfiguration: React.FC = () => {
       
       try {
         setLoading(true);
-        const res = await axios.get(`http://localhost:4000/api/agentconfig/get-config/${id}`);
+        const res = await AgentManagementApi.getAgentConfig(id);
         
-        if (res.data?.data) {
-          const fetchedConfig = res.data.data;
+        if (res?.data) {
+          const fetchedConfig = res.data;
           
           // Update config state with fetched data
           setConfig({
@@ -134,7 +134,7 @@ const AgentConfiguration: React.FC = () => {
         prompt, // include the current prompt in the same payload
       };
   
-      await axios.post(`http://localhost:4000/api/agentconfig/save-config/${id}`, updatedConfig);
+      await AgentManagementApi.saveAgentConfig(id, updatedConfig);
   
       console.log("✅ Config (with prompt) auto-saved:", updatedConfig);
       setSavedPrompt(prompt); // update local state

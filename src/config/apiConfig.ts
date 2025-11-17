@@ -1,0 +1,52 @@
+export type ApiService = "auth" | "agentManagement" | "agentChat";
+
+const AUTH_API_URL =
+  import.meta.env.VITE_AUTH_API_URL || "http://localhost:4000";
+const AGENT_MANAGEMENT_API_URL =
+  import.meta.env.VITE_AGENT_MANAGEMENT_API_URL || "http://localhost:3000";
+const AGENT_CHAT_API_URL =
+  import.meta.env.VITE_AGENT_CHAT_API_URL || "http://localhost:6000";
+
+export const API_BASE_MAP: Record<ApiService, string> = {
+  auth: AUTH_API_URL,
+  agentManagement: AGENT_MANAGEMENT_API_URL,
+  agentChat: AGENT_CHAT_API_URL,
+};
+
+export const API_ROUTES = {
+  auth: {
+    register: "/api/auth/register",
+    verifyOtp: "/api/auth/verify-otp",
+    resendOtp: "/api/auth/resend-otp",
+    login: "/api/auth/login",
+    logout: "/api/auth/logout",
+    logoutAll: "/api/auth/logout-all",
+    refresh: "/api/auth/refresh",
+    me: "/api/auth/me",
+    sessions: "/api/auth/sessions",
+    revokeSession: (sessionId: string) => `/api/auth/sessions/${sessionId}`,
+  },
+  agentManagement: {
+    agents: "/api/agents",
+    agentById: (agentId: string) => `/api/agents/${agentId}`,
+    createAgent: "/api/agent/create",
+    getAgentConfig: (agentId: string) =>
+      `/api/agentconfig/get-config/${agentId}`,
+    saveAgentConfig: (agentId: string) =>
+      `/api/agentconfig/save-config/${agentId}`,
+    folders: "/api/folders",
+    createFolder: "/api/folder/create",
+    updateFolder: (folderId: string) => `/api/folder/update/${folderId}`,
+    deleteFolder: (folderId: string) => `/api/folder/delete/${folderId}`,
+  },
+  agentChat: {
+    chat: "/chat",
+    conversations: "/api/chat/conversations",
+    sendMessage: "/api/chat/messages",
+  },
+};
+
+export function getApiBase(service: ApiService = "auth") {
+  return API_BASE_MAP[service];
+}
+

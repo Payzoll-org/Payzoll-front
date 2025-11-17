@@ -1,8 +1,7 @@
 import { ChevronDown, Search, X, MessageSquare, Mic, Plus } from 'lucide-react';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-import axios from 'axios';
+import { AgentManagementApi } from "../services/agentManagementApi";
 
 interface AgentType {
   id: string;
@@ -109,23 +108,23 @@ const AgentMenu: React.FC<AgentMenuProps> = ({ agents, onAddAgent, selectedFolde
 
   
     try {
-      const response = await axios.post('http://localhost:4000/api/agent/create', agentToSend);
-  
-      if (response.data.success) {
-        console.log('✅ Agent created successfully:', response.data.agent);
+      const response = await AgentManagementApi.createAgent(agentToSend);
+
+      if (response.success) {
+        console.log('✅ Agent created successfully:', response.agent);
   
         // Update UI instantly
         onAddAgent(
-          response.data.agent._id,
-          response.data.agent.name,
-          response.data.agent.category,
-          response.data.agent.voice,
+          response.agent._id,
+          response.agent.name,
+          response.agent.category,
+          response.agent.voice,
         );
   
         resetForm();
         setShowAgentTypeModal(false);
       } else {
-        console.error('❌ Error creating agent:', response.data.message);
+        console.error('❌ Error creating agent:', response.message);
       }
     } catch (error) {
       console.error('🚨 Error while sending request:', error);

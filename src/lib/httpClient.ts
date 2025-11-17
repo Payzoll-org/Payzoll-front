@@ -1,18 +1,20 @@
 import { useAuthStore } from "../Zustand/userStore";
-
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:4000";
+import { getApiBase } from "../config/apiConfig";
+import type { ApiService } from "../config/apiConfig";
 
 interface HttpOptions extends RequestInit {
   auth?: boolean;
   retry?: boolean;
+  service?: ApiService;
 }
+
+
 
 export async function http(
   path: string,
   options: HttpOptions = {}
 ): Promise<Response> {
-  const { auth = true, retry, ...rest } = options;
+  const { auth = true, retry, service = "auth", ...rest } = options;
   const { accessToken } = useAuthStore.getState();
 
   const headers = new Headers(rest.headers || {});
@@ -23,7 +25,7 @@ export async function http(
     headers.set("Authorization", `Bearer ${accessToken}`);
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(`${getApiBase(service)}${path}`, {
     ...rest,
     headers,
     credentials: "include",
@@ -57,7 +59,7 @@ async function performRefresh(fetchProfile: boolean): Promise<string | null> {
   const { setAccessToken, setUser, clearSession } = useAuthStore.getState();
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+    const response = await fetch(`${getApiBase("auth")}/api/auth/refresh`, {
       method: "POST",
       credentials: "include",
     });
@@ -95,7 +97,7 @@ async function fetchCurrentUser() {
   if (!accessToken) return null;
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+    const response = await fetch(`${getApiBase("auth")}/api/auth/me`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -120,6 +122,4 @@ async function fetchCurrentUser() {
     return null;
   }
 }
-
-export { API_BASE_URL };
 

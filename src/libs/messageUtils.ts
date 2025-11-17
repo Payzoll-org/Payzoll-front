@@ -1,4 +1,6 @@
 import { usePromptStore } from '../Zustand/AgentConfiguration';
+import { http } from "../lib/httpClient";
+import { API_ROUTES } from "../config/apiConfig";
 
 export interface MessageData {
   id: string;
@@ -35,10 +37,12 @@ export class MessageService {
   
     console.log("Sending payload to backend:", payload);
   
-    const response = await fetch("http://localhost:8000/chat", {
+    const response = await http(API_ROUTES.agentChat.chat, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      service: "agentChat",
+      auth: false,
       body: JSON.stringify(payload),
+      headers: { "Content-Type": "application/json" },
     });
   
     if (!response.ok) {

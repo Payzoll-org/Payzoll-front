@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import type { KeyboardEvent, ChangeEvent } from 'react';
 import { Bot, Plus, Folder, MoreVertical, Edit3, Trash2 } from 'lucide-react';
-import axios from "axios";
+import { AgentManagementApi } from "../services/agentManagementApi";
 
 interface FolderType {
   id: string;
@@ -42,8 +42,8 @@ const AgentFolder: React.FC<AgentFolderProps> = ({ folders, selectedFolderId,set
         setLoading(true);
         setError("");
 
-        const res = await axios.get("/api/folders");
-        setFolders(res.data.folders || []);
+        const res = await AgentManagementApi.getFolders();
+        setFolders(res.folders || []);
       } catch (err: any) {
         console.error("Error fetching folders:", err);
         setError(err.response?.data?.message || "Failed to load folders");
@@ -64,12 +64,12 @@ const AgentFolder: React.FC<AgentFolderProps> = ({ folders, selectedFolderId,set
   
     try {
       // Step 1: Send request to backend
-      const response = await axios.post("/api/folder/create", {
+      const response = await AgentManagementApi.createFolder({
         name: newFolderName.trim(),
       });
   
       // Step 2: Extract folder data
-      const folder = response.data.folder;
+      const folder = response.folder;
   
       // Step 3: Add folder to local state
       const newFolder: FolderType = {
@@ -107,10 +107,9 @@ const AgentFolder: React.FC<AgentFolderProps> = ({ folders, selectedFolderId,set
   
     try {
       setLoading(true);
-      const response = await axios.put(
-        `/api/folder/update/${editingId}`,
-        { name: editingName.trim() }
-      );
+      const response = await AgentManagementApi.updateFolder(editingId, {
+        name: editingName.trim(),
+      });
   
       console.log("✅ Folder updated:", response.data);
   
@@ -164,7 +163,7 @@ const AgentFolder: React.FC<AgentFolderProps> = ({ folders, selectedFolderId,set
   
     try {
       setLoading(true);
-      await axios.delete(`/api/folder/delete/${deleteTargetFolder.id}`);
+      await AgentManagementApi.deleteFolder(deleteTargetFolder.id);
   
       console.log("🗑️ Folder deleted successfully");
   

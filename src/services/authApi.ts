@@ -1,6 +1,7 @@
 import { http, refreshSession } from "../lib/httpClient";
 import type { User } from "../Zustand/userStore";
 import { useAuthStore} from "../Zustand/userStore";
+import { API_ROUTES } from "../config/apiConfig";
 
 interface RegisterPayload {
   name: string;
@@ -22,7 +23,7 @@ interface ResendOtpPayload {
   email: string;
 }
 
-const AUTH_BASE = "/api/auth";
+const ROUTES = API_ROUTES.auth;
 
 function assertData(response: Response, data: any) {
   if (!response.ok) {
@@ -32,7 +33,7 @@ function assertData(response: Response, data: any) {
 }
 
 export async function registerUser(payload: RegisterPayload) {
-  const response = await http(`${AUTH_BASE}/register`, {
+  const response = await http(ROUTES.register, {
     method: "POST",
     auth: false,
     body: JSON.stringify(payload),
@@ -44,7 +45,7 @@ export async function registerUser(payload: RegisterPayload) {
 }
 
 export async function verifyOtp(payload: VerifyOtpPayload) {
-  const response = await http(`${AUTH_BASE}/verify-otp`, {
+  const response = await http(ROUTES.verifyOtp, {
     method: "POST",
     auth: false,
     body: JSON.stringify(payload),
@@ -65,7 +66,7 @@ export async function verifyOtp(payload: VerifyOtpPayload) {
 }
 
 export async function resendOtp(payload: ResendOtpPayload) {
-  const response = await http(`${AUTH_BASE}/resend-otp`, {
+  const response = await http(ROUTES.resendOtp, {
     method: "POST",
     auth: false,
     body: JSON.stringify(payload),
@@ -77,7 +78,7 @@ export async function resendOtp(payload: ResendOtpPayload) {
 }
 
 export async function loginUser(payload: LoginPayload) {
-  const response = await http(`${AUTH_BASE}/login`, {
+  const response = await http(ROUTES.login, {
     method: "POST",
     auth: false,
     body: JSON.stringify(payload),
@@ -98,21 +99,21 @@ export async function loginUser(payload: LoginPayload) {
 }
 
 export async function logoutUser() {
-  await http(`${AUTH_BASE}/logout`, {
+  await http(ROUTES.logout, {
     method: "POST",
   });
   useAuthStore.getState().clearSession();
 }
 
 export async function logoutAllSessions() {
-  await http(`${AUTH_BASE}/logout-all`, {
+  await http(ROUTES.logoutAll, {
     method: "POST",
   });
   useAuthStore.getState().clearSession();
 }
 
 export async function getActiveSessions() {
-  const response = await http(`${AUTH_BASE}/sessions`, {
+  const response = await http(ROUTES.sessions, {
     method: "GET",
   });
   const data = await response.json();
@@ -121,7 +122,7 @@ export async function getActiveSessions() {
 }
 
 export async function revokeSession(sessionId: string) {
-  const response = await http(`${AUTH_BASE}/sessions/${sessionId}`, {
+  const response = await http(ROUTES.revokeSession(sessionId), {
     method: "DELETE",
   });
   const data = await response.json();
