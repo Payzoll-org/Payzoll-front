@@ -1,24 +1,31 @@
-import { useState } from "react";
+// components/ProtectedRoute.tsx
+import { useEffect } from "react";
+import type { ReactNode } from "react";
 import { useAuthStore } from "../Zustand/userStore";
+import { useNavigate } from "react-router-dom";
 
-export default function Login() {
-  const [form, setForm] = useState({ email: "", password: "" });
-  const login = useAuthStore((s) => s.login);
+interface ProtectedRouteProps {
+  children: ReactNode;
+}
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+export default function ProtectedRoute({ children }: ProtectedRouteProps) {
+  const { user } = useAuthStore();
+  console.log(user)
+  const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await login(form.email, form.password);
-    window.location.href = "/dashboard";
-  };
+  useEffect(() => {
+    if (!user) {
+      navigate("/auth"); // redirect to login/signup page
+    }
+  }, [user, navigate]);
 
-  return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3 w-72 mx-auto mt-10">
-      <input name="email" placeholder="Email" onChange={handleChange} />
-      <input name="password" type="password" placeholder="Password" onChange={handleChange} />
-      <button type="submit">Login</button>
-    </form>
-  );
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-gray-600 text-lg">Redirecting to login...</p>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
 }

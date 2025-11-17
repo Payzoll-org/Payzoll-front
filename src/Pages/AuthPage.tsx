@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import { useAuthStore } from "../Zustand/userStore";
+import { useNavigate } from "react-router-dom";
 
 interface FormData {
   firstName: string;
@@ -15,7 +17,7 @@ export default function AuthPage() {
     email: "", 
     password: "" 
   });
-
+  const { user, setUser, setAccessToken } = useAuthStore();
   const [isSignup, setIsSignup] = useState<boolean>(false);
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -24,6 +26,13 @@ export default function AuthPage() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleOtpInput = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     const value = e.target.value;
@@ -63,29 +72,29 @@ export default function AuthPage() {
   
       const response = await fetch("http://localhost:4000/api/auth/verify-otp", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
         body: JSON.stringify({
           email: userEmail,
           otp: code,
         }),
       });
   
-      const data = await response.json();
+      const data = await response.json(); // <-- access the JSON body
   
       if (!response.ok) {
         alert(data.message || "Invalid OTP");
-        setLoading(false);
         return;
       }
   
-      alert("Email verified successfully! You can now log in.");
-      console.log("OTP Verified:", data);
-  
-      // Reset to login screen
-      setShowVerification(false);
-      setIsSignup(false);
-      setOtp(["", "", "", "", "", ""]);
-      setForm({ firstName: "", lastName: "", email: userEmail, password: "" });
+      // Access user and accessToken from the API response body
+      setUser(data.data.user);
+      setAccessToken(data.data.accessToken);
+
+      // Navigate to dashboard after successful verification
+      navigate("/dashboard");
   
     } catch (error) {
       console.error("OTP verification failed:", error);
@@ -184,6 +193,7 @@ export default function AuthPage() {
           headers: {
             "Content-Type": "application/json",
           },
+          credentials: "include",
           body: JSON.stringify({
             email: form.email,
             password: form.password,
@@ -194,9 +204,13 @@ export default function AuthPage() {
         console.log("Login Response:", data);
 
         if (response.ok) {
+          // Save user and token in global auth store
+          setUser(data.data.user);
+          setAccessToken(data.data.accessToken);
+
           alert("Login successful!");
           // Redirect to dashboard
-          window.location.href = "/dashboard";
+          navigate("/dashboard");
         } else {
           const errorMessage = data.error || data.message || "Login failed";
           
