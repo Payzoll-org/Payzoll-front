@@ -2,6 +2,12 @@ import { useEffect, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuthStore } from "../Zustand/userStore";
 import { useNavigate } from "react-router-dom";
+import {
+  loginUser,
+  registerUser,
+  resendOtp as resendOtpRequest,
+  verifyOtp as verifyOtpRequest,
+} from "../services/authApi";
 
 interface FormData {
   firstName: string;
@@ -17,7 +23,7 @@ export default function AuthPage() {
     email: "", 
     password: "" 
   });
-  const { user, setUser, setAccessToken } = useAuthStore();
+  const { user } = useAuthStore();
   const [isSignup, setIsSignup] = useState<boolean>(false);
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -59,7 +65,7 @@ export default function AuthPage() {
     }
   };
 
-  const verifyOtp = async () => {
+  const handleVerifyOtp = async () => {
     const code = otp.join("");
   
     if (code.length !== 6) {
@@ -70,67 +76,35 @@ export default function AuthPage() {
     try {
       setLoading(true);
   
-      const response = await fetch("http://localhost:4000/api/auth/verify-otp", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          email: userEmail,
-          otp: code,
-        }),
+      await verifyOtpRequest({
+        email: userEmail,
+        otp: code,
       });
-  
-      const data = await response.json(); // <-- access the JSON body
-  
-      if (!response.ok) {
-        alert(data.message || "Invalid OTP");
-        return;
-      }
-  
-      // Access user and accessToken from the API response body
-      setUser(data.data.user);
-      setAccessToken(data.data.accessToken);
 
-      // Navigate to dashboard after successful verification
       navigate("/dashboard");
   
-    } catch (error) {
+    } catch (error: any) {
       console.error("OTP verification failed:", error);
-      alert("Something went wrong");
+      alert(error.message || "Invalid OTP");
     } finally {
       setLoading(false);
     }
   };
   
-  const resendOtp = async () => {
+  const handleResendOtp = async () => {
     try {
       setResendLoading(true);
   
-      const response = await fetch("http://localhost:4000/api/auth/resend-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: userEmail }),
-      });
-  
-      const data = await response.json();
-  
-      if (!response.ok) {
-        alert(data.message || "Failed to resend OTP");
-        setResendLoading(false);
-        return;
-      }
-  
+      await resendOtpRequest({ email: userEmail });
+
       alert("OTP resent successfully! Check your email.");
-      console.log("OTP Resent:", data);
       
       // Clear OTP inputs
       setOtp(["", "", "", "", "", ""]);
   
-    } catch (error) {
+    } catch (error: any) {
       console.error("Resend OTP failed:", error);
-      alert("Something went wrong");
+      alert(error.message || "Failed to resend OTP");
     } finally {
       setResendLoading(false);
     }
@@ -157,78 +131,40 @@ export default function AuthPage() {
     setIsLoading(true);
   
     try {
-      let response;
-  
       if (isSignup) {
-        // SIGNUP REQUEST
         const fullName = `${form.firstName} ${form.lastName}`;
-  
-        response = await fetch("http://localhost:4000/api/auth/register", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name: fullName,
-            email: form.email,
-            password: form.password,
-          }),
+        await registerUser({
+          name: fullName,
+          email: form.email,
+          password: form.password,
         });
-  
-        const data = await response.json();
-        console.log("Signup Response:", data);
-  
-        if (response.ok) {
-          setUserEmail(form.email);
-          setShowVerification(true);
-          alert("Account created! Please check your email for the verification code.");
-        } else {
-          alert(data.error || data.message || "Signup failed");
-        }
-        
+
+        setUserEmail(form.email);
+        setShowVerification(true);
+        alert("Account created! Please check your email for the verification code.");
       } else {
-        // LOGIN REQUEST
-        response = await fetch("http://localhost:4000/api/auth/login", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            email: form.email,
-            password: form.password,
-          }),
+        await loginUser({
+          email: form.email,
+          password: form.password,
         });
-  
-        const data = await response.json();
-        console.log("Login Response:", data);
 
-        if (response.ok) {
-          // Save user and token in global auth store
-          setUser(data.data.user);
-          setAccessToken(data.data.accessToken);
-
-          alert("Login successful!");
-          // Redirect to dashboard
-          navigate("/dashboard");
-        } else {
-          const errorMessage = data.error || data.message || "Login failed";
-          
-          // Check if error is about email verification
-          if (errorMessage.toLowerCase().includes('verify') || 
-              errorMessage.toLowerCase().includes('verification')) {
-            setUserEmail(form.email);
-            setShowVerification(true);
-            alert("Please verify your email first. Check your inbox for the verification code.");
-          } else {
-            alert(errorMessage);
-          }
-        }
+        alert("Login successful!");
+        navigate("/dashboard");
       }
-  
     } catch (error: any) {
       console.error("Error:", error);
-      alert(error.message || "Something went wrong!");
+      const errorMessage = error.message || "Something went wrong!";
+
+      if (
+        errorMessage.toLowerCase().includes("verify") ||
+        errorMessage.toLowerCase().includes("verification")
+      ) {
+        setUserEmail(form.email);
+        setShowVerification(true);
+        alert("Please verify your email first. Check your inbox for the verification code.");
+      } else {
+        alert(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -287,7 +223,7 @@ export default function AuthPage() {
           
             {/* Verify Button */}
             <button
-              onClick={verifyOtp}
+              onClick={handleVerifyOtp}
               disabled={loading || otp.join("").length !== 6}
               className="w-56 py-3 bg-black text-white rounded-xl text-lg font-medium
                          shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all
@@ -307,7 +243,7 @@ export default function AuthPage() {
             <div className="text-center mt-8">
               <p className="text-sm text-gray-500 mb-2">Didn't receive the code?</p>
               <button
-                onClick={resendOtp}
+                onClick={handleResendOtp}
                 disabled={resendLoading}
                 className="text-sm text-black font-medium hover:opacity-70 underline 
                           disabled:opacity-30 disabled:cursor-not-allowed"

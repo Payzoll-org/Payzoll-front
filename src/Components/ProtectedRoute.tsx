@@ -9,15 +9,22 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user } = useAuthStore();
-  console.log(user)
+  const { user, hasHydrated } = useAuthStore();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user) {
-      navigate("/auth"); // redirect to login/signup page
+    if (hasHydrated && !user) {
+      navigate("/auth");
     }
-  }, [user, navigate]);
+  }, [user, navigate, hasHydrated]);
+
+  if (!hasHydrated) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-gray-600 text-lg">Checking session...</p>
+      </div>
+    );
+  }
 
   if (!user) {
     return (

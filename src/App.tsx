@@ -11,6 +11,7 @@ import ChatHistory from './Pages/ChatHistory';
 import CallHistory from './Pages/CallHistory';
 import AuthPage from './Pages/AuthPage';
 import ProtectedRoute from './Components/ProtectedRoute';
+import { useAuthBootstrap } from './hooks/useAuthBootstrap';
 
 const router = createBrowserRouter([
   {
@@ -68,6 +69,7 @@ const router = createBrowserRouter([
 ]);
 
 function App() {
+  useAuthBootstrap();
   return <RouterProvider router={router} />;
 }
 
