@@ -236,83 +236,76 @@ export default function AuthPage() {
         <div className="w-full max-w-2xl px-4 lg:px-8">
           {showVerification ? (
             // OTP Verification Screen
-            <div className="bg-white rounded-2xl p-8 shadow-lg">
-              <div className="text-center mb-8">
-                <h2 className="text-3xl font-light mb-3 text-gray-900">
-                  Verify Your Email
-                </h2>
-                <p className="text-gray-600">
-                  Enter the 6-digit code sent to
-                </p>
-                <p className="text-black font-medium mt-1">{userEmail}</p>
-              </div>
 
-              {/* OTP Inputs */}
-              <div className="flex justify-center gap-3 mb-6">
-                {[...Array(6)].map((_, i) => (
-                  <input
-                    key={i}
-                    type="text"
-                    maxLength={1}
-                    value={otp[i]}
-                    className="w-12 h-14 text-center border-2 border-gray-300 rounded-xl 
-                              text-2xl font-semibold focus:outline-none focus:ring-2 
-                              focus:ring-purple-500 focus:border-purple-500 shadow-sm
-                              transition-all"
-                    onChange={(e) => handleOtpInput(e, i)}
-                    onKeyDown={(e) => handleOtpKeyDown(e, i)}
-                    disabled={loading}
-                  />
-                ))}
-              </div>
 
-              {/* Verify Button */}
-              <button
-                onClick={verifyOtp}
-                disabled={loading || otp.join("").length !== 6}
-                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 
-                          text-white py-3 rounded-xl text-lg font-semibold shadow-md
-                          hover:scale-[1.02] transition-transform disabled:opacity-50
-                          disabled:cursor-not-allowed disabled:hover:scale-100"
-              >
-                {loading ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Verifying...</span>
-                  </div>
-                ) : (
-                  "Verify Email"
-                )}
-              </button>
 
-              {/* Resend */}
-              <div className="text-center mt-6">
-                <p className="text-sm text-gray-600 mb-2">
-                  Didn't receive the code?
-                </p>
-                <button
-                  onClick={resendOtp}
-                  disabled={resendLoading}
-                  className="text-sm text-purple-600 hover:text-purple-700 font-medium
-                            hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {resendLoading ? "Sending..." : "Resend Code"}
-                </button>
-              </div>
 
-              {/* Back to Login */}
-              <div className="text-center mt-6">
-                <button
-                  onClick={() => {
-                    setShowVerification(false);
-                    setOtp(["", "", "", "", "", ""]);
-                  }}
-                  className="text-sm text-gray-600 hover:text-gray-900"
-                >
-                  ← Back to login
-                </button>
-              </div>
+
+            <div className="flex flex-col items-center justify-center pt-35 px-6">
+
+            {/* Header */}
+            <div className="text-center mb-12">
+              <h2 className="text-5xl font-light tracking-tight text-black mb-3">
+                Verify Your Email
+              </h2>
+              <p className="text-gray-500 text-lg">Enter the 6-digit code sent to</p>
+              <p className="text-black font-semibold text-lg mt-1">{userEmail}</p>
             </div>
+          
+            {/* OTP Inputs */}
+            <div className="flex justify-center gap-4 mb-10">
+              {[...Array(6)].map((_, i) => (
+                <input
+                  key={i}
+                  type="text"
+                  maxLength={1}
+                  value={otp[i]}
+                  className="w-14 h-16 text-center border border-gray-300 rounded-lg
+                            text-2xl bg-white text-black
+                            focus:outline-none focus:border-1 focus:border-black 
+                            focus:border-black shadow-sm transition-all"
+                  onChange={(e) => handleOtpInput(e, i)}
+                  onKeyDown={(e) => handleOtpKeyDown(e, i)}
+                  disabled={loading}
+                />
+              ))}
+            </div>
+          
+            {/* Verify Button */}
+            <button
+              onClick={verifyOtp}
+              disabled={loading || otp.join("").length !== 6}
+              className="w-56 py-3 bg-black text-white rounded-xl text-lg font-medium
+                         shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all
+                         disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            >
+              {loading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Verifying...</span>
+                </div>
+              ) : (
+                "Verify Email"
+              )}
+            </button>
+          
+            {/* Resend */}
+            <div className="text-center mt-8">
+              <p className="text-sm text-gray-500 mb-2">Didn't receive the code?</p>
+              <button
+                onClick={resendOtp}
+                disabled={resendLoading}
+                className="text-sm text-black font-medium hover:opacity-70 underline 
+                          disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                {resendLoading ? "Sending..." : "Resend Code"}
+              </button>
+            </div>
+          
+          </div>
+
+
+
           ) : (
             // Auth Form
             <div className="rounded-md overflow-hidden p-6 lg:p-8">
