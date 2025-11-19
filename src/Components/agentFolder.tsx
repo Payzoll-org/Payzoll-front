@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import type { KeyboardEvent, ChangeEvent } from 'react';
 import { Bot, Plus, Folder, MoreVertical, Edit3, Trash2 } from 'lucide-react';
 import { AgentManagementApi } from "../services/agentManagementApi";
+import { useAuthStore } from "../Zustand/userStore";
 
 interface FolderType {
   id: string;
   name: string;
   createdAt: Date;
+  createdBy?: string;
 }
 
 interface AgentFolderProps {
@@ -29,8 +31,8 @@ const AgentFolder: React.FC<AgentFolderProps> = ({ folders, selectedFolderId,set
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
   const [deleteTargetFolder, setDeleteTargetFolder] = useState<FolderType | null>(null);
   const [deleteConfirmInput, setDeleteConfirmInput] = useState<string>('');
-
   const folderToEdit = folders.find(f => f.id === editingId);
+  const userId = useAuthStore((state) => state.user?.id || "");
 
 
 
@@ -43,10 +45,18 @@ const AgentFolder: React.FC<AgentFolderProps> = ({ folders, selectedFolderId,set
         setError("");
 
         const res = await AgentManagementApi.getFolders();
-        setFolders(res.folders || []);
+        // Backend returns an array directly, map it to FolderType
+        const foldersArray = Array.isArray(res) ? res : (res.folders || []);
+        const mappedFolders: FolderType[] = foldersArray.map((folder: any) => ({
+          id: folder._id || folder.id,
+          name: folder.name,
+          createdAt: folder.createdAt ? new Date(folder.createdAt) : new Date(),
+          createdBy: folder.createdBy?.toString() || folder.createdBy,
+        }));
+        setFolders(mappedFolders);
       } catch (err: any) {
         console.error("Error fetching folders:", err);
-        setError(err.response?.data?.message || "Failed to load folders");
+        setError(err.response?.data?.message || err.message || "Failed to load folders");
       } finally {
         setLoading(false);
       }
@@ -58,24 +68,29 @@ const AgentFolder: React.FC<AgentFolderProps> = ({ folders, selectedFolderId,set
 
 
   const createFolder = async (): Promise<void> => {
-    if (!newFolderName.trim()) return;
+    if (!newFolderName.trim() || !userId) return;
   
     setLoading(true); // show loader
+
+    console.log(newFolderName)
   
     try {
       // Step 1: Send request to backend
       const response = await AgentManagementApi.createFolder({
         name: newFolderName.trim(),
+        createdBy: userId,
       });
+
   
-      // Step 2: Extract folder data
-      const folder = response.folder;
+      // Step 2: Extract folder data (handle both direct folder or wrapped in response.folder)
+      const folder = response.folder || response;
   
       // Step 3: Add folder to local state
       const newFolder: FolderType = {
-        id: folder._id || Date.now().toString(),
+        id: folder._id || folder.id || Date.now().toString(),
         name: folder.name,
         createdAt: folder.createdAt ? new Date(folder.createdAt) : new Date(),
+        createdBy: folder.createdBy?.toString() || folder.createdBy || userId,
       };
   
       setFolders([...folders, newFolder]);
@@ -83,7 +98,7 @@ const AgentFolder: React.FC<AgentFolderProps> = ({ folders, selectedFolderId,set
       // Step 4: Reset
       setNewFolderName("");
       setIsCreating(false);
-      console.log("✅ Folder created successfully:", folder);
+   
     } catch (error: any) {
       console.error("❌ Error creating folder:", error.response?.data || error.message);
       alert("Failed to create folder!");

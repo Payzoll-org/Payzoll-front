@@ -27,14 +27,14 @@ export const API_ROUTES = {
     revokeSession: (sessionId: string) => `/api/auth/sessions/${sessionId}`,
   },
   agentManagement: {
-    agents: "/api/agents",
-    agentById: (agentId: string) => `/api/agents/${agentId}`,
+    agents: "/api/agent",
+    agentById: (agentId: string) => `/api/agent/${agentId}`,
     createAgent: "/api/agent/create",
     getAgentConfig: (agentId: string) =>
       `/api/agentconfig/get-config/${agentId}`,
     saveAgentConfig: (agentId: string) =>
       `/api/agentconfig/save-config/${agentId}`,
-    folders: "/api/folders",
+    folders: (sessionId: string) => `/api/folder/${sessionId}`,
     createFolder: "/api/folder/create",
     updateFolder: (folderId: string) => `/api/folder/update/${folderId}`,
     deleteFolder: (folderId: string) => `/api/folder/delete/${folderId}`,

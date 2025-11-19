@@ -1,17 +1,22 @@
 import { http } from "../lib/httpClient";
 import { API_ROUTES } from "../config/apiConfig";
+import { useAuthStore } from "../Zustand/userStore";
 
 const ROUTES = API_ROUTES.agentManagement;
 
 export const AgentManagementApi = {
   getFolders: async () => {
-    const response = await http(ROUTES.folders, {
+    const userId = useAuthStore.getState().user?.id;
+    if (!userId) {
+      throw new Error("User not authenticated");
+    }
+    const response = await http(ROUTES.folders(userId), {
       method: "GET",
       service: "agentManagement",
     });
     return response.json();
   },
-  createFolder: async (payload: { name: string }) => {
+  createFolder: async (payload: { name: string; createdBy: string }) => {
     const response = await http(ROUTES.createFolder, {
       method: "POST",
       service: "agentManagement",

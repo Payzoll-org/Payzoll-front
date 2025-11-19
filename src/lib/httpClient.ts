@@ -55,6 +55,7 @@ export function refreshSession(
   return refreshPromise;
 }
 
+
 async function performRefresh(fetchProfile: boolean): Promise<string | null> {
   const { setAccessToken, setUser, clearSession } = useAuthStore.getState();
 
@@ -90,6 +91,7 @@ async function performRefresh(fetchProfile: boolean): Promise<string | null> {
     return null;
   }
 }
+
 
 async function fetchCurrentUser() {
   const { setUser, accessToken, clearSession } = useAuthStore.getState();
