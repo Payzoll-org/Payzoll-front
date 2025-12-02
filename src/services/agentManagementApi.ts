@@ -16,6 +16,31 @@ export const AgentManagementApi = {
     });
     return response.json();
   },
+  getAgentsBySession: async (sessionId: string) => {
+    const response = await http(ROUTES.agentsBySession(sessionId), {
+      method: "GET",
+      service: "agentManagement",
+    });
+    return response.json();
+  },
+  getAgentsByUser: async () => {
+    const userId = useAuthStore.getState().user?.id;
+    if (!userId) {
+      throw new Error("User not authenticated");
+    }
+    const response = await http(ROUTES.agentsBySession(userId), {
+      method: "GET",
+      service: "agentManagement",
+    });
+    return response.json();
+  },
+  getAgentsByFolder: async (folderId: string) => {
+    const response = await http(ROUTES.agentsByFolder(folderId), {
+      method: "GET",
+      service: "agentManagement",
+    });
+    return response.json();
+  },
   createFolder: async (payload: { name: string; createdBy: string }) => {
     const response = await http(ROUTES.createFolder, {
       method: "POST",

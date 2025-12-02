@@ -29,6 +29,8 @@ export const API_ROUTES = {
   agentManagement: {
     agents: "/api/agent",
     agentById: (agentId: string) => `/api/agent/${agentId}`,
+    agentsBySession: (sessionId: string) => `/api/agent/session/${sessionId}`,
+    agentsByFolder: (folderId: string) => `/api/agent/folder/${folderId}`,
     createAgent: "/api/agent/create",
     getAgentConfig: (agentId: string) =>
       `/api/agentconfig/get-config/${agentId}`,
