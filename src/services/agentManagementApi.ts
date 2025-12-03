@@ -16,6 +16,7 @@ export const AgentManagementApi = {
     });
     return response.json();
   },
+
   getAgentsBySession: async (sessionId: string) => {
     const response = await http(ROUTES.agentsBySession(sessionId), {
       method: "GET",
@@ -23,6 +24,7 @@ export const AgentManagementApi = {
     });
     return response.json();
   },
+
   getAgentsByUser: async () => {
     const userId = useAuthStore.getState().user?.id;
     if (!userId) {
@@ -34,6 +36,7 @@ export const AgentManagementApi = {
     });
     return response.json();
   },
+
   getAgentsByFolder: async (folderId: string) => {
     const response = await http(ROUTES.agentsByFolder(folderId), {
       method: "GET",
@@ -41,6 +44,7 @@ export const AgentManagementApi = {
     });
     return response.json();
   },
+
   createFolder: async (payload: { name: string; createdBy: string }) => {
     const response = await http(ROUTES.createFolder, {
       method: "POST",
@@ -49,6 +53,7 @@ export const AgentManagementApi = {
     });
     return response.json();
   },
+
   updateFolder: async (folderId: string, payload: { name: string }) => {
     const response = await http(ROUTES.updateFolder(folderId), {
       method: "PUT",
@@ -57,6 +62,7 @@ export const AgentManagementApi = {
     });
     return response.json();
   },
+
   deleteFolder: async (folderId: string) => {
     const response = await http(ROUTES.deleteFolder(folderId), {
       method: "DELETE",
@@ -64,6 +70,7 @@ export const AgentManagementApi = {
     });
     return response.json();
   },
+
   createAgent: async (payload: Record<string, unknown>) => {
     const response = await http(ROUTES.createAgent, {
       method: "POST",
@@ -72,6 +79,7 @@ export const AgentManagementApi = {
     });
     return response.json();
   },
+
   getAgentConfig: async (agentId: string) => {
     const response = await http(ROUTES.getAgentConfig(agentId), {
       method: "GET",
@@ -79,6 +87,7 @@ export const AgentManagementApi = {
     });
     return response.json();
   },
+
   saveAgentConfig: async (
     agentId: string,
     payload: Record<string, unknown>

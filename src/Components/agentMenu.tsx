@@ -2,6 +2,7 @@ import { ChevronDown, Search, X, MessageSquare, Mic, Plus } from 'lucide-react';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AgentManagementApi } from "../services/agentManagementApi";
+import { useAuthStore } from "../Zustand/userStore";
 
 interface AgentType {
   id: string;
@@ -36,6 +37,7 @@ const AgentMenu: React.FC<AgentMenuProps> = ({ agents, onAddAgent, selectedFolde
   const [showForm, setShowForm] = useState(false);
   const [showAgentTypeModal, setShowAgentTypeModal] = useState(false);
   const [selectedAgentTypeId, setSelectedAgentTypeId] = useState<string>('');
+  const userId = useAuthStore((state) => state.user?.id || "");
   const navigate = useNavigate();
 
   const voiceAgentTypes = [
@@ -86,7 +88,7 @@ const AgentMenu: React.FC<AgentMenuProps> = ({ agents, onAddAgent, selectedFolde
 
 
   const handleCreateAgentFromModal = async () => {
-    if (!selectedAgentTypeId || !selectedAgentCategory) return;
+    if (!selectedAgentTypeId || !selectedAgentCategory || !userId) return;
   
     // pick correct list
     const agentList =
@@ -102,8 +104,8 @@ const AgentMenu: React.FC<AgentMenuProps> = ({ agents, onAddAgent, selectedFolde
       category: selectedAgentCategory,
       voice: selectedType.voice || '',
       folderId: selectedFolderId,
+      createdBy: userId,
     };
-
 
 
   

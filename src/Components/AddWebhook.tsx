@@ -20,7 +20,6 @@ const AddWebhook = () => {
           placeholder="Enter Webhook URL"
         />
       </div>
-
     </div>
   )
 }

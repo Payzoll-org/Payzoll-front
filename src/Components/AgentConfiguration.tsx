@@ -109,8 +109,6 @@ const AgentConfiguration: React.FC = () => {
     setIsChanged(prompt !== savedPrompt);
   }, [prompt, savedPrompt]);
 
-
-
   // 3. AUTO-SAVE CONFIG CHANGES (DEBOUNCED)
   useEffect(() => {
     // Skip auto-save during initial load
@@ -143,8 +141,6 @@ const AgentConfiguration: React.FC = () => {
       console.error("❌ Error saving config:", error);
     }
   };
-
- 
 
   // REVERT PROMPT
   const handleRevert = (): void => {
