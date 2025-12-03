@@ -30,7 +30,7 @@ export const AgentManagementApi = {
     if (!userId) {
       throw new Error("User not authenticated");
     }
-    const response = await http(ROUTES.agentsBySession(userId), {
+    const response = await http(ROUTES.agentsByUser(userId), {
       method: "GET",
       service: "agentManagement",
     });

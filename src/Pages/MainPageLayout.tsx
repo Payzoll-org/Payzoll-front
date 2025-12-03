@@ -1,7 +1,8 @@
 import SideBar from "../Components/SideBar"
 import AgentFolder from './../Components/agentFolder'
 import AgentMenu from "../Components/agentMenu"
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { AgentManagementApi } from "../services/agentManagementApi";
 
 interface FolderType {
   id: string;
@@ -12,8 +13,8 @@ interface FolderType {
 interface AgentType {
   id: string;
   name: string;
-  category:string;
-  voice:string;
+  category: string;
+  voice: string;
   folderId: string;
   createdAt: Date;
   // add more agent fields as needed
@@ -24,10 +25,34 @@ const MainPageLayout = () => {
   const [agents, setAgents] = useState<AgentType[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState<string>('1');
 
+  // Fetch agents on component mount
+  useEffect(() => {
+    const fetchAgents = async () => {
+      try {
+        const response = await AgentManagementApi.getAgentsByUser();
+        if (response.success && response.agents) {
+          // Transform the API response to match AgentType interface
+          const fetchedAgents: AgentType[] = response.agents.map((agent: any) => ({
+            id: agent._id,
+            name: agent.name,
+            category: agent.category,
+            voice: agent.voice,
+            folderId: agent.folderId || '1', // Default to 'All Agents' if no folder
+            createdAt: new Date(agent.createdAt)
+          }));
+          setAgents(fetchedAgents);
+        }
+      } catch (error) {
+        console.error("Error fetching agents:", error);
+      }
+    };
+
+    fetchAgents();
+  }, []);
 
 
   // Add a new agent to the selected folder
-  const addAgent = (id:string, name: string, category: string, voice: string,) => {
+  const addAgent = (id: string, name: string, category: string, voice: string,) => {
     if (!selectedFolderId) return;
     const newAgent: AgentType = {
       id: id,
