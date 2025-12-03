@@ -3,18 +3,27 @@ import { LuFileInput } from "react-icons/lu";
 import { MdOutlineHistory } from "react-icons/md";
 import { IoChevronBackSharp } from "react-icons/io5";
 import React from 'react';
+import { useNavigate } from "react-router-dom";
 
 interface NavbarProps {
     onToggleHistory: () => void;
   }
 
 
+
+
 const AgentPlagroundNavbar: React.FC<NavbarProps> = ({onToggleHistory}) => {
+
+    const navigate = useNavigate();
+    
   return (
     <div className="pb-3 flex items-center justify-between">
         <div>
             <div className="flex items-center gap-4">
-                <div className="text-2xl">
+                
+                <div
+                  className="text-2xl cursor-pointer"
+                  onClick={() => navigate(-1)}>
                     <IoChevronBackSharp />
                 </div>
 
