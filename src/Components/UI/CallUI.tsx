@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { IoCall, IoMic, IoMicOff } from "react-icons/io5";
+import { IoCall, IoMic,} from "react-icons/io5";
 import { PiWarningCircleFill } from "react-icons/pi";
 import { startCall, endCall, hangupCall, sendTextMessage, handleUserInterrupt } from "../../libs/callUtils";
 

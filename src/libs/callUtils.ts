@@ -2,7 +2,7 @@ import { io, Socket } from 'socket.io-client';
 import { usePromptStore } from '../Zustand/AgentConfiguration';
 
 let currentSessionId: string | null = null;
-const AUDIO_SERVICE_URL = "http://localhost:3001"; // Audio microservice (not Python agent)
+const AUDIO_SERVICE_URL = "http://localhost:3000"; // Audio microservice (not Python agent)
 
 export interface CallHandlers {
   onOpen?: () => void;
@@ -45,7 +45,7 @@ export const startCall = (handlers: CallHandlers) => {
   socket.on('agent-response', (data) => {
     console.log("🤖 Agent response:", data.text);
     handlers.onMessage?.(data.text);
-    
+
     // TODO: This will be replaced with real audio playback
     // For now, using browser TTS as placeholder
     speakText(data.text);
@@ -137,12 +137,12 @@ const stopAudioCapture = () => {
   if (mediaRecorder && isRecording) {
     mediaRecorder.stop();
   }
-  
+
   if (audioStream) {
     audioStream.getTracks().forEach(track => track.stop());
     audioStream = null;
   }
-  
+
   mediaRecorder = null;
   isRecording = false;
 };
@@ -151,11 +151,11 @@ const stopAudioCapture = () => {
 export const endCall = () => {
   if (socket) {
     socket.emit('stop-conversation');
-    socket.emit('text-message', { 
+    socket.emit('text-message', {
       message: "User ended the call!",
-      sessionId: currentSessionId 
+      sessionId: currentSessionId
     });
-    
+
     stopAudioCapture();
     socket.disconnect();
     socket = null;
@@ -166,11 +166,11 @@ export const endCall = () => {
 export const hangupCall = () => {
   if (socket) {
     socket.emit('stop-conversation');
-    socket.emit('text-message', { 
+    socket.emit('text-message', {
       message: "User cancelled the call!",
-      sessionId: currentSessionId 
+      sessionId: currentSessionId
     });
-    
+
     stopAudioCapture();
     socket.disconnect();
     socket = null;
@@ -182,7 +182,7 @@ export const hangupCall = () => {
 export const sendTextMessage = (message: string) => {
   if (socket && currentSessionId) {
     const prompt = usePromptStore.getState().prompt;
-    
+
     socket.emit('text-message', {
       message,
       sessionId: currentSessionId,
@@ -197,7 +197,7 @@ const speakText = (text: string) => {
   if (!text) return;
 
   isAgentSpeaking = true;
-  
+
   const utterance = new SpeechSynthesisUtterance(text);
   const voices = window.speechSynthesis.getVoices();
   const preferredVoice = voices.find(v => v.lang === "en-US" && v.name.includes("Google")) || voices[0];
