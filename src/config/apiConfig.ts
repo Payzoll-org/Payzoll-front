@@ -1,11 +1,11 @@
 export type ApiService = "auth" | "agentManagement" | "agentChat";
 
 const AUTH_API_URL =
-  import.meta.env.VITE_AUTH_API_URL || "http://localhost:4000";
+  import.meta.env.VITE_AUTH_API_URL || "http://localhost:3000/s1/platform";
 const AGENT_MANAGEMENT_API_URL =
-  import.meta.env.VITE_AGENT_MANAGEMENT_API_URL || "http://localhost:3000";
+  import.meta.env.VITE_AGENT_MANAGEMENT_API_URL || "http://localhost:3000/s2/agents";
 const AGENT_CHAT_API_URL =
-  import.meta.env.VITE_AGENT_CHAT_API_URL || "http://localhost:6000";
+  import.meta.env.VITE_AGENT_CHAT_API_URL || "http://localhost:3000/s3/agentchat";
 
 export const API_BASE_MAP: Record<ApiService, string> = {
   auth: AUTH_API_URL,
