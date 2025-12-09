@@ -1,25 +1,27 @@
 import { useState, useRef, useEffect } from "react";
-import { IoCall, IoMic, } from "react-icons/io5";
+import { IoMic } from "react-icons/io5";
 import { PiWarningCircleFill } from "react-icons/pi";
-import { startCall, endCall, hangupCall, handleUserInterrupt } from "../../libs/callUtils";
+import { startCall, endCall } from "../../libs/callUtils";
 
 interface Message {
+  id: string;
   type: 'user' | 'agent' | 'system';
-  content: string;
+  text: string;
   timestamp: Date;
 }
 
 const CallUI = () => {
-  const [isCalling, setIsCalling] = useState(false);
-  const [callStatus, setCallStatus] = useState<"idle" | "calling" | "connected" | "ended">("idle");
+  const [callStatus, setCallStatus] = useState<'idle' | 'connecting' | 'connected' | 'ended'>('idle');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isListening, setIsListening] = useState(false);
+  const [isManualRecording, setIsManualRecording] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const addMessage = (type: 'user' | 'agent' | 'system', content: string) => {
+  const addMessage = (type: 'user' | 'agent' | 'system', text: string) => {
     setMessages(prev => [...prev, {
+      id: Date.now().toString(),
       type,
-      content,
+      text,
       timestamp: new Date()
     }]);
   };
@@ -32,62 +34,70 @@ const CallUI = () => {
     scrollToBottom();
   }, [messages]);
 
-  const handleCall = () => {
-    setIsCalling(true);
-    setCallStatus("calling");
+  const handleStartCall = () => {
+    setCallStatus('connecting');
     addMessage('system', 'Connecting to audio service...');
 
     startCall({
       onOpen: () => {
-        setCallStatus("connected");
+        console.log("Call connected");
+        setCallStatus('connected');
         setIsListening(true);
         addMessage('system', 'Connected! Audio capture started.');
       },
 
-      onMessage: (msg) => {
-        addMessage('agent', msg);
+      onTranscript: (text) => {
+        console.log("📝 Transcript received:", text);
+        // Display user's transcribed speech in chat
+        addMessage('user', text);
+      },
+
+      onMessage: (text) => {
+        console.log("🤖 Agent message:", text);
+        addMessage('agent', text);
       },
 
       onClose: () => {
-        setCallStatus("ended");
-        setIsCalling(false);
+        console.log("Call ended");
+        setCallStatus('ended');
+        setIsManualRecording(false);
         setIsListening(false);
         addMessage('system', 'Call ended.');
       },
 
       onError: (error) => {
-        setCallStatus("ended");
-        setIsCalling(false);
+        console.error("Call error:", error);
+        setCallStatus('ended');
+        setIsManualRecording(false);
         setIsListening(false);
         addMessage('system', `Error: ${error.message || 'Connection failed'}`);
-      },
-
-      onTranscript: (text) => {
-        // Display user's transcribed speech in chat
-        addMessage('user', text);
       }
     });
   };
 
   const handleEndCall = () => {
     endCall();
-    setIsCalling(false);
-    setIsListening(false);
-    setCallStatus("ended");
-    setTimeout(() => setCallStatus("idle"), 1000);
+    setCallStatus('ended');
+    setIsManualRecording(false);
   };
 
-  const handleHangup = () => {
-    hangupCall();
-    setIsCalling(false);
-    setIsListening(false);
-    setCallStatus("idle");
+  const handleStartSpeaking = () => {
+    if (callStatus === 'connected') {
+      setIsManualRecording(true);
+      // Trigger recording start via custom event
+      window.dispatchEvent(new CustomEvent('manual-recording-start'));
+    }
   };
 
-  const handleInterrupt = () => {
-    handleUserInterrupt();
-    addMessage('system', 'Interrupted agent response');
+  const handleStopSpeaking = () => {
+    if (callStatus === 'connected' && isManualRecording) {
+      setIsManualRecording(false);
+      // Trigger recording stop via custom event
+      window.dispatchEvent(new CustomEvent('manual-recording-stop'));
+    }
   };
+
+
 
   return (
     <div className="flex h-full item-center justify-center flex-col gap-4 p-4">
@@ -104,14 +114,14 @@ const CallUI = () => {
         {callStatus !== "idle" && (
           <div className="flex items-center justify-center gap-2">
             <div
-              className={`text-center p-3 rounded-md flex-1 ${callStatus === "calling"
+              className={`text-center p-3 rounded-md flex-1 ${callStatus === "connecting"
                 ? "bg-yellow-100 text-yellow-800"
                 : callStatus === "connected"
                   ? "bg-green-100 text-green-800"
                   : "bg-red-100 text-red-800"
                 }`}
             >
-              {callStatus === "calling" && "Connecting to Audio Service..."}
+              {callStatus === "connecting" && "Connecting to Audio Service..."}
               {callStatus === "connected" && (
                 <div className="flex items-center justify-center gap-2">
                   <IoMic className={isListening ? "text-green-600" : "text-gray-400"} />
@@ -121,15 +131,6 @@ const CallUI = () => {
               )}
               {callStatus === "ended" && "Call Ended"}
             </div>
-
-            {callStatus === "connected" && (
-              <button
-                onClick={handleInterrupt}
-                className="px-3 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 text-sm"
-              >
-                Interrupt
-              </button>
-            )}
           </div>
         )}
 
@@ -155,7 +156,7 @@ const CallUI = () => {
                       {msg.type === 'user' ? 'You' : 'Agent'}
                     </div>
                   )}
-                  <div className="text-sm leading-relaxed">{msg.content}</div>
+                  <div className="text-sm leading-relaxed">{msg.text}</div>
                   <div className={`text-xs mt-1 ${msg.type === 'user' ? 'opacity-70' : 'opacity-60'}`}>
                     {msg.timestamp.toLocaleTimeString()}
                   </div>
@@ -190,33 +191,55 @@ const CallUI = () => {
         )} */}
 
         {/* Call Controls */}
-        <div className="flex gap-3 justify-center">
-          {!isCalling ? (
+        <div className="flex gap-4 mb-6">
+          {callStatus === 'idle' && (
             <button
-              onClick={handleCall}
-              className="flex items-center justify-center gap-2 px-8 py-3 bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors"
+              onClick={handleStartCall}
+              className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
             >
-              <IoCall className="text-lg" />
-              <span>Start Voice Call</span>
+              Start Call
             </button>
-          ) : (
+          )}
+
+          {callStatus === 'connected' && (
             <>
               <button
                 onClick={handleEndCall}
-                className="flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors"
+                className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
               >
-                <IoCall className="text-lg" />
-                <span>End Call</span>
+                End Call
               </button>
-              {callStatus === "calling" && (
-                <button
-                  onClick={handleHangup}
-                  className="flex items-center gap-2 px-6 py-3 bg-gray-600 text-white rounded-full hover:bg-gray-700 transition-colors"
-                >
-                  <span>Cancel</span>
-                </button>
-              )}
+
+              {/* Manual Recording Controls */}
+              <div className="flex gap-2 ml-4 border-l pl-4">
+                {!isManualRecording ? (
+                  <button
+                    onClick={handleStartSpeaking}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
+                  >
+                    <span className="w-3 h-3 bg-white rounded-full"></span>
+                    Start Speaking
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleStopSpeaking}
+                    className="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium flex items-center gap-2 animate-pulse"
+                  >
+                    <span className="w-3 h-3 bg-white rounded-full"></span>
+                    Stop Speaking
+                  </button>
+                )}
+              </div>
             </>
+          )}
+
+          {callStatus === 'connecting' && (
+            <button
+              disabled
+              className="px-6 py-3 bg-gray-400 text-white rounded-lg cursor-not-allowed font-medium"
+            >
+              Connecting...
+            </button>
           )}
         </div>
 
