@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { IoCall, IoMic,} from "react-icons/io5";
+import { IoCall, IoMic, } from "react-icons/io5";
 import { PiWarningCircleFill } from "react-icons/pi";
-import { startCall, endCall, hangupCall, sendTextMessage, handleUserInterrupt } from "../../libs/callUtils";
+import { startCall, endCall, hangupCall, handleUserInterrupt } from "../../libs/callUtils";
 
 interface Message {
   type: 'user' | 'agent' | 'system';
@@ -14,7 +14,6 @@ const CallUI = () => {
   const [callStatus, setCallStatus] = useState<"idle" | "calling" | "connected" | "ended">("idle");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isListening, setIsListening] = useState(false);
-  const [testMessage, setTestMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const addMessage = (type: 'user' | 'agent' | 'system', content: string) => {
@@ -44,28 +43,28 @@ const CallUI = () => {
         setIsListening(true);
         addMessage('system', 'Connected! Audio capture started.');
       },
-      
+
       onMessage: (msg) => {
         addMessage('agent', msg);
       },
-      
+
       onClose: () => {
         setCallStatus("ended");
         setIsCalling(false);
         setIsListening(false);
         addMessage('system', 'Call ended.');
       },
-      
+
       onError: (error) => {
         setCallStatus("ended");
         setIsCalling(false);
         setIsListening(false);
         addMessage('system', `Error: ${error.message || 'Connection failed'}`);
       },
-      
+
       onTranscript: (text) => {
-        // Real-time transcript display (when we add STT)
-        console.log("Real-time transcript:", text);
+        // Display user's transcribed speech in chat
+        addMessage('user', text);
       }
     });
   };
@@ -83,21 +82,6 @@ const CallUI = () => {
     setIsCalling(false);
     setIsListening(false);
     setCallStatus("idle");
-  };
-
-  const handleSendTestMessage = () => {
-    if (testMessage.trim() && isCalling) {
-      addMessage('user', testMessage);
-      sendTextMessage(testMessage);
-      setTestMessage("");
-    }
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendTestMessage();
-    }
   };
 
   const handleInterrupt = () => {
@@ -120,13 +104,12 @@ const CallUI = () => {
         {callStatus !== "idle" && (
           <div className="flex items-center justify-center gap-2">
             <div
-              className={`text-center p-3 rounded-md flex-1 ${
-                callStatus === "calling"
-                  ? "bg-yellow-100 text-yellow-800"
-                  : callStatus === "connected"
+              className={`text-center p-3 rounded-md flex-1 ${callStatus === "calling"
+                ? "bg-yellow-100 text-yellow-800"
+                : callStatus === "connected"
                   ? "bg-green-100 text-green-800"
                   : "bg-red-100 text-red-800"
-              }`}
+                }`}
             >
               {callStatus === "calling" && "Connecting to Audio Service..."}
               {callStatus === "connected" && (
@@ -138,7 +121,7 @@ const CallUI = () => {
               )}
               {callStatus === "ended" && "Call Ended"}
             </div>
-            
+
             {callStatus === "connected" && (
               <button
                 onClick={handleInterrupt}
@@ -151,40 +134,48 @@ const CallUI = () => {
         )}
 
         {/* Messages */}
-        <div className="border p-3 h-64 overflow-y-auto text-sm bg-gray-50 space-y-2">
-          {messages.map((msg, i) => (
-            <div key={i} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div
-                className={`max-w-xs px-3 py-2 rounded-lg ${
-                  msg.type === 'user'
-                    ? "bg-blue-500 text-white"
+        <div className="border border-gray-300 rounded-lg p-4 h-96 overflow-y-auto bg-white shadow-inner space-y-3">
+          {messages.length === 0 ? (
+            <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+              Start speaking to see the conversation...
+            </div>
+          ) : (
+            messages.map((msg, i) => (
+              <div key={i} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div
+                  className={`max-w-[70%] px-4 py-2 rounded-2xl shadow-sm ${msg.type === 'user'
+                    ? "bg-blue-500 text-white rounded-br-sm"
                     : msg.type === 'agent'
-                    ? "bg-gray-200 text-gray-800"
-                    : "bg-yellow-100 text-yellow-800 text-xs text-center"
-                }`}
-              >
-                <div className="font-medium">
-                  {msg.type === 'user' ? 'You' : msg.type === 'agent' ? 'Agent' : 'System'}
-                </div>
-                <div>{msg.content}</div>
-                <div className="text-xs opacity-70 mt-1">
-                  {msg.timestamp.toLocaleTimeString()}
+                      ? "bg-gray-200 text-gray-800 rounded-bl-sm"
+                      : "bg-yellow-50 border border-yellow-200 text-yellow-800 text-xs text-center mx-auto"
+                    }`}
+                >
+                  {msg.type !== 'system' && (
+                    <div className="text-xs font-semibold mb-1 opacity-80">
+                      {msg.type === 'user' ? 'You' : 'Agent'}
+                    </div>
+                  )}
+                  <div className="text-sm leading-relaxed">{msg.content}</div>
+                  <div className={`text-xs mt-1 ${msg.type === 'user' ? 'opacity-70' : 'opacity-60'}`}>
+                    {msg.timestamp.toLocaleTimeString()}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Test Message Input (for testing before STT is ready) */}
-        {callStatus === "connected" && (
+        {/* Test Message Input - Hidden since we have real voice transcription now */}
+        {/* Uncomment below if you need to test with text input */}
+        {/* {callStatus === "connected" && (
           <div className="flex gap-2">
             <input
               type="text"
               value={testMessage}
               onChange={(e) => setTestMessage(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Type a test message (while STT is being added)..."
+              placeholder="Type a test message..."
               className="flex-1 px-3 py-2 border rounded-md text-sm"
               disabled={!isCalling}
             />
@@ -196,7 +187,7 @@ const CallUI = () => {
               Send
             </button>
           </div>
-        )}
+        )} */}
 
         {/* Call Controls */}
         <div className="flex gap-3 justify-center">

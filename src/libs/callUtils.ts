@@ -42,13 +42,20 @@ export const startCall = (handlers: CallHandlers) => {
     startAudioCapture(handlers);
   });
 
+  socket.on('transcription', (data) => {
+    console.log("📝 Transcription received:", data.text);
+    handlers.onTranscript?.(data.text);
+  });
+
   socket.on('agent-response', (data) => {
-    console.log("🤖 Agent response:", data.text);
-    handlers.onMessage?.(data.text);
+    console.log("🤖 Agent response:", data);
+    // Backend now provides extracted text field, with fallback to extraction
+    const agentMessage = data.text || data.agent?.response || data.agent?.message || JSON.stringify(data.agent);
+    handlers.onMessage?.(agentMessage);
 
     // TODO: This will be replaced with real audio playback
     // For now, using browser TTS as placeholder
-    speakText(data.text);
+    speakText(agentMessage);
   });
 
   socket.on('audio-received', (data) => {
