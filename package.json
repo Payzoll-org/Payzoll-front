@@ -10,10 +10,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@livekit/components-react": "^2.9.17",
     "@tailwindcss/vite": "^4.1.11",
     "axios": "^1.13.2",
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.12",
+    "livekit-client": "^2.16.1",
     "lucide-react": "^0.526.0",
     "radix-ui": "^1.4.2",
     "react": "^19.1.0",

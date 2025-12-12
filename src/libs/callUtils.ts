@@ -1,5 +1,11 @@
 import { io, Socket } from 'socket.io-client';
 import { usePromptStore } from '../Zustand/AgentConfiguration';
+import {
+  connectToLiveKitRoom,
+  publishAudioTrack,
+  disconnectFromLiveKitRoom
+} from './livekitUtils';
+import { Room } from 'livekit-client';
 
 let currentSessionId: string | null = null;
 const AUDIO_SERVICE_URL = "http://localhost:3000"; // Audio microservice (not Python agent)
@@ -14,6 +20,7 @@ export interface CallHandlers {
 }
 
 let socket: Socket | null = null;
+let livekitRoom: Room | null = null;
 let mediaRecorder: MediaRecorder | null = null;
 let audioStream: MediaStream | null = null;
 let audioContext: AudioContext | null = null;
@@ -29,82 +36,130 @@ const SILENCE_THRESHOLD = 0.02; // Volume threshold (0-1) - increased for better
 const SILENCE_DURATION = 2000; // 2 seconds of silence before processing
 
 // -------------------- Start Call --------------------
-export const startCall = (handlers: CallHandlers) => {
-  // Connect to audio microservice (not Python agent)
-  socket = io(AUDIO_SERVICE_URL, {
-    transports: ['websocket'],
-    autoConnect: true
-  });
+export const startCall = async (handlers: CallHandlers) => {
+  try {
+    // Generate unique room name and participant name
+    const roomName = `voice - session - ${Date.now()} `;
+    const participantName = `user - ${Date.now()} `;
+    currentSessionId = roomName;
 
-  socket.on('connect', () => {
-    console.log("✅ Connected to Audio Service");
-    // Initialize sessionId immediately with socket.id
-    currentSessionId = socket?.id || null;
-    console.log("🆔 Session ID initialized:", currentSessionId);
-    handlers.onOpen?.();
-  });
+    console.log('[Call] Starting call with LiveKit...');
+    console.log('[Call] Room:', roomName);
+    console.log('[Call] Participant:', participantName);
 
-  socket.on('session-created', (data) => {
-    currentSessionId = data.sessionId;
-    console.log("🆔 Session created:", currentSessionId);
-  });
+    // Connect to LiveKit room
+    livekitRoom = await connectToLiveKitRoom({
+      roomName,
+      participantName,
+      onConnected: () => {
+        console.log('[Call] ✅ LiveKit connected');
+        handlers.onOpen?.();
 
-  socket.on('conversation-started', (data) => {
-    console.log("🎤 Conversation started:", data.message);
-    startAudioCapture(handlers);
-  });
+        // Publish audio track
+        publishAudioTrack()
+          .then(() => {
+            console.log('[Call] ✅ Audio track published');
+          })
+          .catch((error) => {
+            console.error('[Call] ❌ Failed to publish audio:', error);
+            handlers.onError?.(error);
+          });
+      },
+      onDisconnected: () => {
+        console.log('[Call] ❌ LiveKit disconnected');
+        handlers.onClose?.();
+      },
+      onTrackSubscribed: (_track) => {
+        console.log('[Call] 📥 Received track from agent');
+        // Audio playback is handled in livekitUtils
+      },
+      onError: (error) => {
+        console.error('[Call] ❌ LiveKit error:', error);
+        handlers.onError?.(error);
+      }
+    });
 
-  socket.on('transcription', (data) => {
-    console.log("📝 Transcription event received:", data);
-    console.log("📝 Transcription text:", data.text);
-    console.log("📝 Calling onTranscript handler...");
-    handlers.onTranscript?.(data.text);
-  });
+    // Connect to Socket.io for signaling (transcriptions, agent responses)
+    socket = io(AUDIO_SERVICE_URL, {
+      transports: ['websocket'],
+      autoConnect: true
+    });
 
-  socket.on('agent-response', (data) => {
-    console.log("🤖 Agent response:", data);
-    // Backend now provides extracted text field, with fallback to extraction
-    const agentMessage = data.text || data.agent?.response || data.agent?.message || JSON.stringify(data.agent);
-    handlers.onMessage?.(agentMessage);
+    socket.on('connect', () => {
+      console.log("✅ Connected to Audio Service");
+      // Initialize sessionId immediately with socket.id
+      currentSessionId = socket?.id || null;
+      console.log("🆔 Session ID initialized:", currentSessionId);
+      handlers.onOpen?.();
+    });
 
-    // TODO: This will be replaced with real audio playback
-    // For now, using browser TTS as placeholder
-    speakText(agentMessage);
-  });
+    socket.on('session-created', (data) => {
+      currentSessionId = data.sessionId;
+      console.log("🆔 Session created:", currentSessionId);
+    });
 
-  socket.on('audio-received', (data) => {
-    console.log("📡 Audio chunk received:", data);
-  });
+    socket.on('conversation-started', (data) => {
+      console.log("🎤 Conversation started:", data.message);
+      startAudioCapture(handlers);
+    });
 
-  socket.on('tts-cancelled', () => {
-    console.log("❌ TTS cancelled due to interruption");
-    window.speechSynthesis.cancel();
-    isAgentSpeaking = false;
-  });
+    socket.on('transcription', (data) => {
+      console.log("📝 Transcription event received:", data);
+      console.log("📝 Transcription text:", data.text);
+      console.log("📝 Calling onTranscript handler...");
+      handlers.onTranscript?.(data.text);
+    });
 
-  socket.on('conversation-stopped', () => {
-    console.log("⏹️ Conversation stopped");
-    stopAudioCapture();
-  });
+    socket.on('agent-response', (data) => {
+      console.log("🤖 Agent response:", data);
+      // Backend now provides extracted text field, with fallback to extraction
+      const agentMessage = data.text || data.agent?.response || data.agent?.message || JSON.stringify(data.agent);
+      handlers.onMessage?.(agentMessage);
 
-  socket.on('disconnect', () => {
-    console.log("❌ Disconnected from Audio Service");
-    stopAudioCapture();
-    handlers.onClose?.();
-  });
+      // TODO: This will be replaced with real audio playback
+      // For now, using browser TTS as placeholder
+      speakText(agentMessage);
+    });
 
-  socket.on('error', (error) => {
-    console.error("⚠️ Socket error:", error);
-    handlers.onError?.(error);
-  });
+    socket.on('audio-received', (data) => {
+      console.log("📡 Audio chunk received:", data);
+    });
 
-  // Start the conversation
-  socket.emit('start-conversation', {
-    sessionId: currentSessionId,
-    timestamp: new Date().toISOString()
-  });
+    socket.on('tts-cancelled', () => {
+      console.log("❌ TTS cancelled due to interruption");
+      window.speechSynthesis.cancel();
+      isAgentSpeaking = false;
+    });
 
-  return socket;
+    socket.on('conversation-stopped', () => {
+      console.log("⏹️ Conversation stopped");
+      stopAudioCapture();
+    });
+
+    socket.on('disconnect', () => {
+      console.log("❌ Disconnected from Audio Service");
+      stopAudioCapture();
+      handlers.onClose?.();
+    });
+
+
+    socket.on('error', (error) => {
+      console.error("⚠️ Socket error:", error);
+      handlers.onError?.(error);
+    });
+
+    // Start the conversation
+    socket.emit('start-conversation', {
+      sessionId: currentSessionId,
+      timestamp: new Date().toISOString()
+    });
+
+    return socket;
+  } catch (error) {
+    console.error('[Call] ❌ Failed to start call:', error);
+    handlers.onError?.(error as Error);
+    throw error;
+  }
 };
 
 // -------------------- Audio Capture (Start/Stop per utterance) --------------------
@@ -268,7 +323,7 @@ const monitorVolume = () => {
 
   // Log volume periodically for debugging (every 60 frames ~= every 1s)
   if (animationFrameId && animationFrameId % 60 === 0) {
-    console.log(`🔊 Vol: ${volume.toFixed(3)} | Speaking: ${isSpeaking} | Recording: ${isRecording}`);
+    console.log(`🔊 Vol: ${volume.toFixed(3)} | Speaking: ${isSpeaking} | Recording: ${isRecording} `);
   }
 
   if (volume > SILENCE_THRESHOLD) {
@@ -277,8 +332,10 @@ const monitorVolume = () => {
       isSpeaking = true;
       console.log("🎤 Speech detected");
 
-      // VAD auto-start disabled - manual control only
-      // Recording only starts via "Start Speaking" button
+      // ✅ AUTO-START RECORDING (Real-time optimization)
+      if (!isRecording && !isAgentSpeaking) {
+        startRecording();
+      }
     }
     // Reset silence timeout
     if (silenceTimeout) {
@@ -290,10 +347,12 @@ const monitorVolume = () => {
     if (isSpeaking && !silenceTimeout) {
       silenceTimeout = setTimeout(() => {
         isSpeaking = false;
-        console.log("🔇 Silence detected");
+        console.log("🔇 Silence detected - auto-stopping recording");
 
-        // VAD auto-stop disabled - manual control only
-        // Recording only stops via "Stop Speaking" button
+        // ✅ AUTO-STOP RECORDING (Real-time optimization)
+        if (isRecording) {
+          stopRecording(); // This sends complete blob to backend
+        }
 
         silenceTimeout = null;
       }, SILENCE_DURATION);
@@ -338,26 +397,24 @@ const stopAudioCapture = () => {
 };
 
 // -------------------- End Call --------------------
-export const endCall = () => {
+export const endCall = async () => {
   if (socket) {
     socket.emit('end-conversation', { sessionId: currentSessionId });
-
-    stopAudioCapture();
     socket.disconnect();
     socket = null;
-    currentSessionId = null;
   }
+
+  if (livekitRoom) {
+    await disconnectFromLiveKitRoom();
+    livekitRoom = null;
+  }
+
+  stopAudioCapture();
+  currentSessionId = null;
 };
 
-export const hangupCall = () => {
-  if (socket) {
-    socket.emit('end-conversation', { sessionId: currentSessionId });
-
-    stopAudioCapture();
-    socket.disconnect();
-    socket = null;
-    currentSessionId = null;
-  }
+export const hangupCall = async () => {
+  await endCall();
 };
 
 // -------------------- Send Text Message (for testing) --------------------

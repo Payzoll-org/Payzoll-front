@@ -1,4 +1,4 @@
-export type ApiService = "auth" | "agentManagement" | "agentChat";
+export type ApiService = "auth" | "agentManagement" | "agentChat" | "gateway";
 
 const AUTH_API_URL =
   import.meta.env.VITE_AUTH_API_URL || "http://localhost:3000/s1/platform";
@@ -6,11 +6,14 @@ const AGENT_MANAGEMENT_API_URL =
   import.meta.env.VITE_AGENT_MANAGEMENT_API_URL || "http://localhost:3000/s2/agents";
 const AGENT_CHAT_API_URL =
   import.meta.env.VITE_AGENT_CHAT_API_URL || "http://localhost:3000/s3/agentchat";
+const GATEWAY_API_URL =
+  import.meta.env.VITE_GATEWAY_API_URL || "http://localhost:3000";
 
 export const API_BASE_MAP: Record<ApiService, string> = {
   auth: AUTH_API_URL,
   agentManagement: AGENT_MANAGEMENT_API_URL,
   agentChat: AGENT_CHAT_API_URL,
+  gateway: GATEWAY_API_URL,
 };
 
 export const API_ROUTES = {
@@ -46,6 +49,11 @@ export const API_ROUTES = {
     chat: "/chat",
     conversations: "/api/chat/conversations",
     sendMessage: "/api/chat/messages",
+  },
+  livekit: {
+    token: "/api/livekit/token",
+    createRoom: "/api/livekit/room/create",
+    serverUrl: "/api/livekit/url",
   },
 };
 
