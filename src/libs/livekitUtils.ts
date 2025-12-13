@@ -72,14 +72,7 @@ export async function connectToLiveKitRoom(options: LiveKitConnectionOptions): P
         await createLiveKitRoom(roomName);
 
         // Fetch token
-        const response = await fetchLiveKitToken(roomName, participantName);
-        console.log('[LiveKit] Token response:', response);
-        console.log('[LiveKit] Token type:', typeof response.token);
-        console.log('[LiveKit] Token value:', response.token);
-
-        const { token, url } = response;
-        console.log('[LiveKit] Extracted token:', token);
-        console.log('[LiveKit] Extracted url:', url);
+        const { token, url } = await fetchLiveKitToken(roomName, participantName);
         console.log('[LiveKit] Token received, connecting to room...');
 
         // Create room instance
