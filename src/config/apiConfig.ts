@@ -37,6 +37,21 @@ export const API_ROUTES = {
   aboutBusiness: {
     submit: "/api/aboutbusiness",
   },
+  businessIdentifiers: {
+    submit: "/api/business-identifiers",
+    pan: "/api/business-identifiers/pan",
+    address: "/api/business-identifiers/address",
+  },
+  bankAccount: {
+    inr: "/api/bank-account/inr",
+    eefc: "/api/bank-account/eefc",
+  },
+  person: {
+    owner: "/api/person/owner",
+  },
+  account: {
+    activate: "/api/account/activate",
+  },
   agentManagement: {
     agents: "/api/agent",
     agentById: (agentId: string) => `/api/agent/${agentId}`,

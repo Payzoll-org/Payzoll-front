@@ -64,6 +64,7 @@ export const PURPOSE_CODE_OPTIONS: PurposeCodeOption[] = [
 export interface AboutBusinessPayload {
   website: string;
   productDescription: string;
+  dba: string;
   purposeCode: { code: string }[];
 }
 
