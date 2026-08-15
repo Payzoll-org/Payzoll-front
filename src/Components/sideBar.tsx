@@ -14,7 +14,7 @@ import {
   Settings,
   Search
 } from 'lucide-react';
-import { ThemeToggle } from './UI/toggleTheme';
+
 import { IoNotificationsOutline } from "react-icons/io5";
 
 
@@ -54,66 +54,43 @@ const sideBAr: React.FC = () => {
 
   const navigationItems: NavigationItem[] = [
     {
-      id: 'agents',
-      label: 'Agents',
+      id: 'dashboard',
+      label: 'Dashboard',
       icon: User,
-      isFolder: true,
-      children: [
-        { id: 'create-agent', label: 'Create Agent', icon: null },
-        { id: 'my-agents', label: 'My Agents', icon: null },
-        { id: 'shared-agents', label: 'Shared Agents', icon: null }
-      ]
+      isFolder: false,
     },
     {
-      id: 'history',
-      label: 'History',
+      id: 'transactionshistory',
+      label: 'Transaction History',
       icon: Clock,
-      isFolder: true,
-      children: [
-        { id: 'chat-history', label: 'Chat History', icon: MessageCircle },
-        { id: 'call-history', label: 'Call History', icon: Phone }
-      ]
+      isFolder: false,
     },
-    {
-        id: 'deploy',
-        label: 'Deploy',
-        icon: Clock,
-        isFolder: true,
-        children: [
-          { id: 'chat-history', label: 'Chat History', icon: MessageCircle },
-          { id: 'call-history', label: 'Call History', icon: Phone }
-        ]
-      },
-    {
-      id: 'analytics',
-      label: 'Analytics',
+     {
+      id: 'international Banking',
+      label: 'International Banking',
       icon: BarChart3,
       isFolder: false
     },
     {
-        id: 'API',
-        label: 'API Keys',
+        id: 'invoices',
+        label: 'Invoices',
+        icon: Clock,
+        isFolder: true,
+        children: [
+          { id: 'create-invoice', label: 'Create Invoice', icon: MessageCircle },
+          { id: 'draft-invoices', label: 'Draft Invoices', icon: Phone }
+        ]
+      },
+   
+    {
+        id: 'referandearn',
+        label: 'Refer & Earn',
         icon: BarChart3,
         isFolder: false
       },
-      {
-        id: 'WebHooks',
-        label: 'Weebhooks',
-        icon: CreditCard,
-        isFolder: false
-      },
-      {
-        id: 'security',
-        label: 'Security',
-        icon: CreditCard,
-        isFolder: false
-      },
-      {
-        id: 'billing',
-        label: 'Billing',
-        icon: CreditCard,
-        isFolder: false
-      },
+
+    
+      
       {
         id: 'setting',
         label: 'Setting',
@@ -127,9 +104,9 @@ const sideBAr: React.FC = () => {
   return (
     <>
     <div>
-        <div className=" pt-4">
+        <div className=" pt-4 ">
           <div className="flex justify-between items-center space-x-3  mb-4">
-            <div className='flex items-center gap-2'>
+            <div className='flex items-center  gap-2'>
               <div className='size-10 flex justify-center items-center rounded-md bg-gray-200 dark:bg-gray-700'>
                 <Lock className='text-gray-600 dark:text-gray-300 font-bold' size={20}/>
               </div>
@@ -146,7 +123,7 @@ const sideBAr: React.FC = () => {
         </div>
     </div>
 
-    <div className="mb-4 flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md px-3 py-1.5 w-full max-w-sm focus-within:ring-2 focus-within:ring-gray-500 transition-colors">
+    <div className="mb-4  flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md px-3 py-1.5 w-full max-w-sm focus-within:ring-2 focus-within:ring-gray-500 transition-colors">
         <Search className="text-gray-600 dark:text-gray-400" size={20} />
             <input
             type="text"
@@ -218,6 +195,20 @@ const sideBAr: React.FC = () => {
             ))}
           </nav>
         </div>
+        
+
+         <div className={`text-sm   absolute bottom-25 `}>
+            <div className="px-4 gap-5">
+              <h1>Book a Demo</h1>
+
+              <h1 className='pt-4'>Help and Support</h1>
+            </div>
+
+       
+
+        
+        </div>
+
 
 
         {/* Bottom Section */}
@@ -239,7 +230,7 @@ const sideBAr: React.FC = () => {
        
 
           <div className={`flex gap-2 items-center`}>
-            <ThemeToggle />
+           
             <IoNotificationsOutline
               className="text-gray-700 text-lg hover:text-purple-600 dark:text-gray-300 dark:hover:text-purple-400 cursor-pointer transition-colors"
             />
