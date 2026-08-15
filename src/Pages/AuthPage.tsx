@@ -8,6 +8,11 @@ import {
   resendOtp as resendOtpRequest,
   verifyOtp as verifyOtpRequest,
 } from "../services/authApi";
+import {
+  submitOnboarding,
+  REFERRAL_SOURCES,
+  type OnboardingPayload,
+} from "../services/onboardingApi";
 
 interface FormData {
   firstName: string;
@@ -15,6 +20,17 @@ interface FormData {
   email: string;
   password: string;
 }
+
+const emptyOnboardingForm: OnboardingPayload = {
+  legalName: "",
+  typeOfUser: "individual",
+  dateOfBirth: "",
+  phoneNumber: "",
+  monthlyVolume: "",
+  yearlyVolume: "",
+  referralSource: "Google",
+  isTermAndConditionAccepted: false,
+};
 
 export default function AuthPage() {
   const [form, setForm] = useState<FormData>({ 
@@ -28,6 +44,9 @@ export default function AuthPage() {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [showVerification, setShowVerification] = useState<boolean>(false);
+  const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
+  const [onboardingForm, setOnboardingForm] = useState<OnboardingPayload>(emptyOnboardingForm);
+  const [onboardingLoading, setOnboardingLoading] = useState<boolean>(false);
   const [userEmail, setUserEmail] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [loading, setLoading] = useState(false);
@@ -35,10 +54,13 @@ export default function AuthPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) {
+    // Skip the auto-redirect while the onboarding form still needs to be
+    // shown post-verification — otherwise `user` becoming truthy right
+    // after OTP verification would bounce straight to /dashboard.
+    if (user && !showVerification && !showOnboarding) {
       navigate("/dashboard", { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, navigate, showVerification, showOnboarding]);
 
   const handleOtpInput = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     const value = e.target.value;
@@ -81,8 +103,9 @@ export default function AuthPage() {
         otp: code,
       });
 
-      navigate("/dashboard");
-  
+      setShowVerification(false);
+      setShowOnboarding(true);
+
     } catch (error: any) {
       console.error("OTP verification failed:", error);
       alert(error.message || "Invalid OTP");
@@ -107,6 +130,58 @@ export default function AuthPage() {
       alert(error.message || "Failed to resend OTP");
     } finally {
       setResendLoading(false);
+    }
+  };
+
+  const handleOnboardingChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value, type } = e.target;
+    if (type === "checkbox") {
+      const checked = (e.target as HTMLInputElement).checked;
+      setOnboardingForm((prev) => ({ ...prev, [name]: checked }));
+    } else {
+      setOnboardingForm((prev) => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleOnboardingSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+
+    if (
+      !onboardingForm.legalName ||
+      !onboardingForm.dateOfBirth ||
+      !onboardingForm.phoneNumber ||
+      !onboardingForm.monthlyVolume ||
+      !onboardingForm.yearlyVolume
+    ) {
+      alert("Please fill in all required fields");
+      return;
+    }
+
+    if (!onboardingForm.isTermAndConditionAccepted) {
+      alert("Please accept the terms and conditions to continue");
+      return;
+    }
+
+    setOnboardingLoading(true);
+
+    try {
+      await submitOnboarding(onboardingForm);
+      navigate("/dashboard");
+    } catch (error: any) {
+      console.error("Onboarding submission failed:", error);
+      const message: string = error.message || "Failed to submit onboarding details";
+
+      // Resuming an already-onboarded account (e.g. re-verified after a
+      // previous completed run) — just continue to the dashboard.
+      if (message.toLowerCase().includes("already completed")) {
+        navigate("/dashboard");
+      } else {
+        alert(message);
+      }
+    } finally {
+      setOnboardingLoading(false);
     }
   };
 
@@ -184,7 +259,179 @@ export default function AuthPage() {
       {/* Right Side - Auth Form or Verification */}
       <div className="flex-1 flex justify-center pt-28 w-full lg:w-[55%]">
         <div className="w-full max-w-2xl px-4 lg:px-8">
-          {showVerification ? (
+          {showOnboarding ? (
+            // Onboarding Screen
+            <div className="flex flex-col pt-16 pb-12 px-2">
+              <div className="mb-10">
+                <h2 className="text-3xl lg:text-4xl font-light mb-2 text-gray-900">
+                  Tell us about your business
+                </h2>
+                <p className="text-sm text-gray-600">
+                  Just a few more details before we take you to your dashboard
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-5">
+                <div className="flex flex-col">
+                  <label className="text-sm font-medium mb-2 text-gray-700">
+                    Legal name *
+                  </label>
+                  <input
+                    type="text"
+                    name="legalName"
+                    value={onboardingForm.legalName}
+                    onChange={handleOnboardingChange}
+                    placeholder="Jane Doe"
+                    className="px-1 py-2 focus:outline-none focus:ring-0 border-b-2 border-gray-300
+                              focus:border-black transition text-sm lg:text-base"
+                    disabled={onboardingLoading}
+                  />
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-5">
+                  <div className="flex flex-col w-full sm:w-1/2">
+                    <label className="text-sm font-medium mb-2 text-gray-700">
+                      Account type *
+                    </label>
+                    <select
+                      name="typeOfUser"
+                      value={onboardingForm.typeOfUser}
+                      onChange={handleOnboardingChange}
+                      className="px-1 py-2 focus:outline-none focus:ring-0 border-b-2 border-gray-300
+                                focus:border-black transition text-sm lg:text-base bg-transparent"
+                      disabled={onboardingLoading}
+                    >
+                      <option value="individual">Individual</option>
+                      <option value="soleproprietorship">Sole Proprietorship</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col w-full sm:w-1/2">
+                    <label className="text-sm font-medium mb-2 text-gray-700">
+                      Date of birth *
+                    </label>
+                    <input
+                      type="date"
+                      name="dateOfBirth"
+                      value={onboardingForm.dateOfBirth}
+                      onChange={handleOnboardingChange}
+                      className="px-1 py-2 focus:outline-none focus:ring-0 border-b-2 border-gray-300
+                                focus:border-black transition text-sm lg:text-base"
+                      disabled={onboardingLoading}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col">
+                  <label className="text-sm font-medium mb-2 text-gray-700">
+                    Phone number *
+                  </label>
+                  <input
+                    type="tel"
+                    name="phoneNumber"
+                    value={onboardingForm.phoneNumber}
+                    onChange={handleOnboardingChange}
+                    placeholder="+919876543210"
+                    className="px-1 py-2 focus:outline-none focus:ring-0 border-b-2 border-gray-300
+                              focus:border-black transition text-sm lg:text-base"
+                    disabled={onboardingLoading}
+                  />
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-5">
+                  <div className="flex flex-col w-full sm:w-1/2">
+                    <label className="text-sm font-medium mb-2 text-gray-700">
+                      Monthly volume *
+                    </label>
+                    <input
+                      type="text"
+                      name="monthlyVolume"
+                      value={onboardingForm.monthlyVolume}
+                      onChange={handleOnboardingChange}
+                      placeholder="e.g. 50,000 - 100,000"
+                      className="px-1 py-2 focus:outline-none focus:ring-0 border-b-2 border-gray-300
+                                focus:border-black transition text-sm lg:text-base"
+                      disabled={onboardingLoading}
+                    />
+                  </div>
+                  <div className="flex flex-col w-full sm:w-1/2">
+                    <label className="text-sm font-medium mb-2 text-gray-700">
+                      Yearly volume *
+                    </label>
+                    <input
+                      type="text"
+                      name="yearlyVolume"
+                      value={onboardingForm.yearlyVolume}
+                      onChange={handleOnboardingChange}
+                      placeholder="e.g. 500,000 - 1,000,000"
+                      className="px-1 py-2 focus:outline-none focus:ring-0 border-b-2 border-gray-300
+                                focus:border-black transition text-sm lg:text-base"
+                      disabled={onboardingLoading}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col">
+                  <label className="text-sm font-medium mb-2 text-gray-700">
+                    Where did you hear about us? *
+                  </label>
+                  <select
+                    name="referralSource"
+                    value={onboardingForm.referralSource}
+                    onChange={handleOnboardingChange}
+                    className="px-1 py-2 focus:outline-none focus:ring-0 border-b-2 border-gray-300
+                              focus:border-black transition text-sm lg:text-base bg-transparent"
+                    disabled={onboardingLoading}
+                  >
+                    {REFERRAL_SOURCES.map((source) => (
+                      <option key={source} value={source}>
+                        {source}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <label className="flex items-start gap-2 mt-2 text-sm text-gray-600">
+                  <input
+                    type="checkbox"
+                    name="isTermAndConditionAccepted"
+                    checked={onboardingForm.isTermAndConditionAccepted}
+                    onChange={handleOnboardingChange}
+                    className="mt-1"
+                    disabled={onboardingLoading}
+                  />
+                  <span>
+                    I agree to the{" "}
+                    <button type="button" className="text-black hover:underline font-medium">
+                      Terms of Service
+                    </button>{" "}
+                    and{" "}
+                    <button type="button" className="text-black hover:underline font-medium">
+                      Privacy Policy
+                    </button>
+                  </span>
+                </label>
+
+                <div className="flex justify-end mt-4">
+                  <button
+                    onClick={handleOnboardingSubmit}
+                    disabled={onboardingLoading}
+                    className="px-8 h-12 flex items-center justify-center gap-3 bg-black rounded-full
+                              hover:scale-105 transition-transform shadow-lg hover:shadow-xl
+                              disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  >
+                    {onboardingLoading ? (
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <>
+                        <span className="text-white font-medium">Continue to dashboard</span>
+                        <span className="text-white text-xl">→</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : showVerification ? (
             // OTP Verification Screen
 
 

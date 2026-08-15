@@ -29,6 +29,11 @@ export const API_ROUTES = {
     sessions: "/api/auth/sessions",
     revokeSession: (sessionId: string) => `/api/auth/sessions/${sessionId}`,
   },
+  onboarding: {
+    submit: "/api/onboarding",
+    get: "/api/onboarding",
+    update: "/api/onboarding",
+  },
   agentManagement: {
     agents: "/api/agent",
     agentById: (agentId: string) => `/api/agent/${agentId}`,
