@@ -34,6 +34,9 @@ export const API_ROUTES = {
     get: "/api/onboarding",
     update: "/api/onboarding",
   },
+  aboutBusiness: {
+    submit: "/api/aboutbusiness",
+  },
   agentManagement: {
     agents: "/api/agent",
     agentById: (agentId: string) => `/api/agent/${agentId}`,

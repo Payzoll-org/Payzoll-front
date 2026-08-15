@@ -5,6 +5,7 @@ import {
 import './App.css';
 import MainPage from './Pages/MainPageLayout';
 import AuthPage from './Pages/AuthPage';
+import KycPage from './Pages/KycPage';
 import ProtectedRoute from './Components/ProtectedRoute';
 import { useAuthBootstrap } from './hooks/useAuthBootstrap';
 
@@ -21,9 +22,14 @@ const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
-  
-  
-  
+  {
+    path: "/kyc",
+    element: (
+      <ProtectedRoute>
+        <KycPage />
+      </ProtectedRoute>
+    ),
+  },
 ]);
 
 function App() {
