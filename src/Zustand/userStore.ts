@@ -1,5 +1,6 @@
 // store/useAuthStore.ts
 import { create } from "zustand";
+import type { TypeOfUser } from "../services/onboardingApi";
 
 export interface User {
   id: string;
@@ -7,6 +8,8 @@ export interface User {
   email: string;
   role: string;
   verified: boolean;
+  kycVerified: boolean;
+  userType: TypeOfUser | null;
 }
 
 interface AuthState {
@@ -14,6 +17,7 @@ interface AuthState {
   accessToken: string | null;
   hasHydrated: boolean;
   setUser: (user: User | null) => void;
+  updateUser: (updates: Partial<User>) => void;
   setAccessToken: (token: string | null) => void;
   setSession: (payload: { user: User; accessToken: string }) => void;
   clearSession: () => void;
@@ -25,10 +29,15 @@ export const useAuthStore = create<AuthState>((set) => ({
   accessToken: null,
   hasHydrated: false,
   setUser: (user) => set({ user }),
+  updateUser: (updates) =>
+    set((state) => ({
+      user: state.user ? { ...state.user, ...updates } : state.user,
+    })),
   setAccessToken: (accessToken) => set({ accessToken }),
   setSession: ({ user, accessToken }) => {
     console.log("Authenticated user:", user);
     console.log("Access token:", accessToken);
+    console.log("KYC verified:", user.kycVerified, "| User type:", user.userType);
     set({ user, accessToken });
   },
   clearSession: () => set({ user: null, accessToken: null }),
