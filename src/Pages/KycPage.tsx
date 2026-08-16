@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   submitAboutBusiness,
+  getIndustryCodes,
   PURPOSE_CODE_OPTIONS,
+  type IndustryCodeOption,
 } from "../services/aboutBusinessApi";
 import {
   submitBusinessIdentifiers,
@@ -15,6 +17,7 @@ import {
   submitEefcBankAccount,
 } from "../services/bankAccountApi";
 import { submitOwnerPerson, activateAccount } from "../services/accountActivationApi";
+import { refreshCurrentUser } from "../services/authApi";
 import { useAuthStore } from "../Zustand/userStore";
 
 const inputClass =
@@ -29,13 +32,26 @@ function StepIndicator({ step }: { step: 1 | 2 | 3 }) {
 }
 
 function AboutBusinessStep({ onDone }: { onDone: () => void }) {
+  const user = useAuthStore((s) => s.user);
+  const isSoleProprietorship = user?.userType === "soleproprietorship";
+
   const [website, setWebsite] = useState("");
   const [productDescription, setProductDescription] = useState("");
   const [dba, setDba] = useState("");
   const [estimatedMonthlyVolume, setEstimatedMonthlyVolume] = useState("");
   const [estimatedAnnualRevenue, setEstimatedAnnualRevenue] = useState("");
   const [selectedCodes, setSelectedCodes] = useState<string[]>([]);
+  const [businessIndustry, setBusinessIndustry] = useState("");
+  const [industryQuery, setIndustryQuery] = useState("");
+  const [industryOptions, setIndustryOptions] = useState<IndustryCodeOption[]>([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isSoleProprietorship) return;
+    getIndustryCodes()
+      .then(setIndustryOptions)
+      .catch(() => {});
+  }, [isSoleProprietorship]);
 
   const toggleCode = (code: string) => {
     setSelectedCodes((prev) =>
@@ -67,6 +83,11 @@ function AboutBusinessStep({ onDone }: { onDone: () => void }) {
       return;
     }
 
+    if (isSoleProprietorship && !businessIndustry) {
+      alert("Please select your business industry code");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -77,6 +98,7 @@ function AboutBusinessStep({ onDone }: { onDone: () => void }) {
         purposeCode: selectedCodes.map((code) => ({ code })),
         estimatedMonthlyVolume: estimatedMonthlyVolume.trim(),
         estimatedAnnualRevenue: estimatedAnnualRevenue.trim(),
+        businessIndustry: isSoleProprietorship ? businessIndustry : undefined,
       });
 
       onDone();
@@ -174,6 +196,40 @@ function AboutBusinessStep({ onDone }: { onDone: () => void }) {
             />
           </div>
         </div>
+
+        {isSoleProprietorship && (
+          <div className="flex flex-col">
+            <label className="text-sm font-medium mb-2 text-gray-700">
+              Business industry code *
+            </label>
+            <input
+              type="text"
+              list="industry-code-options"
+              value={industryQuery}
+              onChange={(e) => {
+                const value = e.target.value;
+                setIndustryQuery(value);
+                const match = industryOptions.find(
+                  (opt) => `${opt.code} - ${opt.label}` === value
+                );
+                setBusinessIndustry(match ? match.code : "");
+              }}
+              placeholder="Start typing to search (e.g. Retail, Software, Farming)"
+              className={inputClass}
+              disabled={loading}
+            />
+            <datalist id="industry-code-options">
+              {industryOptions.map((opt) => (
+                <option key={opt.code} value={`${opt.code} - ${opt.label}`} />
+              ))}
+            </datalist>
+            <p className="text-xs text-gray-400 mt-1">
+              {businessIndustry
+                ? `Selected code: ${businessIndustry}`
+                : "NAICS industry code - required for sole proprietorships"}
+            </p>
+          </div>
+        )}
 
         <div className="flex flex-col">
           <label className="text-sm font-medium mb-2 text-gray-700">
@@ -780,6 +836,14 @@ function BankAndActivationStep({ onDone }: { onDone: () => void }) {
 export default function KycPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState<1 | 2 | 3>(1);
+
+  useEffect(() => {
+    // user.userType can be stale here - it's set at login/signup time,
+    // before onboarding (and its typeOfUser) existed, and older sessions
+    // never had a chance to refresh since. Re-fetch so the sole-
+    // proprietorship-only fields below show up correctly.
+    refreshCurrentUser().catch(() => {});
+  }, []);
 
   return (
     <div className="min-h-screen w-screen bg-gray-100 flex justify-center py-16 px-4">

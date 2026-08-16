@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import {
   loginUser,
   registerUser,
+  refreshCurrentUser,
   resendOtp as resendOtpRequest,
   verifyOtp as verifyOtpRequest,
 } from "../services/authApi";
@@ -169,6 +170,11 @@ export default function AuthPage() {
 
     try {
       await submitOnboarding(onboardingForm);
+      // The store's user was populated at login/signup time, before
+      // onboarding (and its typeOfUser) existed - re-fetch so user.userType
+      // is fresh before anything downstream (e.g. KycPage's sole-
+      // proprietorship fields) reads it.
+      await refreshCurrentUser().catch(() => {});
       navigate("/dashboard");
     } catch (error: any) {
       console.error("Onboarding submission failed:", error);
@@ -177,6 +183,7 @@ export default function AuthPage() {
       // Resuming an already-onboarded account (e.g. re-verified after a
       // previous completed run) — just continue to the dashboard.
       if (message.toLowerCase().includes("already completed")) {
+        await refreshCurrentUser().catch(() => {});
         navigate("/dashboard");
       } else {
         alert(message);

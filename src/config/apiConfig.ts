@@ -36,6 +36,7 @@ export const API_ROUTES = {
   },
   aboutBusiness: {
     submit: "/api/aboutbusiness",
+    industryCodes: "/api/aboutbusiness/industry-codes",
   },
   businessIdentifiers: {
     submit: "/api/business-identifiers",

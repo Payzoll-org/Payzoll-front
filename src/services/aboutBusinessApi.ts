@@ -68,6 +68,14 @@ export interface AboutBusinessPayload {
   purposeCode: { code: string }[];
   estimatedMonthlyVolume: string;
   estimatedAnnualRevenue: string;
+  // Sole-proprietorship (and other non-individual) accounts only - required
+  // by XflowPay for stablecoin_exports_v1, not for "individual".
+  businessIndustry?: string;
+}
+
+export interface IndustryCodeOption {
+  code: string;
+  label: string;
 }
 
 const ROUTES = API_ROUTES.aboutBusiness;
@@ -89,4 +97,24 @@ export async function submitAboutBusiness(payload: AboutBusinessPayload) {
   const data = await response.json();
   assertData(response, data);
   return data?.data?.account;
+}
+
+let industryCodesCache: IndustryCodeOption[] | null = null;
+
+/**
+ * ~1000 NAICS codes (utils/industryCodes.js on the backend) - fetched once
+ * and cached in module scope rather than bundled into the frontend, since
+ * it's only ever needed by sole-proprietorship users on this one step.
+ */
+export async function getIndustryCodes(): Promise<IndustryCodeOption[]> {
+  if (industryCodesCache) {
+    return industryCodesCache;
+  }
+
+  const response = await http(ROUTES.industryCodes, { method: "GET" });
+  const data = await response.json();
+  assertData(response, data);
+
+  industryCodesCache = data?.data?.industryCodes || [];
+  return industryCodesCache;
 }
