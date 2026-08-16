@@ -74,7 +74,6 @@ export const API_ROUTES = {
   reconcile: {
     preview: "/api/reconcile/preview",
     submit: "/api/reconcile",
-    certificate: (reconcileEventId: string) => `/api/reconcile/${reconcileEventId}/certificate`,
   },
   agentManagement: {
     agents: "/api/agent",
