@@ -9,6 +9,9 @@ export interface BusinessIdentifiersPayload {
   zipcode: string;
   panNumber: string;
   nameOnPan: string;
+  // Sole-proprietorship only - the frontend sends this only for that
+  // onboarding type.
+  gstin?: string;
 }
 
 const ROUTES = API_ROUTES.businessIdentifiers;

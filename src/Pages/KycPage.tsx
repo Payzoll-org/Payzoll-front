@@ -7,6 +7,7 @@ import {
 import {
   submitBusinessIdentifiers,
   uploadPanCard,
+  uploadAddressDocument,
   uploadSourceOfIncome,
 } from "../services/businessIdentifiersApi";
 import {
@@ -14,6 +15,7 @@ import {
   submitEefcBankAccount,
 } from "../services/bankAccountApi";
 import { submitOwnerPerson, activateAccount } from "../services/accountActivationApi";
+import { useAuthStore } from "../Zustand/userStore";
 
 const inputClass =
   "px-1 py-2 focus:outline-none focus:ring-0 border-b-2 border-gray-300 focus:border-black transition text-sm lg:text-base";
@@ -222,6 +224,9 @@ function AboutBusinessStep({ onDone }: { onDone: () => void }) {
 }
 
 function BusinessIdentifiersStep({ onDone }: { onDone: () => void }) {
+  const user = useAuthStore((s) => s.user);
+  const isSoleProprietorship = user?.userType === "soleproprietorship";
+
   const [addressLine1, setAddressLine1] = useState("");
   const [addressLine2, setAddressLine2] = useState("");
   const [city, setCity] = useState("");
@@ -229,7 +234,9 @@ function BusinessIdentifiersStep({ onDone }: { onDone: () => void }) {
   const [zipcode, setZipcode] = useState("");
   const [panNumber, setPanNumber] = useState("");
   const [nameOnPan, setNameOnPan] = useState("");
+  const [gstin, setGstin] = useState("");
   const [panFile, setPanFile] = useState<File | null>(null);
+  const [gstFile, setGstFile] = useState<File | null>(null);
   const [sourceOfIncomeFile, setSourceOfIncomeFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -248,8 +255,18 @@ function BusinessIdentifiersStep({ onDone }: { onDone: () => void }) {
       return;
     }
 
+    if (isSoleProprietorship && !gstin.trim()) {
+      alert("Please enter your GST number");
+      return;
+    }
+
     if (!panFile) {
       alert("Please upload your PAN card");
+      return;
+    }
+
+    if (isSoleProprietorship && !gstFile) {
+      alert("Please upload your GST document");
       return;
     }
 
@@ -269,9 +286,13 @@ function BusinessIdentifiersStep({ onDone }: { onDone: () => void }) {
         zipcode: zipcode.trim(),
         panNumber: panNumber.trim(),
         nameOnPan: nameOnPan.trim(),
+        gstin: isSoleProprietorship ? gstin.trim().toUpperCase() : undefined,
       });
 
       await uploadPanCard(panFile);
+      if (isSoleProprietorship && gstFile) {
+        await uploadAddressDocument(gstFile, "gstin");
+      }
       await uploadSourceOfIncome(sourceOfIncomeFile);
 
       onDone();
@@ -398,6 +419,39 @@ function BusinessIdentifiersStep({ onDone }: { onDone: () => void }) {
             />
             <p className="text-xs text-gray-400 mt-1">JPEG, PNG or PDF, up to 10MB</p>
           </div>
+
+          {isSoleProprietorship && (
+            <>
+              <div className="flex flex-col sm:w-1/2">
+                <label className="text-sm font-medium mb-2 text-gray-700">GST Number *</label>
+                <input
+                  type="text"
+                  value={gstin}
+                  onChange={(e) => setGstin(e.target.value.toUpperCase())}
+                  placeholder="22AAAAA0000A1Z5"
+                  maxLength={15}
+                  className={inputClass}
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="flex flex-col">
+                <label className="text-sm font-medium mb-2 text-gray-700">
+                  Upload GST document *
+                </label>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,application/pdf"
+                  onChange={(e) => setGstFile(e.target.files?.[0] || null)}
+                  className="text-sm text-gray-600 file:mr-4 file:py-2 file:px-4
+                            file:rounded-full file:border-0 file:text-sm file:font-medium
+                            file:bg-black file:text-white hover:file:bg-gray-800 file:cursor-pointer"
+                  disabled={loading}
+                />
+                <p className="text-xs text-gray-400 mt-1">GST registration certificate. JPEG, PNG or PDF, up to 10MB</p>
+              </div>
+            </>
+          )}
 
           <div className="flex flex-col">
             <label className="text-sm font-medium mb-2 text-gray-700">
