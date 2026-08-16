@@ -1,10 +1,32 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle } from "lucide-react";
 import { useAuthStore } from "../Zustand/userStore";
+import { refreshCurrentUser } from "../services/authApi";
+
+// kycVerified flips server-side only when XflowPay's account.status.activated
+// webhook lands (Services/webhook.service.js) - review can take up to a
+// business day in production, so this polls the real backend state rather
+// than assuming/toggling anything client-side.
+const POLL_INTERVAL_MS = 20000;
 
 export default function KycBanner() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!user || user.kycVerified) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      refreshCurrentUser().catch(() => {
+        // Transient network/auth hiccup - next poll retries, nothing to do here.
+      });
+    }, POLL_INTERVAL_MS);
+
+    return () => clearInterval(interval);
+  }, [user?.id, user?.kycVerified]);
 
   if (!user || user.kycVerified) {
     return null;

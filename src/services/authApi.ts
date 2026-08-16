@@ -130,6 +130,28 @@ export async function revokeSession(sessionId: string) {
   return data;
 }
 
+/**
+ * Re-fetches the authenticated user from the backend and syncs the store.
+ * kycVerified only ever changes server-side, driven by the real
+ * account.status.activated XflowPay webhook (Services/webhook.service.js)
+ * - this is how the frontend picks that up without a full reload.
+ */
+export async function refreshCurrentUser() {
+  const response = await http(ROUTES.me, {
+    method: "GET",
+  });
+
+  const data = await response.json();
+  assertData(response, data);
+
+  const user: User = data?.data?.user;
+  if (user) {
+    useAuthStore.getState().setUser(user);
+  }
+
+  return user;
+}
+
 export async function bootstrapSession() {
   const { markHydrated, clearSession } = useAuthStore.getState();
   try {
