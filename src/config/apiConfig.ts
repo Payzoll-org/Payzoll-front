@@ -44,6 +44,7 @@ export const API_ROUTES = {
     sourceOfIncome: "/api/business-identifiers/source-of-income",
   },
   bankAccount: {
+    list: "/api/bank-account",
     inr: "/api/bank-account/inr",
     eefc: "/api/bank-account/eefc",
   },
@@ -52,6 +53,7 @@ export const API_ROUTES = {
   },
   account: {
     activate: "/api/account/activate",
+    balance: "/api/account/balance",
   },
   stablecoin: {
     start: "/api/stablecoin/start",

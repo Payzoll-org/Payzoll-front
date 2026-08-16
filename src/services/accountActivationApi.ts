@@ -36,3 +36,30 @@ export async function activateAccount() {
   assertData(response, data);
   return data?.data?.account;
 }
+
+export interface BalanceEntry {
+  amount: string;
+  currency: string;
+}
+
+export interface Balance {
+  account_id: string;
+  available: BalanceEntry[];
+  pending: BalanceEntry[];
+  processing: BalanceEntry[];
+  payout_processing: BalanceEntry[];
+}
+
+/**
+ * Live balance from XflowPay - not cached, changes independently of
+ * anything the frontend does.
+ */
+export async function getBalance(): Promise<Balance> {
+  const response = await http(API_ROUTES.account.balance, {
+    method: "GET",
+  });
+
+  const data = await response.json();
+  assertData(response, data);
+  return data?.data?.balance;
+}

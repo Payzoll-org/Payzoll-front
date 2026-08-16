@@ -1,6 +1,7 @@
 import SideBar from "./../Components/sideBar"
 import KycBanner from "../Components/KycBanner"
 import StablecoinBanner from "../Components/StablecoinBanner"
+import AccountsOverview from "../Components/AccountsOverview"
 
 
 const MainPageLayout = () => {
@@ -16,7 +17,7 @@ const MainPageLayout = () => {
         <div className="flex gap-2 w-full">
 
           <div className="bg-white rounded-sm w-full h-full">
-
+            <AccountsOverview />
           </div>
         </div>
       </div>
