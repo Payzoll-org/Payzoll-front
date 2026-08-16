@@ -41,6 +41,7 @@ export const API_ROUTES = {
     submit: "/api/business-identifiers",
     pan: "/api/business-identifiers/pan",
     address: "/api/business-identifiers/address",
+    sourceOfIncome: "/api/business-identifiers/source-of-income",
   },
   bankAccount: {
     inr: "/api/bank-account/inr",

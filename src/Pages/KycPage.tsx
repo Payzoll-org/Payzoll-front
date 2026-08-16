@@ -7,6 +7,7 @@ import {
 import {
   submitBusinessIdentifiers,
   uploadPanCard,
+  uploadSourceOfIncome,
 } from "../services/businessIdentifiersApi";
 import {
   submitInrBankAccount,
@@ -186,6 +187,7 @@ function BusinessIdentifiersStep({ onDone }: { onDone: () => void }) {
   const [panNumber, setPanNumber] = useState("");
   const [nameOnPan, setNameOnPan] = useState("");
   const [panFile, setPanFile] = useState<File | null>(null);
+  const [sourceOfIncomeFile, setSourceOfIncomeFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -208,6 +210,11 @@ function BusinessIdentifiersStep({ onDone }: { onDone: () => void }) {
       return;
     }
 
+    if (!sourceOfIncomeFile) {
+      alert("Please upload a source of income document");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -222,6 +229,7 @@ function BusinessIdentifiersStep({ onDone }: { onDone: () => void }) {
       });
 
       await uploadPanCard(panFile);
+      await uploadSourceOfIncome(sourceOfIncomeFile);
 
       onDone();
     } catch (error: any) {
@@ -346,6 +354,24 @@ function BusinessIdentifiersStep({ onDone }: { onDone: () => void }) {
               disabled={loading}
             />
             <p className="text-xs text-gray-400 mt-1">JPEG, PNG or PDF, up to 10MB</p>
+          </div>
+
+          <div className="flex flex-col">
+            <label className="text-sm font-medium mb-2 text-gray-700">
+              Upload source of income document *
+            </label>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,application/pdf"
+              onChange={(e) => setSourceOfIncomeFile(e.target.files?.[0] || null)}
+              className="text-sm text-gray-600 file:mr-4 file:py-2 file:px-4
+                        file:rounded-full file:border-0 file:text-sm file:font-medium
+                        file:bg-black file:text-white hover:file:bg-gray-800 file:cursor-pointer"
+              disabled={loading}
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              e.g. salary slip, bank statement, or ITR. JPEG, PNG or PDF, up to 10MB
+            </p>
           </div>
         </div>
 

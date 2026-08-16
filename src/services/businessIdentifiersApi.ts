@@ -60,3 +60,20 @@ export async function uploadAddressDocument(file: File, documentType: string) {
   assertData(response, data);
   return data?.data?.account;
 }
+
+/**
+ * Saved to Cloudinary + our own DB only - never sent to XflowPay.
+ */
+export async function uploadSourceOfIncome(file: File) {
+  const formData = new FormData();
+  formData.append("sourceOfIncome", file);
+
+  const response = await http(ROUTES.sourceOfIncome, {
+    method: "POST",
+    body: formData,
+  });
+
+  const data = await response.json();
+  assertData(response, data);
+  return data?.data?.account;
+}
