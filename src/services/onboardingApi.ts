@@ -26,6 +26,15 @@ export const REFERRAL_SOURCES: ReferralSource[] = [
   "Other",
 ];
 
+// Same bucketed ranges used for both Monthly and Yearly volume.
+export const VOLUME_OPTIONS: string[] = [
+  "Less than USD 5,000.00",
+  "USD 5,000.00 to USD 10,000.00",
+  "USD 10,000.00 to USD 25,000.00",
+  "USD 25,000.00 to USD 50,000.00",
+  "Greater than USD 50,000.00",
+];
+
 export interface OnboardingPayload {
   legalName: string;
   typeOfUser: TypeOfUser;

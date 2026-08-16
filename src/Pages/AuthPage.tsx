@@ -11,6 +11,7 @@ import {
 import {
   submitOnboarding,
   REFERRAL_SOURCES,
+  VOLUME_OPTIONS,
   type OnboardingPayload,
 } from "../services/onboardingApi";
 
@@ -342,31 +343,45 @@ export default function AuthPage() {
                     <label className="text-sm font-medium mb-2 text-gray-700">
                       Monthly volume *
                     </label>
-                    <input
-                      type="text"
+                    <select
                       name="monthlyVolume"
                       value={onboardingForm.monthlyVolume}
                       onChange={handleOnboardingChange}
-                      placeholder="e.g. 50,000 - 100,000"
                       className="px-1 py-2 focus:outline-none focus:ring-0 border-b-2 border-gray-300
-                                focus:border-black transition text-sm lg:text-base"
+                                focus:border-black transition text-sm lg:text-base bg-transparent"
                       disabled={onboardingLoading}
-                    />
+                    >
+                      <option value="" disabled>
+                        Select...
+                      </option>
+                      {VOLUME_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="flex flex-col w-full sm:w-1/2">
                     <label className="text-sm font-medium mb-2 text-gray-700">
                       Yearly volume *
                     </label>
-                    <input
-                      type="text"
+                    <select
                       name="yearlyVolume"
                       value={onboardingForm.yearlyVolume}
                       onChange={handleOnboardingChange}
-                      placeholder="e.g. 500,000 - 1,000,000"
                       className="px-1 py-2 focus:outline-none focus:ring-0 border-b-2 border-gray-300
-                                focus:border-black transition text-sm lg:text-base"
+                                focus:border-black transition text-sm lg:text-base bg-transparent"
                       disabled={onboardingLoading}
-                    />
+                    >
+                      <option value="" disabled>
+                        Select...
+                      </option>
+                      {VOLUME_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
