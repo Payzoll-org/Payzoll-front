@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Landmark, Coins, Copy, Check, Wallet } from "lucide-react";
 import { getBankAccounts, type BankAccount } from "../services/bankAccountApi";
 import { getBalance, type Balance, type BalanceEntry } from "../services/accountActivationApi";
+import { useAuthStore } from "../Zustand/userStore";
 
 function CopyableField({ label, value }: { label: string; value: string | null }) {
   const [copied, setCopied] = useState(false);
@@ -226,45 +227,65 @@ function ReceivingAccountCard({ account }: { account: BankAccount }) {
 
 // USDC exists on both EVM chains and Solana; USDT only on Tron
 // (guide.md "Add additional information to enable stablecoin acceptance").
-// Each currency+network pair is shown as its own slot.
+// Each currency+network pair is its own slot.
 const STABLECOIN_SLOTS: { currency: string; network: string; label: string }[] = [
-  { currency: "USDC", network: "EVM", label: "USDC · EVM" },
-  { currency: "USDC", network: "SOLANA", label: "USDC · Solana" },
-  { currency: "USDT", network: "TRON", label: "USDT · Tron" },
+  { currency: "USDC", network: "EVM", label: "USDC on EVM" },
+  { currency: "USDC", network: "SOLANA", label: "USDC on Solana" },
+  { currency: "USDT", network: "TRON", label: "USDT on Tron" },
 ];
 
-function StablecoinSlotCard({
+function DetailRow({ label, value, shaded }: { label: string; value: string; shaded?: boolean }) {
+  return (
+    <div className={`flex items-center justify-between px-4 py-3 ${shaded ? "bg-indigo-50/60" : "bg-white"}`}>
+      <span className="text-sm text-gray-600">{label}</span>
+      <span className="text-sm font-semibold text-gray-900 text-right break-all">{value}</span>
+    </div>
+  );
+}
+
+/**
+ * XflowPay auto-provisions these once stablecoin_exports_v1 activates -
+ * asynchronously, not instantly (confirmed live: they showed up 10-40
+ * minutes after the capability's webhook fired). Receiving Address is
+ * address.vpa.id - in test mode this is a "test_liq_id_..." placeholder
+ * (same pattern as mock.bridge.tos: a test-mode stand-in, not a real
+ * on-chain address); in livemode this is XflowPay's real deposit/
+ * liquidation address for that chain. Payments sent there are instantly
+ * off-ramped into USD (guide.md "Add additional information to enable
+ * stablecoin acceptance") and land in the US Receiving Account above.
+ */
+function StablecoinAddressCard({
   slot,
   account,
 }: {
   slot: (typeof STABLECOIN_SLOTS)[number];
   account?: BankAccount;
 }) {
-  if (!account) {
-    return (
-      <div className="border border-dashed border-gray-200 rounded-xl p-5">
-        <span className="text-sm font-semibold text-gray-400">{slot.label}</span>
-        <p className="text-xs text-gray-400 mt-2">Not yet available</p>
-      </div>
-    );
-  }
-
-  const bank = account.bankAccount;
-
   return (
-    <div className="border border-gray-200 rounded-xl p-5">
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-sm font-semibold text-gray-900">{slot.label}</span>
-        <StatusBadge status={account.status} />
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-base font-semibold text-gray-900">{slot.label}</h3>
+        {account && <StatusBadge status={account.status} />}
       </div>
-      <div className="flex flex-col gap-3">
-        <CopyableField label="Receiving address" value={bank.number} />
-      </div>
+
+      {!account ? (
+        <div className="border border-dashed border-gray-200 rounded-xl p-5 text-sm text-gray-400">
+          Not yet available
+        </div>
+      ) : (
+        <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100">
+          <DetailRow label="Beneficiary" value={account.name || "-"} />
+          <DetailRow label="Receiving Token" value={account.currency} shaded />
+          <DetailRow label="Network" value={slot.network} />
+          <DetailRow label="Receiving Address" value={account.receivingAddress || "-"} shaded />
+        </div>
+      )}
     </div>
   );
 }
 
 export default function AccountsOverview() {
+  const user = useAuthStore((s) => s.user);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -318,20 +339,26 @@ export default function AccountsOverview() {
           <h2 className="text-lg font-medium text-gray-900">Stablecoin Payments</h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {STABLECOIN_SLOTS.map((slot) => (
-            <StablecoinSlotCard
-              key={`${slot.currency}-${slot.network}`}
-              slot={slot}
-              account={bankAccounts.find(
-                (a) =>
-                  a.category === "xflow_receive" &&
-                  a.currency === slot.currency &&
-                  a.network === slot.network
-              )}
-            />
-          ))}
-        </div>
+        {user?.stablecoinEnabled ? (
+          <div className="flex flex-col gap-6">
+            {STABLECOIN_SLOTS.map((slot) => (
+              <StablecoinAddressCard
+                key={`${slot.currency}-${slot.network}`}
+                slot={slot}
+                account={bankAccounts.find(
+                  (a) =>
+                    a.category === "xflow_receive" &&
+                    a.currency === slot.currency &&
+                    a.network === slot.network
+                )}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="border border-dashed border-gray-200 rounded-xl p-6 text-sm text-gray-500">
+            Enable stablecoin payments from your dashboard to accept USDC (EVM, Solana) and USDT (Tron).
+          </div>
+        )}
       </section>
 
       {/* Payout Bank Accounts */}
