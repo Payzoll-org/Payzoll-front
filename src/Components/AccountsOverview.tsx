@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Landmark, Coins, Copy, Check, Wallet } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Landmark, Coins, Copy, Check, Wallet, Scale } from "lucide-react";
 import { getBankAccounts, type BankAccount } from "../services/bankAccountApi";
 import { getBalance, type Balance, type BalanceEntry } from "../services/accountActivationApi";
 import { useAuthStore } from "../Zustand/userStore";
@@ -285,6 +286,7 @@ function StablecoinAddressCard({
 }
 
 export default function AccountsOverview() {
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [loading, setLoading] = useState(true);
@@ -311,6 +313,18 @@ export default function AccountsOverview() {
 
   return (
     <div className="p-6 lg:p-8 flex flex-col gap-8 overflow-y-auto h-full">
+      {/* Header */}
+      <div className="flex items-center justify-end -mb-4">
+        <button
+          onClick={() => navigate("/reconcile")}
+          className="flex items-center gap-2 px-5 h-10 bg-black text-white text-sm font-medium
+                    rounded-full hover:scale-105 transition-transform shadow-sm"
+        >
+          <Scale size={15} />
+          Reconcile
+        </button>
+      </div>
+
       {/* Balance */}
       <section>
         <BalanceCard />

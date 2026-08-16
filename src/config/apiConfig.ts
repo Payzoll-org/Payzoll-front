@@ -60,6 +60,18 @@ export const API_ROUTES = {
     start: "/api/stablecoin/start",
     accept: "/api/stablecoin/accept",
   },
+  partner: {
+    create: "/api/partner",
+    list: "/api/partner",
+  },
+  receivable: {
+    create: "/api/receivable",
+    list: "/api/receivable",
+  },
+  reconcile: {
+    preview: "/api/reconcile/preview",
+    submit: "/api/reconcile",
+  },
   agentManagement: {
     agents: "/api/agent",
     agentById: (agentId: string) => `/api/agent/${agentId}`,

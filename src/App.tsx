@@ -6,6 +6,7 @@ import './App.css';
 import MainPage from './Pages/MainPageLayout';
 import AuthPage from './Pages/AuthPage';
 import KycPage from './Pages/KycPage';
+import ReconcilePage from './Pages/ReconcilePage';
 import StablecoinCallbackPage from './Pages/StablecoinCallbackPage';
 import ProtectedRoute from './Components/ProtectedRoute';
 import { useAuthBootstrap } from './hooks/useAuthBootstrap';
@@ -28,6 +29,14 @@ const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <KycPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/reconcile",
+    element: (
+      <ProtectedRoute>
+        <ReconcilePage />
       </ProtectedRoute>
     ),
   },
