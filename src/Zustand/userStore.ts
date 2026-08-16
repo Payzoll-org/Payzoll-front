@@ -10,6 +10,8 @@ export interface User {
   verified: boolean;
   kycVerified: boolean;
   userType: TypeOfUser | null;
+  accountStatus?: string | null;
+  stablecoinEnabled?: boolean;
 }
 
 interface AuthState {

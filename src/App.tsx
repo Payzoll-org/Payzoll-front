@@ -6,6 +6,7 @@ import './App.css';
 import MainPage from './Pages/MainPageLayout';
 import AuthPage from './Pages/AuthPage';
 import KycPage from './Pages/KycPage';
+import StablecoinCallbackPage from './Pages/StablecoinCallbackPage';
 import ProtectedRoute from './Components/ProtectedRoute';
 import { useAuthBootstrap } from './hooks/useAuthBootstrap';
 
@@ -29,6 +30,12 @@ const router = createBrowserRouter([
         <KycPage />
       </ProtectedRoute>
     ),
+  },
+  {
+    // Loaded inside the stablecoin ToS iframe, not as a normal page visit -
+    // no ProtectedRoute, it doesn't call our API or need auth state.
+    path: "/stablecoin-callback",
+    element: <StablecoinCallbackPage />,
   },
 ]);
 

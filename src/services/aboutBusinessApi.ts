@@ -66,6 +66,8 @@ export interface AboutBusinessPayload {
   productDescription: string;
   dba: string;
   purposeCode: { code: string }[];
+  estimatedMonthlyVolume: string;
+  estimatedAnnualRevenue: string;
 }
 
 const ROUTES = API_ROUTES.aboutBusiness;

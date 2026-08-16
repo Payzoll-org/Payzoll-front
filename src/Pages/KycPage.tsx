@@ -30,6 +30,8 @@ function AboutBusinessStep({ onDone }: { onDone: () => void }) {
   const [website, setWebsite] = useState("");
   const [productDescription, setProductDescription] = useState("");
   const [dba, setDba] = useState("");
+  const [estimatedMonthlyVolume, setEstimatedMonthlyVolume] = useState("");
+  const [estimatedAnnualRevenue, setEstimatedAnnualRevenue] = useState("");
   const [selectedCodes, setSelectedCodes] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -42,7 +44,13 @@ function AboutBusinessStep({ onDone }: { onDone: () => void }) {
   const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
 
-    if (!website.trim() || !productDescription.trim() || !dba.trim()) {
+    if (
+      !website.trim() ||
+      !productDescription.trim() ||
+      !dba.trim() ||
+      !estimatedMonthlyVolume.trim() ||
+      !estimatedAnnualRevenue.trim()
+    ) {
       alert("Please fill in all required fields");
       return;
     }
@@ -65,6 +73,8 @@ function AboutBusinessStep({ onDone }: { onDone: () => void }) {
         productDescription: productDescription.trim(),
         dba: dba.trim(),
         purposeCode: selectedCodes.map((code) => ({ code })),
+        estimatedMonthlyVolume: estimatedMonthlyVolume.trim(),
+        estimatedAnnualRevenue: estimatedAnnualRevenue.trim(),
       });
 
       onDone();
@@ -128,6 +138,39 @@ function AboutBusinessStep({ onDone }: { onDone: () => void }) {
             className={`${inputClass} resize-none`}
             disabled={loading}
           />
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-5">
+          <div className="flex flex-col w-full sm:w-1/2">
+            <label className="text-sm font-medium mb-2 text-gray-700">
+              Estimated monthly volume (USD) *
+            </label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={estimatedMonthlyVolume}
+              onChange={(e) => setEstimatedMonthlyVolume(e.target.value)}
+              placeholder="5000"
+              className={inputClass}
+              disabled={loading}
+            />
+          </div>
+          <div className="flex flex-col w-full sm:w-1/2">
+            <label className="text-sm font-medium mb-2 text-gray-700">
+              Estimated annual revenue (USD) *
+            </label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={estimatedAnnualRevenue}
+              onChange={(e) => setEstimatedAnnualRevenue(e.target.value)}
+              placeholder="60000"
+              className={inputClass}
+              disabled={loading}
+            />
+          </div>
         </div>
 
         <div className="flex flex-col">

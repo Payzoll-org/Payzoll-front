@@ -53,6 +53,10 @@ export const API_ROUTES = {
   account: {
     activate: "/api/account/activate",
   },
+  stablecoin: {
+    start: "/api/stablecoin/start",
+    accept: "/api/stablecoin/accept",
+  },
   agentManagement: {
     agents: "/api/agent",
     agentById: (agentId: string) => `/api/agent/${agentId}`,
