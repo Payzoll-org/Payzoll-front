@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { 
+import { useNavigate, useLocation } from 'react-router-dom';
+import {
   Lock,
-  ChevronDown, 
+  ChevronDown,
   ChevronUp,
   User,
   Clock,
@@ -30,6 +31,7 @@ interface NavigationItem {
   icon: React.ComponentType<{ size?: number }>;
   isFolder: boolean;
   children?: NavigationChild[];
+  route?: string;
 }
 
 
@@ -39,11 +41,12 @@ interface ExpandedFolders {
 }
 
 const sideBAr: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [expandedFolders, setExpandedFolders] = useState<ExpandedFolders>({
     history: false,
     agents: false
   });
-  const [activeItem, setActiveItem] = useState<string>('');
 
   const toggleFolder = (folderName: string): void => {
     setExpandedFolders(prev => ({
@@ -58,12 +61,14 @@ const sideBAr: React.FC = () => {
       label: 'Dashboard',
       icon: User,
       isFolder: false,
+      route: '/dashboard',
     },
     {
       id: 'transactionshistory',
       label: 'Transaction History',
       icon: Clock,
       isFolder: false,
+      route: '/transactionhistory',
     },
      {
       id: 'international Banking',
@@ -99,7 +104,23 @@ const sideBAr: React.FC = () => {
       },
   ];
 
-  
+  const [localActiveItem, setLocalActiveItem] = useState<string>('');
+  const routedActiveId = navigationItems.find((item) => item.route === location.pathname)?.id;
+  const activeItem = routedActiveId ?? localActiveItem;
+
+  const handleItemClick = (item: NavigationItem): void => {
+    if (item.isFolder) {
+      toggleFolder(item.id);
+      return;
+    }
+    if (item.route) {
+      navigate(item.route);
+      return;
+    }
+    setLocalActiveItem(item.id);
+  };
+
+
 
   return (
     <>
@@ -137,13 +158,7 @@ const sideBAr: React.FC = () => {
             {navigationItems.map((item) => (
               <div key={item.id}>
                 <button
-                  onClick={() => {
-                    if (item.isFolder) {
-                      toggleFolder(item.id);
-                    } else {
-                      setActiveItem(item.id);
-                    }
-                  }}
+                  onClick={() => handleItemClick(item)}
                   className={`w-full flex items-center gap-3  py-1.5 rounded-sm pl-3 pr-1 text-left transition-all duration-200 group ${
                     activeItem === item.id && !item.isFolder
                       ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
@@ -178,7 +193,7 @@ const sideBAr: React.FC = () => {
                     {item.children.map((child) => (
                       <button
                         key={child.id}
-                        onClick={() => setActiveItem(child.id)}
+                        onClick={() => setLocalActiveItem(child.id)}
                         className={`w-full flex items-center gap-3 px-3 py-1 pl-10 rounded-sm text-left transition-all duration-200 ${
                           activeItem === child.id
                             ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'

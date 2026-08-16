@@ -50,5 +50,34 @@ export async function submitReconciliation(payload: ReconcileRequest) {
 
   const data = await response.json();
   assertData(response, data);
-  return data?.data?.receivable;
+  return {
+    receivable: data?.data?.receivable,
+    reconcileEventId: data?.data?.reconcileEventId as string,
+  };
+}
+
+/**
+ * Fetches the FIRA certificate PDF as a blob and triggers a browser
+ * download - a plain <a href> can't be used since the endpoint requires
+ * the Authorization header the browser won't attach to a bare link click.
+ */
+export async function downloadFiraCertificate(reconcileEventId: string) {
+  const response = await http(ROUTES.certificate(reconcileEventId), {
+    method: "GET",
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.message || "Failed to download FIRA certificate");
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `FIRA-Certificate-${reconcileEventId}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }

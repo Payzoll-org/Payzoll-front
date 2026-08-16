@@ -68,9 +68,13 @@ export const API_ROUTES = {
     create: "/api/receivable",
     list: "/api/receivable",
   },
+  transaction: {
+    list: "/api/transaction",
+  },
   reconcile: {
     preview: "/api/reconcile/preview",
     submit: "/api/reconcile",
+    certificate: (reconcileEventId: string) => `/api/reconcile/${reconcileEventId}/certificate`,
   },
   agentManagement: {
     agents: "/api/agent",

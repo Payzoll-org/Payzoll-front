@@ -7,6 +7,7 @@ import MainPage from './Pages/MainPageLayout';
 import AuthPage from './Pages/AuthPage';
 import KycPage from './Pages/KycPage';
 import ReconcilePage from './Pages/ReconcilePage';
+import TransactionHistoryPage from './Pages/TransactionHistoryPage';
 import StablecoinCallbackPage from './Pages/StablecoinCallbackPage';
 import ProtectedRoute from './Components/ProtectedRoute';
 import { useAuthBootstrap } from './hooks/useAuthBootstrap';
@@ -37,6 +38,14 @@ const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <ReconcilePage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/transactionhistory",
+    element: (
+      <ProtectedRoute>
+        <TransactionHistoryPage />
       </ProtectedRoute>
     ),
   },

@@ -11,10 +11,13 @@ function CopyableField({ label, value }: { label: string; value: string | null }
   if (!value) return null;
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(value).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    });
+    navigator.clipboard
+      .writeText(value)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      })
+      .catch(() => {});
   };
 
   return (
@@ -116,6 +119,8 @@ function BalanceCard() {
 
   const hasPending = nonZero(balance.pending).length > 0;
   const hasProcessing = nonZero(balance.processing).length > 0;
+  const visibleCount = 1 + (hasPending ? 1 : 0) + (hasProcessing ? 1 : 0);
+  const gridColsClass = visibleCount === 3 ? "sm:grid-cols-3" : visibleCount === 2 ? "sm:grid-cols-2" : "";
 
   return (
     <div className="border border-gray-200 rounded-xl p-6">
@@ -124,7 +129,7 @@ function BalanceCard() {
         <p className="text-xs uppercase tracking-wide">Balance</p>
       </div>
 
-      <div className={`grid gap-6 ${hasPending || hasProcessing ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-1"}`}>
+      <div className={`grid gap-6 grid-cols-1 ${gridColsClass}`}>
         <BalanceRow label="Available" hint="ready for payout" entries={balance.available} />
         {hasPending && (
           <BalanceRow label="Pending" hint="received, not yet reconciled" entries={balance.pending} />
@@ -168,6 +173,7 @@ function PaymentMethodRow({
  */
 function USReceivingAccountCard({ account }: { account: BankAccount }) {
   const bank = account.bankAccount;
+  if (!bank) return null;
 
   return (
     <div className="border border-gray-200 rounded-xl p-5">
@@ -205,6 +211,7 @@ function USReceivingAccountCard({ account }: { account: BankAccount }) {
 
 function ReceivingAccountCard({ account }: { account: BankAccount }) {
   const bank = account.bankAccount;
+  if (!bank) return null;
 
   return (
     <div className="border border-gray-200 rounded-xl p-5">
@@ -314,7 +321,8 @@ export default function AccountsOverview() {
   return (
     <div className="p-6 lg:p-8 flex flex-col gap-8 overflow-y-auto h-full">
       {/* Header */}
-      <div className="flex items-center justify-end -mb-4">
+      <div className="flex mb-5 items-center justify-between -mb-4">
+        <h1 className="text-4xl text-gray-900">My Accounts</h1>
         <button
           onClick={() => navigate("/reconcile")}
           className="flex items-center gap-2 px-5 h-10 bg-black text-white text-sm font-medium

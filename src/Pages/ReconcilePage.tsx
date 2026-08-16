@@ -8,8 +8,10 @@ import { getBalance } from "../services/accountActivationApi";
 import {
   previewReconciliation,
   submitReconciliation,
+  downloadFiraCertificate,
   type ReconciliationPreview,
 } from "../services/reconcileApi";
+import { FileCheck2, Download } from "lucide-react";
 
 const inputClass =
   "px-1 py-2 focus:outline-none focus:ring-0 border-b-2 border-gray-300 focus:border-black transition text-sm lg:text-base bg-transparent";
@@ -632,6 +634,10 @@ function ReconcileStep({
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  const [reconcileEventId, setReconcileEventId] = useState<string | null>(null);
+  const [certificateLoading, setCertificateLoading] = useState(false);
+  const [certificateError, setCertificateError] = useState<string | null>(null);
+
   useEffect(() => {
     Promise.all([getReceivables(), getBankAccounts(), getBalance()])
       .then(([receivablesList, bankAccountsList, balance]) => {
@@ -683,12 +689,25 @@ function ReconcileStep({
     setLoading(true);
 
     try {
-      await submitReconciliation({ receivableId, amount: amount.trim(), bankAccountId });
-      onDone();
+      const result = await submitReconciliation({ receivableId, amount: amount.trim(), bankAccountId });
+      setReconcileEventId(result.reconcileEventId);
     } catch (error: any) {
       setSubmitError(error.message || "Failed to reconcile");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDownloadCertificate = async () => {
+    if (!reconcileEventId) return;
+    setCertificateError(null);
+    setCertificateLoading(true);
+    try {
+      await downloadFiraCertificate(reconcileEventId);
+    } catch (error: any) {
+      setCertificateError(error.message || "Failed to download certificate");
+    } finally {
+      setCertificateLoading(false);
     }
   };
 
@@ -700,6 +719,53 @@ function ReconcileStep({
       <div className="flex items-center justify-center py-24">
         <div className="w-6 h-6 border-2 border-gray-300 border-t-black rounded-full animate-spin" />
       </div>
+    );
+  }
+
+  if (reconcileEventId) {
+    return (
+      <>
+        <StepIndicator step={3} />
+        <h2 className="text-3xl lg:text-4xl font-light mb-8 text-gray-900">Reconciled</h2>
+
+        <div className="border border-gray-200 rounded-xl p-8 flex flex-col items-center text-center gap-4">
+          <div className="w-14 h-14 rounded-full bg-green-50 flex items-center justify-center">
+            <FileCheck2 size={26} className="text-green-600" />
+          </div>
+          <div>
+            <p className="text-lg font-medium text-gray-900">Reconciliation successful</p>
+            <p className="text-sm text-gray-500 mt-1">
+              USD {amount} reconciled against {selectedReceivable?.invoice.referenceNumber || "your receivable"}
+            </p>
+          </div>
+
+          {certificateError && (
+            <div className="w-full px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+              {certificateError}
+            </div>
+          )}
+
+          <button
+            onClick={handleDownloadCertificate}
+            disabled={certificateLoading}
+            className="px-6 h-11 flex items-center justify-center gap-2 bg-black text-white text-sm font-medium
+                      rounded-full hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {certificateLoading ? (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <>
+                <Download size={15} />
+                Download FIRA Certificate
+              </>
+            )}
+          </button>
+
+          <button onClick={onDone} className="text-sm text-gray-500 hover:text-black mt-1">
+            Done
+          </button>
+        </div>
+      </>
     );
   }
 
@@ -906,10 +972,7 @@ export default function ReconcilePage() {
         {step === 3 && receivableId && (
           <ReconcileStep
             initialReceivableId={receivableId}
-            onDone={() => {
-              alert("Reconciled successfully");
-              navigate("/dashboard");
-            }}
+            onDone={() => navigate("/dashboard")}
           />
         )}
       </div>
