@@ -265,7 +265,7 @@ export default function AuthPage() {
       </div>
 
       {/* Right Side - Auth Form or Verification */}
-      <div className="flex-1 flex justify-center pt-28 w-full lg:w-[55%]">
+      <div className="flex-1 flex justify-center pt-7 w-full lg:w-[55%]">
         <div className="w-full max-w-2xl px-4 lg:px-8">
           {showOnboarding ? (
             // Onboarding Screen

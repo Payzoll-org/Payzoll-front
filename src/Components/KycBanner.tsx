@@ -33,7 +33,7 @@ export default function KycBanner() {
   }
 
   return (
-    <div className="w-full bg-amber-50 border-b border-amber-200 px-4 py-2.5 flex items-center justify-between gap-4 shrink-0">
+    <div className="w-full bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center justify-between gap-4 shrink-0">
       <div className="flex items-center gap-2 text-amber-800">
         <AlertTriangle size={18} className="shrink-0" />
         <span className="text-sm font-medium">
@@ -42,7 +42,7 @@ export default function KycBanner() {
       </div>
       <button
         onClick={() => navigate("/kyc")}
-        className="shrink-0 px-4 py-1.5 bg-black text-white text-sm font-medium rounded-full hover:scale-105 transition-transform"
+        className="shrink-0 px-4 py-1 bg-black text-white text-sm font-medium rounded-full hover:scale-105 transition-transform"
       >
         Complete KYC
       </button>
