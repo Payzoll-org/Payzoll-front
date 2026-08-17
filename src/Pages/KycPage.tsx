@@ -30,7 +30,7 @@ function StepHeader({
   subtitle: string;
 }) {
   return (
-    <div className=" mt-15 shrink-0">
+    <div className=" mt-10 shrink-0">
       <div className="flex items-center gap-2 mb-1.5">
         <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center">
           {step}
@@ -410,7 +410,7 @@ function StepCard({
 }) {
   return (
     <div
-      className={`rounded-2xl mt-10 min-h-0 ${
+      className={`rounded-2xl mt-5 min-h-0 ${
         scrollable ? "flex-1 overflow-y-auto pr-1" : ""
       }`}
     >
