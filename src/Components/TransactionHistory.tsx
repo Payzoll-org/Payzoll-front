@@ -1,119 +1,108 @@
-import { useEffect, useState } from "react";
-import { Clock, ArrowUpRight, ArrowDownLeft, ArrowRightLeft } from "lucide-react";
-import { getTransactions, TRANSACTION_TYPE_LABELS, type Transaction } from "../services/transactionApi";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { ArrowUpDown } from "lucide-react";
+import { getPayouts, type Payout } from "../services/payoutApi";
 
-// Rough "does this read as money in vs money out vs internal movement"
-// grouping, purely for the icon/color - the actual from/to amounts below
-// are always shown as-is, so nothing depends on this being exactly right.
-const CREDIT_TYPES = new Set(["funds_credit", "deposit_reversal", "adjustment_positive", "payout_failure"]);
-const DEBIT_TYPES = new Set([
-  "payout",
-  "payout_fee",
-  "processing_fee",
-  "fx_fee",
-  "funds_debit",
-  "fee_advance_debit",
-  "platform_partner_debit",
-  "platform_currency_debit",
-  "quote_lock_live_booking_fx_fee",
-  "adjustment_negative",
-]);
+const STATUS_STYLES: Record<string, string> = {
+  settled: "bg-green-100 text-green-800",
+  processing: "bg-amber-100 text-amber-800",
+  initialized: "bg-amber-100 text-amber-800",
+  hold: "bg-amber-100 text-amber-800",
+  failed: "bg-red-100 text-red-800",
+};
 
-function TransactionIcon({ type }: { type: string }) {
-  if (CREDIT_TYPES.has(type)) {
-    return (
-      <div className="w-9 h-9 rounded-full bg-green-50 flex items-center justify-center shrink-0">
-        <ArrowDownLeft size={16} className="text-green-600" />
-      </div>
-    );
-  }
-  if (DEBIT_TYPES.has(type)) {
-    return (
-      <div className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center shrink-0">
-        <ArrowUpRight size={16} className="text-red-600" />
-      </div>
-    );
-  }
+function StatusPill({ status }: { status: string }) {
   return (
-    <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-      <ArrowRightLeft size={16} className="text-gray-500" />
-    </div>
+    <span className={`text-xs font-semibold px-3 py-1 rounded-full capitalize ${STATUS_STYLES[status] || "bg-gray-100 text-gray-700"}`}>
+      {status}
+    </span>
   );
 }
 
-function formatDate(createdSeconds: number) {
-  return new Date(createdSeconds * 1000).toLocaleString(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+function formatDate(seconds: number | null) {
+  if (!seconds) return "-";
+  return new Date(seconds * 1000).toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" });
 }
 
-function TransactionRow({ transaction }: { transaction: Transaction }) {
-  const label = TRANSACTION_TYPE_LABELS[transaction.type] || transaction.type;
-  const sameCurrency = transaction.from.currency === transaction.to.currency;
+function formatEta(seconds: number | null) {
+  if (!seconds) return "-";
+  const date = new Date(seconds * 1000);
+  return `ETA: ${date.toLocaleDateString(undefined, { day: "2-digit", month: "short" })} by ${date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`;
+}
 
+function PayoutRow({ payout }: { payout: Payout }) {
   return (
-    <div className="flex items-center gap-4 py-4 border-b border-gray-100 last:border-0">
-      <TransactionIcon type={transaction.type} />
-
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-900">{label}</p>
-        <p className="text-xs text-gray-400 mt-0.5">{formatDate(transaction.created)}</p>
-      </div>
-
-      <div className="text-right shrink-0">
-        {sameCurrency ? (
-          <p className="text-sm font-semibold text-gray-900">
-            {transaction.to.amount} <span className="text-gray-400 font-normal">{transaction.to.currency}</span>
-          </p>
-        ) : (
-          <p className="text-sm font-semibold text-gray-900">
-            {transaction.from.amount} <span className="text-gray-400 font-normal">{transaction.from.currency}</span>
-            <span className="text-gray-300 mx-1">→</span>
-            {transaction.to.amount} <span className="text-gray-400 font-normal">{transaction.to.currency}</span>
-          </p>
-        )}
-      </div>
-    </div>
+    <tr className="border-b border-gray-100 last:border-0">
+      <td className="py-4 px-4 text-sm text-gray-700 whitespace-nowrap">{formatDate(payout.created)}</td>
+      <td className="py-4 px-4 text-sm">
+        <Link to={`/transactionhistory/${payout.id}`} className="text-blue-600 hover:text-blue-700 font-medium">
+          {payout.id}
+        </Link>
+      </td>
+      <td className="py-4 px-4 text-sm text-gray-700 whitespace-nowrap">
+        {payout.grossAmount ? `${payout.grossCurrency} ${payout.grossAmount}` : "-"}
+      </td>
+      <td className="py-4 px-4 text-sm text-gray-700 whitespace-nowrap">
+        {payout.settledAmount ? `${payout.settledCurrency} ${payout.settledAmount}` : "-"}
+      </td>
+      <td className="py-4 px-4">
+        <StatusPill status={payout.status} />
+      </td>
+      <td className="py-4 px-4 text-sm text-gray-500 whitespace-nowrap">{formatEta(payout.arrivalDate)}</td>
+    </tr>
   );
 }
 
 export default function TransactionHistory() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [payouts, setPayouts] = useState<Payout[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasNext, setHasNext] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sortDesc, setSortDesc] = useState(true);
 
   useEffect(() => {
-    getTransactions({ limit: 10 })
-      .then(({ transactions, hasNext }) => {
-        setTransactions(transactions);
+    getPayouts({ limit: 10 })
+      .then(({ payouts, hasNext }) => {
+        setPayouts(payouts);
         setHasNext(hasNext);
       })
-      .catch((err: any) => setError(err.message || "Failed to load transaction history"))
+      .catch((err: any) => setError(err.message || "Failed to load payouts"))
       .finally(() => setLoading(false));
   }, []);
 
   const loadMore = () => {
-    const last = transactions[transactions.length - 1];
+    const last = payouts[payouts.length - 1];
     if (!last) return;
 
     setLoadingMore(true);
-    getTransactions({ limit: 10, startingAfter: last.id })
-      .then(({ transactions: more, hasNext }) => {
-        setTransactions((prev) => [...prev, ...more]);
+    getPayouts({ limit: 10, startingAfter: last.id })
+      .then(({ payouts: more, hasNext }) => {
+        setPayouts((prev) => [...prev, ...more]);
         setHasNext(hasNext);
       })
-      .catch((err: any) => setError(err.message || "Failed to load more transactions"))
+      .catch((err: any) => setError(err.message || "Failed to load more payouts"))
       .finally(() => setLoadingMore(false));
   };
 
+  const sorted = useMemo(() => {
+    const withEta = payouts.filter((p) => p.arrivalDate);
+    const withoutEta = payouts.filter((p) => !p.arrivalDate);
+    withEta.sort((a, b) => (sortDesc ? (b.arrivalDate || 0) - (a.arrivalDate || 0) : (a.arrivalDate || 0) - (b.arrivalDate || 0)));
+    return [...withEta, ...withoutEta];
+  }, [payouts, sortDesc]);
+
   return (
     <div className="p-6 lg:p-8 flex flex-col gap-6 overflow-y-auto h-full">
-      <div className="flex items-center gap-2">
-        <Clock size={18} className="text-gray-700" />
-        <h2 className="text-lg font-medium text-gray-900">Transaction History</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-gray-900">All Payouts</h2>
+        <button
+          onClick={() => setSortDesc((v) => !v)}
+          className="flex items-center gap-2 text-sm font-medium text-gray-700 border border-gray-200 rounded-lg px-4 py-2 hover:bg-gray-50"
+        >
+          <ArrowUpDown size={14} />
+          Sort: Expected On ({sortDesc ? "Newest-Oldest" : "Oldest-Newest"})
+        </button>
       </div>
 
       {loading ? (
@@ -122,15 +111,29 @@ export default function TransactionHistory() {
         </div>
       ) : error ? (
         <div className="border border-red-200 bg-red-50 rounded-xl p-6 text-sm text-red-700">{error}</div>
-      ) : transactions.length === 0 ? (
+      ) : payouts.length === 0 ? (
         <div className="border border-dashed border-gray-200 rounded-xl p-6 text-sm text-gray-500">
-          No transactions yet. Activity like deposits, reconciliations, and payouts will show up here.
+          No payouts yet. Reconciled funds dispatched to your bank account will show up here.
         </div>
       ) : (
-        <div className="border border-gray-200 rounded-xl px-5">
-          {transactions.map((t) => (
-            <TransactionRow key={t.id} transaction={t} />
-          ))}
+        <div className="border border-gray-200 rounded-xl overflow-x-auto">
+          <table className="w-full min-w-[820px]">
+            <thead>
+              <tr className="border-b border-gray-200 bg-gray-50">
+                <th className="text-left text-xs font-medium text-gray-500 py-3 px-4">Initiated On</th>
+                <th className="text-left text-xs font-medium text-gray-500 py-3 px-4">Payout Reference</th>
+                <th className="text-left text-xs font-medium text-gray-500 py-3 px-4">Gross Payout</th>
+                <th className="text-left text-xs font-medium text-gray-500 py-3 px-4">Settled Amount</th>
+                <th className="text-left text-xs font-medium text-gray-500 py-3 px-4">Status</th>
+                <th className="text-left text-xs font-medium text-gray-500 py-3 px-4">Expected On</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map((p) => (
+                <PayoutRow key={p.id} payout={p} />
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 

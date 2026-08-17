@@ -8,6 +8,7 @@ import AuthPage from './Pages/AuthPage';
 import KycPage from './Pages/KycPage';
 import ReconcilePage from './Pages/ReconcilePage';
 import TransactionHistoryPage from './Pages/TransactionHistoryPage';
+import PayoutDetailPage from './Pages/PayoutDetailPage';
 import StablecoinCallbackPage from './Pages/StablecoinCallbackPage';
 import ProtectedRoute from './Components/ProtectedRoute';
 import { useAuthBootstrap } from './hooks/useAuthBootstrap';
@@ -46,6 +47,14 @@ const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <TransactionHistoryPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/transactionhistory/:payoutId",
+    element: (
+      <ProtectedRoute>
+        <PayoutDetailPage />
       </ProtectedRoute>
     ),
   },

@@ -71,6 +71,18 @@ export const API_ROUTES = {
   transaction: {
     list: "/api/transaction",
   },
+  payout: {
+    list: "/api/payout",
+    detail: (id: string) => `/api/payout/${id}`,
+    paymentAdvice: (id: string) => `/api/payout/${id}/payment-advice`,
+  },
+  deposit: {
+    list: "/api/deposit",
+  },
+  fxRate: {
+    live: "/api/fx-rate",
+    history: "/api/fx-rate/history",
+  },
   reconcile: {
     preview: "/api/reconcile/preview",
     submit: "/api/reconcile",
