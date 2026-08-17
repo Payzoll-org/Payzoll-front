@@ -96,7 +96,9 @@ function AccountSummaryCard({
       <div className="flex items-center gap-4 mt-4">
         <button
           onClick={() => navigate("/reconcile")}
-          className="text-sm font-medium text-blue-600 hover:text-blue-700"
+          disabled={!pendingUsd}
+          title={!pendingUsd ? "No balance available to reconcile yet" : undefined}
+          className="text-sm font-medium text-blue-600 hover:text-blue-700 disabled:text-gray-300 disabled:cursor-not-allowed disabled:hover:text-gray-300"
         >
           Reconcile
         </button>

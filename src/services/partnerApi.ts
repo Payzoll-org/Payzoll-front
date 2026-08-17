@@ -23,6 +23,14 @@ export interface Partner {
   partnerType: string;
   status: string;
   createdAt: string;
+  physicalAddress?: {
+    country?: string;
+    city?: string;
+    line1?: string;
+    line2?: string;
+    postalCode?: string;
+    state?: string;
+  };
 }
 
 // Matches AuthService/Middleware/validation.Middleware.js's PARTNER_TYPES

@@ -83,6 +83,9 @@ export const API_ROUTES = {
     live: "/api/fx-rate",
     history: "/api/fx-rate/history",
   },
+  feePlan: {
+    payoutFee: "/api/fee-plan/payout-fee",
+  },
   reconcile: {
     preview: "/api/reconcile/preview",
     submit: "/api/reconcile",

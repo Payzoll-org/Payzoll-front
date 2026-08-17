@@ -18,11 +18,19 @@ export interface ReceivablePayload {
 export interface Receivable {
   _id: string;
   xflowReceivableId: string;
+  partner: string;
+  transactionType: string;
+  purposeCode: string;
+  purposeCodeDescription: string | null;
+  description: string | null;
   currency: string;
   amountMaximumReconcilable: string;
   invoice: {
     referenceNumber: string | null;
     amount: string | null;
+    currency: string | null;
+    creationDate: string | null;
+    dueDate: string | null;
   };
   status: string;
   createdAt: string;
