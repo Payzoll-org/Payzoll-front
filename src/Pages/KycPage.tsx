@@ -7,6 +7,7 @@ import { submitInrBankAccount, submitEefcBankAccount,} from "../services/bankAcc
 import { submitOwnerPerson, activateAccount } from "../services/accountActivationApi";
 import { refreshCurrentUser } from "../services/authApi";
 import { useAuthStore } from "../Zustand/userStore";
+import StablecoinModal from "../Components/StablecoinModal";
 
 const inputClass =
   "px-1 py-2 focus:outline-none focus:ring-0 border-b-2 border-gray-300 focus:border-black transition text-sm lg:text-base";
@@ -1400,6 +1401,12 @@ function SummaryStep({
     try {
       await submitOwnerPerson();
       await activateAccount();
+      // XflowPay's own account object is still settling the activate call
+      // for a moment afterward - firing start_tos immediately fails with
+      // "object cannot be accessed right now ... another API request is
+      // currently accessing it" (confirmed live). A short pause here avoids
+      // that race instead of surfacing it to the user as an error.
+      await new Promise((resolve) => setTimeout(resolve, 2500));
       onDone();
     } catch (error: any) {
       alert(error.message || "Failed to activate account");
@@ -1526,6 +1533,15 @@ export default function KycPage() {
   // should drop them back there instead of forcing them through the rest
   // of the flow again.
   const [reachedSummary, setReachedSummary] = useState(false);
+  // Shown immediately after base activation succeeds, so enabling
+  // stablecoin reads as the next step of the same flow instead of a
+  // separate action the user has to notice later via a dashboard banner.
+  // The one thing that can't be folded into activation itself is the
+  // Bridge.xyz Terms of Service click-through this modal walks the user
+  // through - XflowPay's own `activate` endpoint rejects the stablecoin
+  // capability with `third_party_tos_not_accepted` until that's done, so
+  // it has to stay a real, separate user action.
+  const [showStablecoinModal, setShowStablecoinModal] = useState(false);
 
   useEffect(() => {
     // user.userType can be stale here - it's set at login/signup time,
@@ -1591,15 +1607,22 @@ export default function KycPage() {
                 businessIdentifiers={businessIdentifiers}
                 bankDetails={bankDetails}
                 onEditStep={(editStep) => setStep(editStep)}
-                onDone={() => {
-                  alert("Your account has been activated!");
-                  navigate("/dashboard");
-                }}
+                onDone={() => setShowStablecoinModal(true)}
               />
             )}
           </div>
         </main>
       </div>
+
+      {showStablecoinModal && (
+        <StablecoinModal
+          onClose={() => {
+            setShowStablecoinModal(false);
+            navigate("/dashboard");
+          }}
+          onComplete={() => refreshCurrentUser().catch(() => {})}
+        />
+      )}
     </div>
   );
 }

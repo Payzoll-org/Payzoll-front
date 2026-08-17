@@ -24,10 +24,19 @@ export async function startStablecoinTos() {
   return data?.data?.url as string;
 }
 
+export interface AcceptStablecoinTosResult {
+  account: unknown;
+  // true when base account activation hasn't finished XflowPay's review
+  // yet - the ToS acceptance is saved and the stablecoin capability gets
+  // requested automatically once account.status.activated actually fires,
+  // rather than right now.
+  deferred: boolean;
+}
+
 /**
  * Step 2: complete acceptance with the token captured from the redirect.
  */
-export async function acceptStablecoinTos(token: string) {
+export async function acceptStablecoinTos(token: string): Promise<AcceptStablecoinTosResult> {
   const response = await http(ROUTES.accept, {
     method: "POST",
     body: JSON.stringify({ token }),
@@ -35,5 +44,5 @@ export async function acceptStablecoinTos(token: string) {
 
   const data = await response.json();
   assertData(response, data);
-  return data?.data?.account;
+  return { account: data?.data?.account, deferred: !!data?.data?.deferred };
 }

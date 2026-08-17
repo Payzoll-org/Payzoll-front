@@ -20,6 +20,7 @@ export default function StablecoinModal({ onClose, onComplete }: StablecoinModal
   const [phase, setPhase] = useState<Phase>("loading");
   const [tosUrl, setTosUrl] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [deferred, setDeferred] = useState(false);
   const handledRef = useRef(false);
 
   useEffect(() => {
@@ -47,10 +48,11 @@ export default function StablecoinModal({ onClose, onComplete }: StablecoinModal
 
     setPhase("completing");
     try {
-      await acceptStablecoinTos(token);
+      const result = await acceptStablecoinTos(token);
+      setDeferred(result.deferred);
       setPhase("success");
       onComplete();
-      setTimeout(onClose, 1500);
+      setTimeout(onClose, result.deferred ? 3000 : 1500);
     } catch (error: any) {
       setErrorMessage(error.message || "Failed to complete Terms of Service");
       setPhase("error");
@@ -130,7 +132,17 @@ export default function StablecoinModal({ onClose, onComplete }: StablecoinModal
             </div>
           )}
 
-          {phase === "success" && (
+          {phase === "success" && deferred && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-8 text-center">
+              <p className="text-lg font-medium text-gray-900">Consent saved</p>
+              <p className="text-sm text-gray-500">
+                Your account is still being verified. Stablecoin payments will turn on
+                automatically as soon as verification finishes - no further action needed.
+              </p>
+            </div>
+          )}
+
+          {phase === "success" && !deferred && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
               <p className="text-lg font-medium text-gray-900">Stablecoin payments enabled</p>
               <p className="text-sm text-gray-500">You can accept USDC and USDT now.</p>
