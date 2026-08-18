@@ -13,8 +13,16 @@ COPY . .
 # Cloud Run's own "Create service" wizard with Build type=Dockerfile,
 # etc.) without every path having to remember to pass it. It's the real,
 # public, live AuthService URL - not a secret, safe to bake in directly.
-# Update this if AuthService is ever redeployed under a different URL.
-ENV VITE_AUTH_API_URL=https://authservice-97498937015.asia-south2.run.app
+#
+# Custom domain (api.payzoll.finance), not the raw *.run.app URL - Cloud
+# Run's default domains are each their own entry on the Public Suffix
+# List, so a browser treats app.payzoll.finance and a *.run.app backend
+# as different "sites" entirely and blocks the httpOnly refresh-token
+# cookie as third-party no matter how SameSite is configured (confirmed
+# live). Both services living under payzoll.finance fixes that at the
+# root instead of fighting it with more cookie config. Update this if
+# AuthService is ever redeployed under a different URL.
+ENV VITE_AUTH_API_URL=https://api.payzoll.finance
 
 RUN npm run build
 
