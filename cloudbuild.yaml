@@ -79,8 +79,13 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 substitutions:
-  _SERVICE: "agentweb"
-  _REGION: "asia-south2"
+  # Dev-branch values: this file now intentionally diverges from main's
+  # copy, which keeps the production _SERVICE/_REGION. Do not carry
+  # these two lines forward when promoting Dev -> main.
+  _SERVICE: "frontend-payzoll-dev"
+  _REGION: "europe-west1"
   # Reusing the same Artifact Registry repo as AuthService - already
-  # exists, no need for a second one just for this.
+  # exists, no need for a second one just for this. Repos are regional
+  # for storage but a build in one region can still push/pull from a
+  # repo hosted in another region.
   _REPO: "cloud-run-source-deploy"
