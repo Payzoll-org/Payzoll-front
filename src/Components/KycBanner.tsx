@@ -7,8 +7,12 @@ import { refreshCurrentUser } from "../services/authApi";
 // kycVerified flips server-side only when XflowPay's account.status.activated
 // webhook lands (Services/webhook.service.js) - review can take up to a
 // business day in production, so this polls the real backend state rather
-// than assuming/toggling anything client-side.
-const POLL_INTERVAL_MS = 20000;
+// than assuming/toggling anything client-side. 60s (not something
+// tighter like 20s) since review taking hours-to-a-day makes a faster
+// poll pure overhead - confirmed live this and StablecoinBanner's polling
+// combined were enough to exhaust the backend's shared rate limit budget
+// during normal use.
+const POLL_INTERVAL_MS = 60000;
 
 export default function KycBanner() {
   const { user } = useAuthStore();

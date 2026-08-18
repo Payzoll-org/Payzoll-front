@@ -7,8 +7,10 @@ import StablecoinModal from "./StablecoinModal";
 // accountStatus/stablecoinEnabled only ever change server-side (the real
 // XflowPay webhook - Services/webhook.service.js), so this polls the real
 // backend state the same way KycBanner does, rather than assuming/toggling
-// anything client-side.
-const POLL_INTERVAL_MS = 20000;
+// anything client-side. 60s, not tighter - confirmed live this and
+// KycBanner's polling combined were enough to exhaust the backend's
+// shared rate limit budget during normal use.
+const POLL_INTERVAL_MS = 60000;
 
 export default function StablecoinBanner() {
   const { user } = useAuthStore();
