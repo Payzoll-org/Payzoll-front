@@ -36,18 +36,19 @@
 #    (If this is the exact same service account you already granted these
 #    to for AuthService's trigger, this step is already done - skip it.)
 #
-# 3. `_VITE_AUTH_API_URL` below is already set to AuthService's real
-#    deployed URL. If AuthService ever gets redeployed under a different
-#    URL, update it here too and push again (this app needs a rebuild to
-#    pick up a new API URL - it's baked in, not read at runtime).
+# 3. AuthService's URL is hardcoded directly in the Dockerfile (not a
+#    build-arg here) so it builds correctly no matter which path builds
+#    it - including Cloud Run's own "Create service" wizard with Build
+#    type=Dockerfile, which doesn't offer a way to pass build-args. If
+#    AuthService ever gets redeployed under a different URL, update the
+#    ENV line in the Dockerfile and push again (this app needs a rebuild
+#    to pick up a new API URL - it's baked in, not read at runtime).
 
 steps:
   - name: "gcr.io/cloud-builders/docker"
     id: "build"
     args:
       - "build"
-      - "--build-arg"
-      - "VITE_AUTH_API_URL=${_VITE_AUTH_API_URL}"
       - "-t"
       - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:$SHORT_SHA"
       - "."
@@ -83,4 +84,3 @@ substitutions:
   # Reusing the same Artifact Registry repo as AuthService - already
   # exists, no need for a second one just for this.
   _REPO: "cloud-run-source-deploy"
-  _VITE_AUTH_API_URL: "https://authservice-97498937015.asia-south2.run.app"

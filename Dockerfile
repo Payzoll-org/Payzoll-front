@@ -8,8 +8,13 @@ COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
 
-ARG VITE_AUTH_API_URL
-ENV VITE_AUTH_API_URL=$VITE_AUTH_API_URL
+# Hardcoded rather than passed as a --build-arg: this needs to build
+# correctly no matter which path actually builds it (our cloudbuild.yaml,
+# Cloud Run's own "Create service" wizard with Build type=Dockerfile,
+# etc.) without every path having to remember to pass it. It's the real,
+# public, live AuthService URL - not a secret, safe to bake in directly.
+# Update this if AuthService is ever redeployed under a different URL.
+ENV VITE_AUTH_API_URL=https://authservice-97498937015.asia-south2.run.app
 
 RUN npm run build
 
