@@ -1,6 +1,7 @@
 import {
   createBrowserRouter,
   RouterProvider,
+  Navigate,
 } from 'react-router-dom';
 import './App.css';
 import MainPage from './Pages/MainPageLayout';
@@ -14,6 +15,10 @@ import ProtectedRoute from './Components/ProtectedRoute';
 import { useAuthBootstrap } from './hooks/useAuthBootstrap';
 
 const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <Navigate to="/auth" replace />,
+  },
   {
     path: "/auth",
     element: <AuthPage />,
