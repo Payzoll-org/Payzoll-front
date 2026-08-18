@@ -115,6 +115,7 @@ export async function getIndustryCodes(): Promise<IndustryCodeOption[]> {
   const data = await response.json();
   assertData(response, data);
 
-  industryCodesCache = data?.data?.industryCodes || [];
-  return industryCodesCache;
+  const codes: IndustryCodeOption[] = data?.data?.industryCodes || [];
+  industryCodesCache = codes;
+  return codes;
 }

@@ -11,7 +11,6 @@ import {
   Phone,
   Folder,
   FolderOpen,
-  CreditCard,
   Settings,
   Search
 } from 'lucide-react';

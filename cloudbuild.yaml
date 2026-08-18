@@ -1,0 +1,86 @@
+# Cloud Build config for Agentweb -> Google Cloud Run.
+#
+# Static SPA (Vite + React) served via nginx - no runtime secrets needed
+# (unlike AuthService), since the compiled JS bundle contains no server
+# credentials, only the public API base URL baked in at build time.
+#
+# --- One-time setup ---
+#
+# Project ID: noted-ability-504817-b9 (same GCP project as AuthService).
+#
+# 1. Create the trigger properly from the start (learned the hard way on
+#    AuthService): Cloud Build -> Triggers -> Create Trigger -> connect
+#    errrendev/Agentweb -> branch main -> Configuration: "Cloud Build
+#    configuration file" with Location "Repository", file path
+#    "cloudbuild.yaml". Do NOT use "Autodetected" or Cloud Run's own
+#    "Continuously deploy" wizard - both defaulted to Buildpacks for
+#    AuthService and silently ignored its Dockerfile.
+#
+# 2. Grant whichever service account the trigger runs as (Trigger -> Edit
+#    -> Service account) these roles - same requirements as AuthService's
+#    build step, minus anything Secret-Manager-related since this build
+#    never touches secrets:
+#
+#      gcloud projects add-iam-policy-binding noted-ability-504817-b9 \
+#        --member="serviceAccount:YOUR_TRIGGER_SERVICE_ACCOUNT" \
+#        --role="roles/run.admin"
+#
+#      gcloud projects add-iam-policy-binding noted-ability-504817-b9 \
+#        --member="serviceAccount:YOUR_TRIGGER_SERVICE_ACCOUNT" \
+#        --role="roles/iam.serviceAccountUser"
+#
+#      gcloud projects add-iam-policy-binding noted-ability-504817-b9 \
+#        --member="serviceAccount:YOUR_TRIGGER_SERVICE_ACCOUNT" \
+#        --role="roles/artifactregistry.writer"
+#
+#    (If this is the exact same service account you already granted these
+#    to for AuthService's trigger, this step is already done - skip it.)
+#
+# 3. `_VITE_AUTH_API_URL` below is already set to AuthService's real
+#    deployed URL. If AuthService ever gets redeployed under a different
+#    URL, update it here too and push again (this app needs a rebuild to
+#    pick up a new API URL - it's baked in, not read at runtime).
+
+steps:
+  - name: "gcr.io/cloud-builders/docker"
+    id: "build"
+    args:
+      - "build"
+      - "--build-arg"
+      - "VITE_AUTH_API_URL=${_VITE_AUTH_API_URL}"
+      - "-t"
+      - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:$SHORT_SHA"
+      - "."
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: "push"
+    args:
+      - "push"
+      - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:$SHORT_SHA"
+
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    id: "deploy"
+    entrypoint: "gcloud"
+    args:
+      - "run"
+      - "deploy"
+      - "${_SERVICE}"
+      - "--image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:$SHORT_SHA"
+      - "--region=${_REGION}"
+      - "--platform=managed"
+      - "--allow-unauthenticated"
+      - "--port=8080"
+
+images:
+  - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:$SHORT_SHA"
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+substitutions:
+  _SERVICE: "agentweb"
+  _REGION: "asia-south2"
+  # Reusing the same Artifact Registry repo as AuthService - already
+  # exists, no need for a second one just for this.
+  _REPO: "cloud-run-source-deploy"
+  _VITE_AUTH_API_URL: "https://authservice-97498937015.asia-south2.run.app"

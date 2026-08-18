@@ -1,0 +1,20 @@
+server {
+    listen ${PORT};
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Client-side routing (React Router) - any path that isn't a real
+    # static file falls back to index.html so deep links and refreshes
+    # work instead of 404ing.
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Static assets Vite content-hashes in their filenames - safe to cache
+    # aggressively since a new build always gets new filenames.
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+}
