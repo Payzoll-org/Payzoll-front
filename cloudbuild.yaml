@@ -78,14 +78,12 @@ images:
 options:
   logging: CLOUD_LOGGING_ONLY
 
+# Production values. Dev's copy of this file intentionally diverges here
+# (dev Cloud Run service name/region) - do not carry that divergence
+# forward when promoting Dev -> main.
 substitutions:
-  # Dev-branch values: this file now intentionally diverges from main's
-  # copy, which keeps the production _SERVICE/_REGION. Do not carry
-  # these two lines forward when promoting Dev -> main.
-  _SERVICE: "frontend-payzoll-dev"
-  _REGION: "europe-west1"
+  _SERVICE: "agentweb"
+  _REGION: "asia-south2"
   # Reusing the same Artifact Registry repo as AuthService - already
-  # exists, no need for a second one just for this. Repos are regional
-  # for storage but a build in one region can still push/pull from a
-  # repo hosted in another region.
+  # exists, no need for a second one just for this.
   _REPO: "cloud-run-source-deploy"
