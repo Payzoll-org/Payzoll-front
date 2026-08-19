@@ -518,7 +518,7 @@ export default function AuthPage() {
                   <button
                     onClick={handleOnboardingSubmit}
                     disabled={onboardingLoading}
-                    className="px-8 h-12 flex items-center justify-center gap-3 bg-black rounded-full
+                    className="px-8 h-12 flex items-center justify-center gap-3 bg-[#0944A5] rounded-full
                               hover:scale-105 transition-transform shadow-lg hover:shadow-xl
                               disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                   >

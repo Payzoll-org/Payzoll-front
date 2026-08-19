@@ -1,128 +1,172 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ChevronDown,
+  ChevronUp,
   Eye,
   ArrowUpRight,
   ArrowDownLeft,
-  Copy,
   ArrowRightLeft,
   Lock,
-  QrCode,
 } from "lucide-react";
+import type { Balance } from "../services/accountActivationApi";
 
 /**
- * Scaffold only - static/mock data throughout. Swap the constants below for
- * real wallet/rate state (useAuthStore, fxRateApi, an accounts/wallet
- * service, etc.) as those pieces come online. Structure and alignment are
- * the point here, not the data source.
+ * Right-side offramp calculator is still a UI scaffold (static/mock rate
+ * data) - swap chartPoints/rate for fxRateApi.getLiveRate()/getRateHistory()
+ * as that piece comes online. The wallet card's balance figure is still a
+ * demo/mock value too, for now - swap for the real `balance` prop (already
+ * threaded down from AccountsOverview) once that's wired up.
  */
 
 // ---------------------------------------------------------------------------
 // Left: Total Balance (wallet) card
 // ---------------------------------------------------------------------------
 
-function TinySparkline({ points }: { points: number[] }) {
-  const width = 140;
-  const height = 60;
-  const max = Math.max(...points);
-  const min = Math.min(...points);
-  const range = max - min || 1;
+const CURRENCY_OPTIONS = ["USDC", "USDT"] as const;
+type CurrencyOption = (typeof CURRENCY_OPTIONS)[number];
 
-  const coords = points.map((p, i) => {
-    const x = (i / (points.length - 1)) * width;
-    const y = height - ((p - min) / range) * height;
-    return `${x},${y}`;
-  });
+const NETWORK_OPTIONS = ["EVM", "Solana", "Tron"] as const;
+type NetworkOption = (typeof NETWORK_OPTIONS)[number];
 
+const CURRENCY_ICON_COLOR: Record<CurrencyOption, string> = {
+  USDC: "bg-blue-500",
+  USDT: "bg-emerald-500",
+};
+
+function CurrencyIcon({ currency }: { currency: CurrencyOption }) {
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-14">
-      <polyline
-        points={coords.join(" ")}
-        fill="none"
-        stroke="white"
-        strokeWidth="2"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-    </svg>
+    <span
+      className={`w-4 h-4 rounded-full ${CURRENCY_ICON_COLOR[currency]} flex items-center justify-center text-[9px] font-bold text-white shrink-0`}
+    >
+      {currency[3]}
+    </span>
   );
 }
 
-function WalletBalanceCard() {
-  // Mock data - replace with real wallet/network/token state.
-  const network = "Arbitrum";
-  const token = "USDT";
-  const balance = "1,057.92";
-  const balanceInr = "1,00,929.14";
-  const walletAddress = "0x3A6f...9cC2";
-  const activity7d = [40, 55, 48, 70, 62, 90, 120];
+function NetworkIcon() {
+  return (
+    <span className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
+      <ChevronUp size={10} className="text-white" strokeWidth={3} />
+    </span>
+  );
+}
+
+/**
+ * Small pill button that opens a floating option list on click - used for
+ * both the network and currency selectors on the wallet card header.
+ */
+function ChipDropdown<T extends string>({
+  value,
+  options,
+  onChange,
+  renderIcon,
+}: {
+  value: T;
+  options: readonly T[];
+  onChange: (v: T) => void;
+  renderIcon?: (v: T) => React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
 
   return (
-    <div className="bg-gray-900 text-white rounded-2xl p-6 flex flex-col gap-6 h-full">
-      {/* Header: title + network/token selectors */}
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1.5 bg-white/10 hover:bg-white/15 rounded-full px-3 py-1.5 text-xs font-medium transition-colors"
+      >
+        {renderIcon?.(value)}
+        {value}
+        <ChevronDown size={14} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full mt-1 bg-gray-900 border border-white/10 rounded-lg shadow-lg py-1 min-w-[110px] z-20">
+            {options.map((opt) => (
+              <button
+                key={opt}
+                onClick={() => {
+                  onChange(opt);
+                  setOpen(false);
+                }}
+                className={`w-full flex items-center gap-2 text-left px-3 py-2 text-xs font-medium hover:bg-white/10 transition-colors ${
+                  opt === value ? "text-blue-400" : "text-white/80"
+                }`}
+              >
+                {renderIcon?.(opt)}
+                {opt}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function WalletBalanceCard({
+  onDeposit,
+}: {
+  balance: Balance | null;
+  onDeposit: () => void;
+}) {
+  const navigate = useNavigate();
+  const [currency, setCurrency] = useState<CurrencyOption>("USDC");
+  const [network, setNetwork] = useState<NetworkOption>("EVM");
+
+  // Demo/mock figures - swap for the real `balance` prop once live wallet
+  // balances are wired up.
+  const demoBalance = "1,057.92";
+  const demoBalanceInr = "1,00,929.14";
+
+  return (
+    <div className="bg-[#0944A5] text-white rounded-lg p-6 flex flex-col gap-6 h-full min-w-0 overflow-hidden">
+      {/* Header: title + network/currency selectors */}
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-lg font-medium">Total Balance</h2>
+        <h2 className="text-md">Total Balance</h2>
         <div className="flex items-center gap-2">
-          <button className="flex items-center gap-1.5 bg-white/10 hover:bg-white/15 rounded-full px-3 py-1.5 text-sm transition-colors">
-            {network}
-            <ChevronDown size={14} />
-          </button>
-          <button className="flex items-center gap-1.5 bg-white/10 hover:bg-white/15 rounded-full px-3 py-1.5 text-sm transition-colors">
-            {token}
-            <ChevronDown size={14} />
-          </button>
+          <ChipDropdown
+            value={network}
+            options={NETWORK_OPTIONS}
+            onChange={setNetwork}
+            renderIcon={() => <NetworkIcon />}
+          />
+          <ChipDropdown
+            value={currency}
+            options={CURRENCY_OPTIONS}
+            onChange={setCurrency}
+            renderIcon={(c) => <CurrencyIcon currency={c} />}
+          />
         </div>
       </div>
 
-      {/* Balance figure */}
+      {/* Balance figure - demo value for now */}
       <div>
         <div className="flex items-baseline gap-2">
-          <span className="text-4xl font-semibold">{balance}</span>
-          <span className="text-gray-400 text-lg">{token}</span>
-          <Eye size={16} className="text-gray-500 ml-1" />
+          <span className="text-4xl font-normal">{demoBalance}</span>
+          <span className="text-gray-400 text-lg">{currency}</span>
+          <Eye size={16} className="text-white/60 ml-1" />
         </div>
-        <p className="text-gray-400 text-sm mt-1">≈ ₹{balanceInr} INR</p>
+        <p className="text-gray-400 text-xs mt-1">≈ ₹{demoBalanceInr} INR</p>
       </div>
 
-      {/* Send / Receive */}
+      {/* Convert / Deposit */}
       <div className="flex items-center gap-3">
-        <button className="flex-1 flex items-center justify-center gap-2 bg-white text-gray-900 rounded-xl py-2.5 font-medium hover:bg-gray-100 transition-colors">
+        <button
+          onClick={() => navigate("/reconcile")}
+          className="flex-1 flex items-center justify-center gap-2 bg-white text-gray-900 rounded-sm py-2 font-medium hover:bg-gray-100 transition-colors"
+        >
           <ArrowUpRight size={16} />
-          Send
+          Convert to INR
         </button>
-        <button className="flex-1 flex items-center justify-center gap-2 bg-white/10 rounded-xl py-2.5 font-medium hover:bg-white/15 transition-colors">
+        <button
+          onClick={onDeposit}
+          className="flex-1 flex items-center justify-center gap-2 bg-white/10 rounded-sm py-2 font-medium hover:bg-white/15 transition-colors"
+        >
           <ArrowDownLeft size={16} />
-          Receive
+          Deposite
         </button>
-      </div>
-
-      {/* Wallet address + recent activity */}
-      <div className="grid grid-cols-2 gap-3 mt-auto">
-        <div className="bg-white/5 rounded-xl p-4 flex flex-col gap-3">
-          <p className="text-xs text-gray-400">Your Wallet Address</p>
-          <div className="flex items-center gap-3">
-            <div className="w-14 h-14 bg-white rounded-md flex items-center justify-center shrink-0">
-              <QrCode size={32} className="text-gray-900" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1">
-                <span className="text-sm font-medium truncate">{walletAddress}</span>
-                <button aria-label="Copy address" className="text-gray-400 hover:text-white shrink-0">
-                  <Copy size={13} />
-                </button>
-              </div>
-              <p className="text-xs text-gray-500 mt-0.5">{network} One</p>
-            </div>
-          </div>
-          <button className="text-xs text-gray-400 hover:text-white text-left mt-1">
-            Show transaction history →
-          </button>
-        </div>
-
-        <div className="bg-white/5 rounded-xl p-4 flex flex-col">
-          <p className="text-xs text-gray-400 mb-2">Recent Activity (7D)</p>
-          <TinySparkline points={activity7d} />
-        </div>
       </div>
     </div>
   );
@@ -183,12 +227,12 @@ function OfframpCalculatorCard() {
   });
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 flex flex-col gap-6 h-full">
+    <div className="bg-white border border-gray-200  rounded-lg p-4 flex flex-col gap-6 min-w-0 overflow-hidden">
       {/* Tabs */}
-      <div className="flex bg-gray-100 rounded-full p-1 w-full sm:w-fit">
+      <div className="flex bg-gray-100 rounded- p-1 w-full sm:w-fit">
         <button
           onClick={() => setTab("offramp")}
-          className={`flex-1 sm:flex-none px-5 py-2 rounded-full text-sm font-medium transition-colors ${
+          className={`flex-1 sm:flex-none px-5 py-2 rounded-full text-xs font-medium transition-colors ${
             tab === "offramp" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
           }`}
         >
@@ -196,7 +240,7 @@ function OfframpCalculatorCard() {
         </button>
         <button
           onClick={() => setTab("onramp")}
-          className={`flex-1 sm:flex-none px-5 py-2 rounded-full text-sm font-medium transition-colors ${
+          className={`flex-1 sm:flex-none px-5 py-2 rounded-full text-xs font-medium transition-colors ${
             tab === "onramp" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
           }`}
         >
@@ -204,27 +248,29 @@ function OfframpCalculatorCard() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_minmax(0,320px)] gap-8 flex-1 min-w-0">
         {/* Left: live rate + chart */}
-        <div>
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <span>
-              1 {payToken} = ₹{rate.toFixed(4)} INR
-            </span>
-            <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 rounded-full px-2 py-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-              Live
-            </span>
+        <div className="flex flex-col h-full min-w-0">
+          <div>
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <span>
+                1 {payToken} = ₹{rate.toFixed(4)} INR
+              </span>
+              <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 rounded-full px-2 py-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                Live
+              </span>
+            </div>
+
+            <div className="flex items-baseline gap-2 mt-1 mb-4">
+              <span className="text-3xl font-semibold text-gray-900">₹{rate.toFixed(2)}</span>
+              <span className="text-sm font-medium text-green-600">+{rateChangePct}%</span>
+            </div>
+
+            <RateChart points={chartPoints} />
           </div>
 
-          <div className="flex items-baseline gap-2 mt-1 mb-4">
-            <span className="text-3xl font-semibold text-gray-900">₹{rate.toFixed(2)}</span>
-            <span className="text-sm font-medium text-green-600">+{rateChangePct}%</span>
-          </div>
-
-          <RateChart points={chartPoints} />
-
-          <div className="flex items-center gap-2 mt-4">
+          <div className="flex items-center gap-2 mt-4 lg:mt-auto">
             {(["7D", "30D", "90D"] as const).map((p) => (
               <button
                 key={p}
@@ -242,7 +288,7 @@ function OfframpCalculatorCard() {
         </div>
 
         {/* Right: convert form */}
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 h-full min-w-0">
           {/* Network / rail selector */}
           <button className="flex items-center justify-between border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors">
             Stellar
@@ -297,7 +343,7 @@ function OfframpCalculatorCard() {
             </div>
           </div>
 
-          <button className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-3.5 font-medium mt-2 transition-colors">
+          <button className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-3.5 font-medium mt-auto transition-colors">
             <Lock size={15} />
             Lock Rate & Convert
           </button>
@@ -311,10 +357,16 @@ function OfframpCalculatorCard() {
 // Combined widget
 // ---------------------------------------------------------------------------
 
-export default function WalletOfframpWidget() {
+export default function WalletOfframpWidget({
+  balance,
+  onDeposit,
+}: {
+  balance: Balance | null;
+  onDeposit: () => void;
+}) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6 items-stretch">
-      <WalletBalanceCard />
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 rounded-xl bg-gray-100 p-4 items-stretch">
+      <WalletBalanceCard balance={balance} onDeposit={onDeposit} />
       <OfframpCalculatorCard />
     </div>
   );
