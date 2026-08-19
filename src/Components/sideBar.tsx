@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Lock,
   ChevronDown,
   ChevronUp,
   User,
@@ -16,6 +15,7 @@ import {
 } from 'lucide-react';
 
 import { IoNotificationsOutline } from "react-icons/io5";
+import logo from "../assets/payzoll.png";
 
 
 interface NavigationChild {
@@ -127,8 +127,8 @@ const sideBAr: React.FC = () => {
         <div className=" pt-4 ">
           <div className="flex justify-between items-center space-x-3  mb-4">
             <div className='flex items-center  gap-2'>
-              <div className='size-10 flex justify-center items-center rounded-md bg-gray-200 dark:bg-gray-700'>
-                <Lock className='text-gray-600 dark:text-gray-300 font-bold' size={20}/>
+              <div className='size-10 flex justify-center items-center rounded-md bg-gray-200 dark:bg-gray-700 overflow-hidden'>
+                <img src={logo} alt="Payzoll logo" className='w-full h-full object-contain p-1.5' />
               </div>
               <div className='text-black dark:text-white'>
                 <h4 className="text-black dark:text-white">Manjeet Sharma</h4>
