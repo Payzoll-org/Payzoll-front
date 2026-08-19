@@ -11,6 +11,7 @@ import ReconcilePage from './Pages/ReconcilePage';
 import TransactionHistoryPage from './Pages/TransactionHistoryPage';
 import PayoutDetailPage from './Pages/PayoutDetailPage';
 import StablecoinCallbackPage from './Pages/StablecoinCallbackPage';
+import SettingsPage from './Pages/SettingsPage';
 import ProtectedRoute from './Components/ProtectedRoute';
 import { useAuthBootstrap } from './hooks/useAuthBootstrap';
 
@@ -68,6 +69,14 @@ const router = createBrowserRouter([
     // no ProtectedRoute, it doesn't call our API or need auth state.
     path: "/stablecoin-callback",
     element: <StablecoinCallbackPage />,
+  },
+  {
+    path: "/settings",
+    element: (
+      <ProtectedRoute>
+        <SettingsPage />
+      </ProtectedRoute>
+    ),
   },
 ]);
 
