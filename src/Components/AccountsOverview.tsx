@@ -13,6 +13,7 @@ import { getDeposits, PAYMENT_METHOD_LABELS, type Deposit } from "../services/de
 import { getLiveRate, getRateHistory, type LiveRate, type RateHistoryPoint } from "../services/fxRateApi";
 import { useAuthStore } from "../Zustand/userStore";
 import WaysToReceiveModal from "./WaysToReceiveModal";
+import WalletOfframpWidget from "./WalletOfframpWidget";
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
@@ -610,6 +611,9 @@ export default function AccountsOverview() {
 
   return (
     <div className="p-6 lg:p-8 flex flex-col gap-8 overflow-y-auto h-full">
+      {/* Wallet + Offramp Calculator */}
+      <WalletOfframpWidget />
+
       {/* Account Summary */}
       <div className="rounded-sm p-3 bg-gray-100">
         <AccountSummaryCard

@@ -37,9 +37,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     })),
   setAccessToken: (accessToken) => set({ accessToken }),
   setSession: ({ user, accessToken }) => {
-    console.log("Authenticated user:", user);
-    console.log("Access token:", accessToken);
-    console.log("KYC verified:", user.kycVerified, "| User type:", user.userType);
     set({ user, accessToken });
   },
   clearSession: () => set({ user: null, accessToken: null }),
