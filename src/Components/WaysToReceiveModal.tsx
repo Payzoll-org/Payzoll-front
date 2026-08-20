@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Landmark, Coins, Check } from "lucide-react";
+import { X, Landmark, Coins, Check, AlertTriangle } from "lucide-react";
 import type { BankAccount, BankAccountDetails } from "../services/bankAccountApi";
 import { useAuthStore } from "../Zustand/userStore";
 
@@ -7,6 +7,10 @@ const STABLECOIN_SLOTS: { currency: string; network: string; label: string }[] =
   { currency: "USDC", network: "EVM", label: "USDC on EVM" },
   { currency: "USDC", network: "SOLANA", label: "USDC on Solana" },
   { currency: "USDT", network: "TRON", label: "USDT on Tron" },
+  // Not an XflowPay-supported network - only ever present as a manually
+  // recorded external address (BankAccount.external: true), never synced
+  // from XflowPay like the slots above.
+  { currency: "USDC", network: "STELLAR", label: "USDC on Stellar" },
 ];
 
 // The USD receiving account (VBAN) supports three separate payment rails
@@ -145,6 +149,15 @@ function StablecoinDetails({ bankAccounts }: { bankAccounts: BankAccount[] }) {
                 <DetailRow label="Receiving Token" value={account.currency} />
                 <DetailRow label="Network" value={slot.network} />
                 <DetailRow label="Receiving Address" value={account.receivingAddress || "-"} />
+                {account.external && (
+                  <div className="flex items-start gap-2 px-4 py-3 bg-amber-50 border-t border-amber-200">
+                    <AlertTriangle size={14} className="text-amber-600 shrink-0 mt-0.5" />
+                    <p className="text-xs text-amber-800">
+                      Not tracked by Payzoll - this network isn't supported by our payment
+                      processor. Deposits here won't show up in your balance or payment history.
+                    </p>
+                  </div>
+                )}
               </>
             ) : (
               <div className="px-4 py-3 text-sm text-gray-400">Not yet available</div>
