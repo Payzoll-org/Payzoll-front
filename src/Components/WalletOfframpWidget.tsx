@@ -173,14 +173,14 @@ function WalletBalanceCard({
           className="flex-1 flex items-center justify-center gap-2 bg-white text-gray-900 rounded-sm py-2 font-medium hover:bg-gray-100 transition-colors"
         >
           <ArrowUpRight size={16} />
-          Convert to INR
+          Withdraw in INR
         </button>
         <button
           onClick={onDeposit}
           className="flex-1 flex items-center justify-center gap-2 bg-white/10 rounded-sm py-2 font-medium hover:bg-white/15 transition-colors"
         >
           <ArrowDownLeft size={16} />
-          Deposite
+          Deposit
         </button>
       </div>
       <p className="text-xs text-gray-400">
