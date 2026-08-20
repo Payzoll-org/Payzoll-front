@@ -299,8 +299,8 @@ export default function AuthPage() {
  
   <div className="flex items-center gap-4">
      <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-xs bg-[#132a4e] border border-blue-500/30 text-blue-400">
-      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
       </svg>
     </div>
     <span className="text-sm font-medium tracking-wide">Multi-chain Wallets</span>
@@ -312,8 +312,8 @@ export default function AuthPage() {
 
   <div className="flex  items-center gap-4">
    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-xs bg-[#132a4e] border border-blue-500/30 text-blue-400">
-      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
       </svg>
     </div>
     <span className="text-sm font-medium tracking-wide">Instant USDT Offramp</span>
@@ -322,8 +322,8 @@ export default function AuthPage() {
  
   <div className="flex items-center  gap-4">
    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-xs bg-[#132a4e] border border-blue-500/30 text-blue-400">
-      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
       </svg>
     </div>
     <span className="text-sm font-medium tracking-wide">Enterprise Security</span>
@@ -333,8 +333,8 @@ export default function AuthPage() {
 
   <div className="flex items-center  gap-4">
    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-xs bg-[#132a4e] border border-blue-500/30 text-blue-400">
-      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
       </svg>
     </div>
     <span className="text-sm font-medium tracking-wide">Enterprise Security</span>
