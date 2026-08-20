@@ -188,9 +188,9 @@ function WalletBalanceCard({
 // ---------------------------------------------------------------------------
 
 function RateChart({ points }: { points: number[] }) {
-  const width = 460;
-  const height = 160;
-  const padding = 10;
+  const width = 500;
+  const height = 450;
+  const padding = 1;
   const max = Math.max(...points);
   const min = Math.min(...points);
   const range = max - min || 1;
@@ -206,7 +206,7 @@ function RateChart({ points }: { points: number[] }) {
   const last = coords[coords.length - 1];
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-40">
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full mt-5 h-50">
       <polygon points={areaPoints} fill="#3b82f6" opacity={0.08} />
       <polyline
         points={linePoints}
@@ -277,7 +277,7 @@ function OfframpCalculatorCard() {
   const chartPoints = rateHistory.length >= 2 ? rateHistory.map((p) => Number(p.userRate)) : null;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 flex flex-col gap-6 min-w-0 overflow-hidden">
+    <div className="bg-white border border-gray-200  rounded-lg p-5 flex flex-col gap-6 min-w-0 overflow-hidden">
       <div>
         <h1 className="text-lg font-semibold text-gray-900">Inward Remittance Calculator</h1>
         <p className="text-xs text-gray-500 mt-0.5">
@@ -285,59 +285,82 @@ function OfframpCalculatorCard() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_minmax(0,320px)] gap-8 flex-1 min-w-0">
+      <div className="grid grid-cols-1 xl:grid-cols-2  gap-5 flex-1 min-w-0">
         {/* Left: live rate + real history */}
-        <div className="flex flex-col h-full min-w-0">
-          <div>
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <span>1 USD = INR</span>
-              <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 rounded-full px-2 py-0.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                Live
-              </span>
-            </div>
+       <div className="flex flex-col h-full">
+  <div>
+    {rateLoading ? (
+      <div className="flex items-center gap-2 text-sm text-gray-500">
+        <span>1 USD = ... INR</span>
+        <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 rounded-full px-2 py-0.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+          Live
+        </span>
+      </div>
+    ) : rateError || !liveRate ? (
+      <div className="text-sm text-red-600">
+        {rateError || "Rate unavailable"}
+      </div>
+    ) : (
+      <div className="flex items-center gap-2 text-sm text-gray-500">
+        <span>
+          1 USD = ₹{Number(liveRate.userRate)} INR
+        </span>
 
-            <div className="flex items-baseline gap-2 mt-1 mb-4">
-              {rateLoading ? (
-                <span className="text-3xl font-semibold text-gray-300">...</span>
-              ) : rateError || !liveRate ? (
-                <span className="text-sm text-red-600">{rateError || "Rate unavailable"}</span>
-              ) : (
-                <>
-                  <span className="text-3xl font-semibold text-gray-900">
-                    ₹{Number(liveRate.userRate).toFixed(2)}
-                  </span>
-                  <span className="text-xs text-gray-400">
-                    updated {new Date(liveRate.fetchedAt).toLocaleTimeString(undefined, {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                </>
-              )}
-            </div>
+        <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 rounded-full px-2 py-0.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+          Live
+        </span>
+      </div>
+    )}
 
-            {chartPoints ? (
-              <RateChart points={chartPoints} />
-            ) : (
-              <div className="h-40 flex items-center justify-center text-xs text-gray-400 border border-dashed border-gray-200 rounded-lg">
-                Rate history will appear here as more conversions happen
-              </div>
-            )}
-          </div>
-        </div>
+    <div className="flex items-baseline gap-2 mt-1 mb-4">
+      {rateLoading ? (
+        <span className="text-3xl font-semibold text-gray-300">
+          ...
+        </span>
+      ) : rateError || !liveRate ? (
+        <span className="text-sm text-red-600">
+          {rateError || "Rate unavailable"}
+        </span>
+      ) : (
+        <>
+          <span className="text-3xl font-semibold text-gray-900">
+            ₹{Number(liveRate.userRate).toFixed(2)}
+          </span>
+
+          <span className="text-xs text-gray-400">
+            updated{" "}
+            {new Date(liveRate.fetchedAt).toLocaleTimeString(undefined, {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </span>
+        </>
+      )}
+    </div>
+
+    {chartPoints ? (
+      <RateChart points={chartPoints} />
+    ) : (
+      <div className="h-40 flex items-center justify-center text-xs text-gray-400 border border-dashed border-gray-200 rounded-lg">
+        Rate history will appear here as more conversions happen
+      </div>
+    )}
+  </div>
+</div>
 
         {/* Right: convert form */}
-        <div className="flex flex-col gap-3 h-full min-w-0">
+        <div className="flex flex-col  gap-3 h-full ">
           <div>
-            <p className="text-xs text-gray-500 mb-1.5">You Pay</p>
-            <div className="flex items-stretch border border-gray-200 rounded-xl overflow-hidden">
+            <p className="text-sm text-gray-500 mb-1.5">You Pay</p>
+            <div className="flex items-stretch border border-gray-200 rounded-sm overflow-hidden">
               <input
                 type="text"
                 inputMode="decimal"
                 value={payAmount}
                 onChange={(e) => setPayAmount(e.target.value.replace(/[^0-9.]/g, ""))}
-                className="flex-1 min-w-0 px-4 py-3 text-lg font-semibold text-gray-900 outline-none"
+                className="flex-1 min-w-0 px-3 py-1 text-md font-semibold text-gray-900 outline-none"
               />
               <span className="flex items-center px-4 border-l border-gray-200 text-sm font-medium text-gray-500 shrink-0">
                 USD
@@ -358,13 +381,13 @@ function OfframpCalculatorCard() {
           )}
 
           <div>
-            <p className="text-xs text-gray-500 mb-1.5">You Receive (after fee)</p>
-            <div className="flex items-stretch border border-gray-200 rounded-xl overflow-hidden">
+            <p className="text-xs text-gray-500 mt-2 mb-1.5">You Receive (after fee)</p>
+            <div className="flex items-stretch border border-gray-200 rounded-sm overflow-hidden">
               <input
                 type="text"
                 readOnly
                 value={receiveAmount ?? (feeLoading || rateLoading ? "..." : "-")}
-                className="flex-1 min-w-0 px-4 py-3 text-lg font-semibold text-gray-900 outline-none bg-gray-50"
+                className="flex-1 min-w-0 px-3 py-1.5 text-md font-bold text-gray-900 outline-none bg-gray-50"
               />
               <span className="flex items-center gap-1.5 px-4 border-l border-gray-200 text-sm font-medium text-gray-500 shrink-0">
                 🇮🇳 INR
@@ -374,12 +397,12 @@ function OfframpCalculatorCard() {
 
           <div className="flex items-start gap-1.5 text-[11px] text-gray-400 px-0.5">
             <Info size={12} className="shrink-0 mt-0.5" />
-            <span>Estimate only - the real amount is confirmed when you reconcile a specific receivable.</span>
+            <span>Estimate only — final amount confirmed on reconciliation.</span>
           </div>
 
           <button
             onClick={() => navigate("/reconcile")}
-            className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-3.5 font-medium mt-auto transition-colors"
+            className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-sm text-white rounded-sm py-1.5 font-medium  transition-colors"
           >
             <ArrowUpRight size={15} />
             Continue to Reconcile
