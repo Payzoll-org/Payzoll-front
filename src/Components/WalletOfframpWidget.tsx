@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ChevronDown,
@@ -6,18 +6,11 @@ import {
   Eye,
   ArrowUpRight,
   ArrowDownLeft,
-  ArrowRightLeft,
-  Lock,
+  Info,
 } from "lucide-react";
 import type { Balance, BalanceEntry } from "../services/accountActivationApi";
-
-/**
- * Right-side offramp calculator is still a UI scaffold (static/mock rate
- * data) - swap chartPoints/rate for fxRateApi.getLiveRate()/getRateHistory()
- * as that piece comes online. The wallet card on the left uses the real
- * `balance` prop (fetched via getBalance() in AccountsOverview, straight
- * from XflowPay's own Balance object).
- */
+import { getLiveRate, getRateHistory, type LiveRate, type RateHistoryPoint } from "../services/fxRateApi";
+import { getPayoutFeeRule, type PayoutFeeRule } from "../services/feePlanApi";
 
 // ---------------------------------------------------------------------------
 // Left: Total Balance (wallet) card
@@ -228,52 +221,76 @@ function RateChart({ points }: { points: number[] }) {
   );
 }
 
+/**
+ * Real inward-remittance calculator: pulls the same live rate
+ * (fxRateApi.getLiveRate) and payout fee rule (feePlanApi.getPayoutFeeRule)
+ * the actual Reconcile flow uses, so the numbers shown here are never
+ * invented - just computed ahead of time from the same sources.
+ *
+ * The fee only ever applies to the USD leg (XflowPay's FeePlan is keyed by
+ * source currency, not by which crypto originally funded the balance -
+ * Services/reconcile.service.js), so "You Pay" is fixed to USD rather than
+ * offering a USDT/USDC toggle that wouldn't actually change anything.
+ */
 function OfframpCalculatorCard() {
-  const [tab, setTab] = useState<"offramp" | "onramp">("offramp");
-  const [period, setPeriod] = useState<"7D" | "30D" | "90D">("30D");
+  const navigate = useNavigate();
   const [payAmount, setPayAmount] = useState("1000");
-  const [payToken, setPayToken] = useState("USDT");
-  const [receiveCurrency, setReceiveCurrency] = useState("INR");
 
-  // Mock data - replace with fxRateApi.getLiveRate() / getRateHistory().
-  const rate = 95.45;
-  const rateChangePct = 0.42;
-  const chartPoints = [93.8, 94.1, 93.9, 94.6, 95.0, 94.8, 95.4, 95.2, 95.7, 95.45];
-  const receiveAmount = (parseFloat(payAmount || "0") * rate).toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  const [liveRate, setLiveRate] = useState<LiveRate | null>(null);
+  const [rateLoading, setRateLoading] = useState(true);
+  const [rateError, setRateError] = useState<string | null>(null);
+
+  const [rateHistory, setRateHistory] = useState<RateHistoryPoint[]>([]);
+
+  const [feeRule, setFeeRule] = useState<PayoutFeeRule | null>(null);
+  const [feeLoading, setFeeLoading] = useState(true);
+
+  useEffect(() => {
+    getLiveRate()
+      .then(setLiveRate)
+      .catch((err: any) => setRateError(err.message || "Failed to fetch live rate"))
+      .finally(() => setRateLoading(false));
+
+    getRateHistory(30)
+      .then(setRateHistory)
+      .catch(() => {});
+
+    getPayoutFeeRule("USD")
+      .then(setFeeRule)
+      .catch(() => setFeeRule(null))
+      .finally(() => setFeeLoading(false));
+  }, []);
+
+  const grossAmount = Number(payAmount) || 0;
+  const payoutFee = feeRule
+    ? Math.max(Number(feeRule.fixed) + (grossAmount * Number(feeRule.variable)) / 100, Number(feeRule.minimum))
+    : null;
+  const netAmount = payoutFee !== null ? Math.max(grossAmount - payoutFee, 0) : null;
+  const receiveAmount =
+    liveRate && netAmount !== null
+      ? (netAmount * Number(liveRate.userRate)).toLocaleString(undefined, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })
+      : null;
+
+  const chartPoints = rateHistory.length >= 2 ? rateHistory.map((p) => Number(p.userRate)) : null;
 
   return (
-    <div className="bg-white border border-gray-200  rounded-lg p-4 flex flex-col gap-6 min-w-0 overflow-hidden">
-      {/* Tabs */}
-      <div className="flex bg-gray-100 rounded- p-1 w-full sm:w-fit">
-        <button
-          onClick={() => setTab("offramp")}
-          className={`flex-1 sm:flex-none px-5 py-2 rounded-full text-xs font-medium transition-colors ${
-            tab === "offramp" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
-          }`}
-        >
-          Offramp Calculator
-        </button>
-        <button
-          onClick={() => setTab("onramp")}
-          className={`flex-1 sm:flex-none px-5 py-2 rounded-full text-xs font-medium transition-colors ${
-            tab === "onramp" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
-          }`}
-        >
-          Onramp Calculator
-        </button>
+    <div className="bg-white border border-gray-200 rounded-lg p-4 flex flex-col gap-6 min-w-0 overflow-hidden">
+      <div>
+        <h1 className="text-lg font-semibold text-gray-900">Inward Remittance Calculator</h1>
+        <p className="text-xs text-gray-500 mt-0.5">
+          Estimate what a USD → INR reconciliation would cost right now.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_minmax(0,320px)] gap-8 flex-1 min-w-0">
-        {/* Left: live rate + chart */}
+        {/* Left: live rate + real history */}
         <div className="flex flex-col h-full min-w-0">
           <div>
             <div className="flex items-center gap-2 text-sm text-gray-500">
-              <span>
-                1 {payToken} = ₹{rate.toFixed(4)} INR
-              </span>
+              <span>1 USD = INR</span>
               <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 rounded-full px-2 py-0.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
                 Live
@@ -281,38 +298,37 @@ function OfframpCalculatorCard() {
             </div>
 
             <div className="flex items-baseline gap-2 mt-1 mb-4">
-              <span className="text-3xl font-semibold text-gray-900">₹{rate.toFixed(2)}</span>
-              <span className="text-sm font-medium text-green-600">+{rateChangePct}%</span>
+              {rateLoading ? (
+                <span className="text-3xl font-semibold text-gray-300">...</span>
+              ) : rateError || !liveRate ? (
+                <span className="text-sm text-red-600">{rateError || "Rate unavailable"}</span>
+              ) : (
+                <>
+                  <span className="text-3xl font-semibold text-gray-900">
+                    ₹{Number(liveRate.userRate).toFixed(2)}
+                  </span>
+                  <span className="text-xs text-gray-400">
+                    updated {new Date(liveRate.fetchedAt).toLocaleTimeString(undefined, {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </>
+              )}
             </div>
 
-            <RateChart points={chartPoints} />
-          </div>
-
-          <div className="flex items-center gap-2 mt-4 lg:mt-auto">
-            {(["7D", "30D", "90D"] as const).map((p) => (
-              <button
-                key={p}
-                onClick={() => setPeriod(p)}
-                className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                  period === p
-                    ? "bg-blue-50 text-blue-600 border-blue-200"
-                    : "text-gray-500 border-gray-200 hover:bg-gray-50"
-                }`}
-              >
-                {p}
-              </button>
-            ))}
+            {chartPoints ? (
+              <RateChart points={chartPoints} />
+            ) : (
+              <div className="h-40 flex items-center justify-center text-xs text-gray-400 border border-dashed border-gray-200 rounded-lg">
+                Rate history will appear here as more conversions happen
+              </div>
+            )}
           </div>
         </div>
 
         {/* Right: convert form */}
         <div className="flex flex-col gap-3 h-full min-w-0">
-          {/* Network / rail selector */}
-          <button className="flex items-center justify-between border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors">
-            Stellar
-            <ChevronDown size={16} className="text-gray-400" />
-          </button>
-
           <div>
             <p className="text-xs text-gray-500 mb-1.5">You Pay</p>
             <div className="flex items-stretch border border-gray-200 rounded-xl overflow-hidden">
@@ -323,47 +339,50 @@ function OfframpCalculatorCard() {
                 onChange={(e) => setPayAmount(e.target.value.replace(/[^0-9.]/g, ""))}
                 className="flex-1 min-w-0 px-4 py-3 text-lg font-semibold text-gray-900 outline-none"
               />
-              <button
-                onClick={() => setPayToken(payToken === "USDT" ? "USDC" : "USDT")}
-                className="flex items-center gap-1 px-4 border-l border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 shrink-0"
-              >
-                {payToken}
-                <ChevronDown size={14} className="text-gray-400" />
-              </button>
+              <span className="flex items-center px-4 border-l border-gray-200 text-sm font-medium text-gray-500 shrink-0">
+                USD
+              </span>
             </div>
           </div>
 
-          <div className="flex justify-center">
-            <button
-              aria-label="Swap direction"
-              onClick={() => setTab(tab === "offramp" ? "onramp" : "offramp")}
-              className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors"
-            >
-              <ArrowRightLeft size={15} className="rotate-90" />
-            </button>
+          <div className="flex items-center justify-between text-sm px-0.5">
+            <span className="text-gray-500">Payout Fee</span>
+            <span className="font-medium text-red-600">
+              {feeLoading ? "..." : payoutFee !== null ? `-$${payoutFee.toFixed(2)}` : "Unavailable"}
+            </span>
           </div>
+          {feeRule && (
+            <p className="text-[11px] text-gray-400 -mt-2 px-0.5">
+              ${feeRule.fixed} fixed + {feeRule.variable}% (min ${feeRule.minimum})
+            </p>
+          )}
 
           <div>
-            <p className="text-xs text-gray-500 mb-1.5">You Receive</p>
+            <p className="text-xs text-gray-500 mb-1.5">You Receive (after fee)</p>
             <div className="flex items-stretch border border-gray-200 rounded-xl overflow-hidden">
               <input
                 type="text"
                 readOnly
-                value={receiveAmount}
+                value={receiveAmount ?? (feeLoading || rateLoading ? "..." : "-")}
                 className="flex-1 min-w-0 px-4 py-3 text-lg font-semibold text-gray-900 outline-none bg-gray-50"
               />
-              <button
-                onClick={() => setReceiveCurrency(receiveCurrency === "INR" ? "USD" : "INR")}
-                className="flex items-center gap-1.5 px-4 border-l border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 shrink-0"
-              >
-                {receiveCurrency === "INR" ? "🇮🇳" : "🇺🇸"} {receiveCurrency}
-              </button>
+              <span className="flex items-center gap-1.5 px-4 border-l border-gray-200 text-sm font-medium text-gray-500 shrink-0">
+                🇮🇳 INR
+              </span>
             </div>
           </div>
 
-          <button className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-3.5 font-medium mt-auto transition-colors">
-            <Lock size={15} />
-            Lock Rate & Convert
+          <div className="flex items-start gap-1.5 text-[11px] text-gray-400 px-0.5">
+            <Info size={12} className="shrink-0 mt-0.5" />
+            <span>Estimate only - the real amount is confirmed when you reconcile a specific receivable.</span>
+          </div>
+
+          <button
+            onClick={() => navigate("/reconcile")}
+            className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-3.5 font-medium mt-auto transition-colors"
+          >
+            <ArrowUpRight size={15} />
+            Continue to Reconcile
           </button>
         </div>
       </div>
