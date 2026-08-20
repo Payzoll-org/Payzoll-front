@@ -9,6 +9,8 @@ import {
   refreshCurrentUser,
   resendOtp as resendOtpRequest,
   verifyOtp as verifyOtpRequest,
+  requestPasswordReset,
+  resetPassword,
 } from "../services/authApi";
 import {
   submitOnboarding,
@@ -48,6 +50,13 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [showVerification, setShowVerification] = useState<boolean>(false);
   const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
+  const [showForgotPassword, setShowForgotPassword] = useState<boolean>(false);
+  const [forgotStep, setForgotStep] = useState<"request" | "reset" | "done">("request");
+  const [forgotEmail, setForgotEmail] = useState<string>("");
+  const [forgotOtp, setForgotOtp] = useState<string>("");
+  const [forgotNewPassword, setForgotNewPassword] = useState<string>("");
+  const [forgotError, setForgotError] = useState<string | null>(null);
+  const [forgotLoading, setForgotLoading] = useState<boolean>(false);
   const [onboardingForm, setOnboardingForm] = useState<OnboardingPayload>(emptyOnboardingForm);
   const [onboardingLoading, setOnboardingLoading] = useState<boolean>(false);
   const [userEmail, setUserEmail] = useState<string>("");
@@ -251,6 +260,45 @@ export default function AuthPage() {
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const openForgotPassword = () => {
+    setForgotEmail(form.email);
+    setForgotStep("request");
+    setForgotOtp("");
+    setForgotNewPassword("");
+    setForgotError(null);
+    setShowForgotPassword(true);
+  };
+
+  const handleSendResetCode = async () => {
+    if (!forgotEmail) {
+      setForgotError("Enter your email first");
+      return;
+    }
+    setForgotError(null);
+    setForgotLoading(true);
+    try {
+      await requestPasswordReset(forgotEmail);
+      setForgotStep("reset");
+    } catch (error: any) {
+      setForgotError(error.message || "Failed to send reset code");
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleConfirmReset = async () => {
+    setForgotError(null);
+    setForgotLoading(true);
+    try {
+      await resetPassword({ email: forgotEmail, otp: forgotOtp, newPassword: forgotNewPassword });
+      setForgotStep("done");
+    } catch (error: any) {
+      setForgotError(error.message || "Failed to reset password");
+    } finally {
+      setForgotLoading(false);
     }
   };
 
@@ -534,6 +582,104 @@ export default function AuthPage() {
                 </div>
               </div>
             </div>
+          ) : showForgotPassword ? (
+            // Forgot Password Screen
+            <div className="flex flex-col items-center justify-center pt-20 px-6">
+              <div className="text-center mb-10">
+                <h2 className="text-5xl font-heading font-normal tracking-tight text-black mb-3">
+                  Reset Password
+                </h2>
+                <p className="text-gray-500 text-sm">
+                  {forgotStep === "request" && "Enter your email to receive a reset code"}
+                  {forgotStep === "reset" && (
+                    <>
+                      Enter the 6-digit code sent to{" "}
+                      <span className="text-[#0944A5] font-medium">{forgotEmail}</span>
+                    </>
+                  )}
+                  {forgotStep === "done" && "Your password has been updated"}
+                </p>
+              </div>
+
+              {forgotStep === "request" && (
+                <div className="w-full max-w-sm flex flex-col gap-4">
+                  <input
+                    type="email"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    placeholder="example@email.com"
+                    className="px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black transition text-sm"
+                    disabled={forgotLoading}
+                  />
+                  {forgotError && <p className="text-sm text-red-600">{forgotError}</p>}
+                  <button
+                    onClick={handleSendResetCode}
+                    disabled={forgotLoading}
+                    className="w-full py-3 bg-[#0944A5] text-white rounded-xl text-lg font-medium
+                               shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+                  >
+                    {forgotLoading ? "Sending..." : "Send Reset Code"}
+                  </button>
+                </div>
+              )}
+
+              {forgotStep === "reset" && (
+                <div className="w-full max-w-sm flex flex-col gap-4">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={forgotOtp}
+                    onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    placeholder="6-digit code"
+                    className="px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black transition text-sm text-center tracking-widest"
+                    disabled={forgotLoading}
+                  />
+                  <input
+                    type="password"
+                    value={forgotNewPassword}
+                    onChange={(e) => setForgotNewPassword(e.target.value)}
+                    placeholder="New password"
+                    className="px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black transition text-sm"
+                    disabled={forgotLoading}
+                  />
+                  {forgotError && <p className="text-sm text-red-600">{forgotError}</p>}
+                  <button
+                    onClick={handleConfirmReset}
+                    disabled={forgotLoading || forgotOtp.length !== 6 || !forgotNewPassword}
+                    className="w-full py-3 bg-[#0944A5] text-white rounded-xl text-lg font-medium
+                               shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {forgotLoading ? "Updating..." : "Reset Password"}
+                  </button>
+                  <button
+                    onClick={handleSendResetCode}
+                    disabled={forgotLoading}
+                    className="text-sm text-black font-medium hover:opacity-70 underline disabled:opacity-30"
+                  >
+                    Resend Code
+                  </button>
+                </div>
+              )}
+
+              {forgotStep === "done" && (
+                <button
+                  onClick={() => setShowForgotPassword(false)}
+                  className="w-56 py-3 bg-[#0944A5] text-white rounded-xl text-lg font-medium
+                             shadow-lg hover:shadow-xl transition-all"
+                >
+                  Back to Log In
+                </button>
+              )}
+
+              {forgotStep !== "done" && (
+                <button
+                  onClick={() => setShowForgotPassword(false)}
+                  className="text-sm text-gray-500 hover:text-gray-700 mt-8"
+                >
+                  ← Back to Log In
+                </button>
+              )}
+            </div>
           ) : showVerification ? (
             // OTP Verification Screen
 
@@ -727,7 +873,11 @@ export default function AuthPage() {
 
                 {!isSignup && (
                   <div className="flex justify-end -mt-2">
-                    <button className="text-sm text-black hover:underline font-medium">
+                    <button
+                      type="button"
+                      onClick={openForgotPassword}
+                      className="text-sm text-black hover:underline font-medium"
+                    >
                       Forgot password?
                     </button>
                   </div>
