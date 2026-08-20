@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react";
-import { Coins } from "lucide-react";
+import { Clock, Coins } from "lucide-react";
 import { useAuthStore } from "../Zustand/userStore";
 import { refreshCurrentUser } from "../services/authApi";
 import StablecoinModal from "./StablecoinModal";
+
+// Real XflowPay capability status values once a request has actually been
+// submitted (api-reference.md "The Account object") - "verifying" is
+// XflowPay reviewing it, same review-in-progress meaning as
+// KycBanner's UNDER_REVIEW_STATUSES.
+const UNDER_REVIEW_STATUSES = ["verifying"];
 
 // accountStatus/stablecoinEnabled only ever change server-side (the real
 // XflowPay webhook - Services/webhook.service.js), so this polls the real
@@ -32,6 +38,19 @@ export default function StablecoinBanner() {
 
   if (!user || user.accountStatus !== "activated" || user.stablecoinEnabled) {
     return null;
+  }
+
+  const underReview = UNDER_REVIEW_STATUSES.includes(user.stablecoinStatus || "");
+
+  if (underReview) {
+    return (
+      <div className="w-full bg-indigo-50 border-b border-indigo-200 px-4 py-2.5 flex items-center gap-2 shrink-0">
+        <Clock size={18} className="shrink-0 text-indigo-600" />
+        <span className="text-sm font-medium text-indigo-800">
+          Your stablecoin payments request is under review. This can take a little while - no action needed.
+        </span>
+      </div>
+    );
   }
 
   return (

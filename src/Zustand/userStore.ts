@@ -12,6 +12,10 @@ export interface User {
   userType: TypeOfUser | null;
   accountStatus?: string | null;
   stablecoinEnabled?: boolean;
+  // Raw XflowPay capability status ("verifying", "activated", etc.) -
+  // stablecoinEnabled alone can't distinguish "never requested" from
+  // "requested, pending XflowPay's own review".
+  stablecoinStatus?: string | null;
 }
 
 interface AuthState {
