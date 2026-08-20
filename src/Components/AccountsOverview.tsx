@@ -614,15 +614,18 @@ export default function AccountsOverview() {
       {/* Wallet + Offramp Calculator */}
       <WalletOfframpWidget balance={balance} onDeposit={() => setModalSelection("local")} />
 
-    
-
-     
-
-    
       {/* Payments Received from Partners */}
       <PaymentsReceivedTable />
 
-      
+      <WaysToReceiveModal
+        key={modalSelection}
+        open={modalSelection !== null}
+        onClose={() => setModalSelection(null)}
+        usReceivingAccount={usReceivingAccount}
+        bankAccounts={bankAccounts}
+        stablecoinEnabled={!!user?.stablecoinEnabled}
+        initialSelection={modalSelection || "local"}
+      />
     </div>
   );
 }

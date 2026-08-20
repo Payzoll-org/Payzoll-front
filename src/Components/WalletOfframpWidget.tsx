@@ -9,29 +9,42 @@ import {
   ArrowRightLeft,
   Lock,
 } from "lucide-react";
-import type { Balance } from "../services/accountActivationApi";
+import type { Balance, BalanceEntry } from "../services/accountActivationApi";
 
 /**
  * Right-side offramp calculator is still a UI scaffold (static/mock rate
  * data) - swap chartPoints/rate for fxRateApi.getLiveRate()/getRateHistory()
- * as that piece comes online. The wallet card's balance figure is still a
- * demo/mock value too, for now - swap for the real `balance` prop (already
- * threaded down from AccountsOverview) once that's wired up.
+ * as that piece comes online. The wallet card on the left uses the real
+ * `balance` prop (fetched via getBalance() in AccountsOverview, straight
+ * from XflowPay's own Balance object).
  */
 
 // ---------------------------------------------------------------------------
 // Left: Total Balance (wallet) card
 // ---------------------------------------------------------------------------
 
-const CURRENCY_OPTIONS = ["USDC", "USDT"] as const;
+function nonZero(entries: BalanceEntry[]) {
+  return entries.filter((e) => parseFloat(e.amount) > 0);
+}
+
+const CURRENCY_OPTIONS = ["USD", "USDC", "USDT"] as const;
 type CurrencyOption = (typeof CURRENCY_OPTIONS)[number];
 
 const NETWORK_OPTIONS = ["EVM", "Solana", "Tron"] as const;
 type NetworkOption = (typeof NETWORK_OPTIONS)[number];
 
 const CURRENCY_ICON_COLOR: Record<CurrencyOption, string> = {
+  USD: "bg-gray-600",
   USDC: "bg-blue-500",
   USDT: "bg-emerald-500",
+};
+
+// Explicit labels rather than slicing the currency string - "USD" has no
+// 4th character to index into the way "USDC"/"USDT" do.
+const CURRENCY_ICON_LABEL: Record<CurrencyOption, string> = {
+  USD: "$",
+  USDC: "C",
+  USDT: "T",
 };
 
 function CurrencyIcon({ currency }: { currency: CurrencyOption }) {
@@ -39,7 +52,7 @@ function CurrencyIcon({ currency }: { currency: CurrencyOption }) {
     <span
       className={`w-4 h-4 rounded-full ${CURRENCY_ICON_COLOR[currency]} flex items-center justify-center text-[9px] font-bold text-white shrink-0`}
     >
-      {currency[3]}
+      {CURRENCY_ICON_LABEL[currency]}
     </span>
   );
 }
@@ -106,19 +119,22 @@ function ChipDropdown<T extends string>({
 }
 
 function WalletBalanceCard({
+  balance,
   onDeposit,
 }: {
   balance: Balance | null;
   onDeposit: () => void;
 }) {
   const navigate = useNavigate();
-  const [currency, setCurrency] = useState<CurrencyOption>("USDC");
+  const [currency, setCurrency] = useState<CurrencyOption>("USD");
   const [network, setNetwork] = useState<NetworkOption>("EVM");
 
-  // Demo/mock figures - swap for the real `balance` prop once live wallet
-  // balances are wired up.
-  const demoBalance = "1,057.92";
-  const demoBalanceInr = "1,00,929.14";
+  // Real figures from XflowPay's own Balance object - pending (received,
+  // not yet reconciled) first, falling back to available, same precedence
+  // AccountsOverview's AccountSummaryCard uses for the USD headline.
+  const pendingEntry = balance ? nonZero(balance.pending).find((b) => b.currency === currency) : undefined;
+  const availableEntry = balance ? nonZero(balance.available).find((b) => b.currency === currency) : undefined;
+  const amount = pendingEntry?.amount || availableEntry?.amount || "0.00";
 
   return (
     <div className="bg-[#0944A5] text-white rounded-lg p-6 flex flex-col gap-6 h-full min-w-0 overflow-hidden">
@@ -141,14 +157,13 @@ function WalletBalanceCard({
         </div>
       </div>
 
-      {/* Balance figure - demo value for now */}
+      {/* Balance figure - real balance for the selected currency */}
       <div>
         <div className="flex items-baseline gap-2">
-          <span className="text-4xl font-normal">{demoBalance}</span>
+          <span className="text-4xl font-normal">{amount}</span>
           <span className="text-gray-400 text-lg">{currency}</span>
           <Eye size={16} className="text-white/60 ml-1" />
         </div>
-        <p className="text-gray-400 text-xs mt-1">≈ ₹{demoBalanceInr} INR</p>
       </div>
 
       {/* Convert / Deposit */}

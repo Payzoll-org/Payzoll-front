@@ -17,6 +17,7 @@ import { IoNotificationsOutline } from "react-icons/io5";
 import logo from "../assets/payzoll.png";
 import { useAuthStore } from "../Zustand/userStore";
 import { logoutUser } from "../services/authApi";
+import HelpSupportModal from "./HelpSupportModal";
 
 
 interface NavigationChild {
@@ -51,6 +52,7 @@ const sideBAr: React.FC = () => {
     agents: false
   });
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [helpModalOpen, setHelpModalOpen] = useState(false);
 
   const toggleFolder = (folderName: string): void => {
     setExpandedFolders(prev => ({
@@ -93,7 +95,7 @@ const sideBAr: React.FC = () => {
       label: 'International Banking',
       icon: BarChart3,
       isFolder: false,
-      route: internationalBankingReady ? '/dashboard' : undefined,
+      route: internationalBankingReady ? '/international-banking' : undefined,
       disabled: !internationalBankingReady,
       disabledReason: 'Unlocks once your USD account and stablecoin payments are both active',
     },
@@ -110,7 +112,9 @@ const sideBAr: React.FC = () => {
         id: 'referandearn',
         label: 'Refer & Earn',
         icon: BarChart3,
-        isFolder: false
+        isFolder: false,
+        disabled: true,
+        disabledReason: 'Coming soon',
       },
 
 
@@ -144,7 +148,7 @@ const sideBAr: React.FC = () => {
 
 
   return (
-    <>
+    <div className="relative h-full">
     <div>
         <div className=" pt-4 ">
           <div className="flex justify-between items-center space-x-3  mb-4">
@@ -281,7 +285,12 @@ const sideBAr: React.FC = () => {
             <div className="px-4 gap-5">
               <h1>Book a Demo</h1>
 
-              <h1 className='pt-4'>Help and Support</h1>
+              <button
+                onClick={() => setHelpModalOpen(true)}
+                className="pt-4 text-left hover:text-blue-600 dark:hover:text-blue-400 transition-colors block"
+              >
+                Help and Support
+              </button>
             </div>
 
 
@@ -291,24 +300,27 @@ const sideBAr: React.FC = () => {
 
 
         {/* Bottom Section */}
-        <div className={`flex text-sm  items-center gap-16 justify-between absolute bottom-5 `}>
+        <div className="flex text-sm items-center gap-16 justify-between absolute bottom-5 left-0 right-0">
 
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 shrink-0">
                 <User className="w-5 h-5 text-gray-600 dark:text-gray-300" />
               </div>
-              <div className='dark:text-white'>
-                <h2 className="text-xs font-medium text-gray-900 dark:text-gray-100">
+              <div className='dark:text-white min-w-30'>
+                <h2 className="text-xs font-medium text-gray-900 dark:text-gray-100 ">
                   User Profile
                 </h2>
-                <h2 className="text-xs font-medium text-gray-900 dark:text-gray-100">
+                <h2
+                  className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate"
+                  title={user?.name || undefined}
+                >
                   {user?.name || "..."}
                 </h2>
               </div>
             </div>
 
 
-          <div className={`flex gap-2 items-center`}>
+          <div className="flex gap-2 items-center shrink-0">
 
             <IoNotificationsOutline
               className="text-gray-700 text-lg hover:text-purple-600 dark:text-gray-300 dark:hover:text-purple-400 cursor-pointer transition-colors"
@@ -324,8 +336,8 @@ const sideBAr: React.FC = () => {
           </div>
         </div>
 
-
-    </>
+        <HelpSupportModal open={helpModalOpen} onClose={() => setHelpModalOpen(false)} />
+    </div>
   )
 }
 
