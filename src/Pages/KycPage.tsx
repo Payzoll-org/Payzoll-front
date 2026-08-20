@@ -1401,6 +1401,12 @@ function SummaryStep({
     try {
       await submitOwnerPerson();
       await activateAccount();
+      // Refresh the store right away so the dashboard shows the real,
+      // just-submitted status ("verifying") the instant the user lands
+      // there - otherwise it's stuck showing whatever was true before KYC
+      // until the next 60s poll cycle, or until the stablecoin modal's own
+      // completion path happens to refresh it.
+      await refreshCurrentUser().catch(() => {});
       // XflowPay's own account object is still settling the activate call
       // for a moment afterward - firing start_tos immediately fails with
       // "object cannot be accessed right now ... another API request is

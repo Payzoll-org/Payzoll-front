@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Clock } from "lucide-react";
 import { useAuthStore } from "../Zustand/userStore";
 import { refreshCurrentUser } from "../services/authApi";
 
@@ -13,6 +13,12 @@ import { refreshCurrentUser } from "../services/authApi";
 // combined were enough to exhaust the backend's shared rate limit budget
 // during normal use.
 const POLL_INTERVAL_MS = 60000;
+
+// Real XflowPay account.status values (api-reference.md "The Account
+// object") once activation has actually been submitted - "verifying" is
+// XflowPay reviewing it, same status this account sits in for however
+// long real review takes (confirmed: up to a business day or two).
+const UNDER_REVIEW_STATUSES = ["verifying"];
 
 export default function KycBanner() {
   const { user } = useAuthStore();
@@ -34,6 +40,19 @@ export default function KycBanner() {
 
   if (!user || user.kycVerified) {
     return null;
+  }
+
+  const underReview = UNDER_REVIEW_STATUSES.includes(user.accountStatus || "");
+
+  if (underReview) {
+    return (
+      <div className="w-full bg-blue-50 border-b border-blue-200 px-4 py-2 flex items-center gap-2 shrink-0">
+        <Clock size={18} className="shrink-0 text-blue-600" />
+        <span className="text-sm font-medium text-blue-800">
+          Your KYC has been submitted to Payzoll for review. This usually takes 1-2 business days.
+        </span>
+      </div>
+    );
   }
 
   return (
