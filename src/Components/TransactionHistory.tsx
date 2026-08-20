@@ -95,10 +95,10 @@ export default function TransactionHistory() {
   return (
     <div className="p-6 lg:p-8 flex flex-col gap-6 overflow-y-auto h-full">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-900">All Payouts</h2>
+        <h2 className="text-xl text-gray-900">Transaction History</h2>
         <button
           onClick={() => setSortDesc((v) => !v)}
-          className="flex items-center gap-2 text-sm font-medium text-gray-700 border border-gray-200 rounded-lg px-4 py-2 hover:bg-gray-50"
+          className="flex items-center gap-2 text-sm font-medium text-gray-700 border border-gray-200 rounded-sm px-4 py-2 hover:bg-gray-50"
         >
           <ArrowUpDown size={14} />
           Sort: Expected On ({sortDesc ? "Newest-Oldest" : "Oldest-Newest"})
@@ -110,13 +110,13 @@ export default function TransactionHistory() {
           <div className="w-5 h-5 border-2 border-gray-300 border-t-black rounded-full animate-spin" />
         </div>
       ) : error ? (
-        <div className="border border-red-200 bg-red-50 rounded-xl p-6 text-sm text-red-700">{error}</div>
+        <div className="border border-red-200 bg-red-50 rounded-sm p-6 text-sm text-red-700">{error}</div>
       ) : payouts.length === 0 ? (
-        <div className="border border-dashed border-gray-200 rounded-xl p-6 text-sm text-gray-500">
+        <div className="border border-dashed border-gray-200 rounded-sm p-6 text-sm text-gray-500">
           No payouts yet. Reconciled funds dispatched to your bank account will show up here.
         </div>
       ) : (
-        <div className="border border-gray-200 rounded-xl overflow-x-auto">
+        <div className="border border-gray-200 rounded-sm overflow-x-auto">
           <table className="w-full min-w-[820px]">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50">

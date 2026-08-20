@@ -42,7 +42,7 @@ export interface BankAccount {
   // Only set for stablecoin receiving addresses - USDC exists on both EVM
   // chains and Solana, USDT on Tron, so currency alone doesn't uniquely
   // identify one.
-  network?: "EVM" | "SOLANA" | "TRON" | null;
+  network?: "EVM" | "SOLANA" | "TRON" | "STELLAR" | null;
   status: string;
   name: string | null;
   // Stablecoin receiving addresses have no bank_account hash - XflowPay
@@ -51,6 +51,9 @@ export interface BankAccount {
   bankAccount: BankAccountDetails | null;
   // Stablecoin receiving addresses only - XflowPay's own address.vpa.id.
   receivingAddress?: string | null;
+  // True only for addresses XflowPay never provisioned - deposits to these
+  // aren't tracked, reconciled, or reflected in balance/payments-received.
+  external?: boolean;
   createdAt: string;
 }
 

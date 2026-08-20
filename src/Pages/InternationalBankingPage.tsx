@@ -28,17 +28,17 @@ function FilterField<T extends string>({
       <div className="relative">
         <button
           onClick={() => options.length > 1 && setOpen((o) => !o)}
-          className="w-full flex items-center justify-between gap-3 bg-white border border-gray-200 rounded-2xl px-5 py-4 shadow-sm hover:border-gray-300 transition-colors"
+          className="w-full flex items-center justify-between gap-3 bg-white border border-gray-200 rounded-sm px-4 py-2 shadow-sm hover:border-gray-300 transition-colors"
         >
-          <span className="flex items-center gap-2 text-base font-semibold text-gray-900 min-w-0 truncate">
+          <span className="flex items-center gap-2 text-sm font-semibold text-gray-900 min-w-0 truncate">
             {renderValue(value)}
           </span>
-          <ChevronDown size={18} className="text-gray-400 shrink-0" />
+          <ChevronDown size={17} className="text-gray-400 shrink-0" />
         </button>
         {open && (
           <>
             <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-            <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-20 max-h-60 overflow-y-auto">
+            <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-sm shadow-lg py-1 z-20 max-h-60 overflow-y-auto">
               {options.map((opt) => (
                 <button
                   key={opt}
@@ -46,7 +46,7 @@ function FilterField<T extends string>({
                     onChange(opt);
                     setOpen(false);
                   }}
-                  className={`w-full flex items-center gap-2 text-left px-4 py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors ${
+                  className={`w-full flex items-center gap-2 text-left px-4 py-2 text-sm font-medium hover:bg-gray-50 transition-colors ${
                     opt === value ? "text-blue-600" : "text-gray-700"
                   }`}
                 >
@@ -124,7 +124,7 @@ function UsdBankDetails({ account, method }: { account: BankAccount; method: str
   }
 
   return (
-    <div className="border border-gray-200 rounded-2xl overflow-hidden bg-white">
+    <div className="border border-gray-200 rounded-sm overflow-hidden bg-white">
       <DetailRow label="Beneficiary" value={account.name || "-"} />
       <DetailRow label="Receiving Currency" value={account.currency} />
       <DetailRow label="Account Number" value={bank.number || "-"} />
@@ -152,7 +152,7 @@ function StablecoinDetails({
   }
 
   return (
-    <div className="border border-gray-200 rounded-2xl overflow-hidden bg-white">
+    <div className="border border-gray-200 rounded-sm overflow-hidden bg-white">
       <DetailRow label="Beneficiary" value={account.name || "-"} />
       <DetailRow label="Receiving Token" value={account.currency} />
       <DetailRow label="Network" value={network} />
@@ -233,7 +233,7 @@ function InternationalBankingContent() {
 
       {loading ? (
         <div className="flex items-center justify-center py-16">
-          <div className="w-5 h-5 border-2 border-gray-300 border-t-black rounded-full animate-spin" />
+          <div className="w-5 h-5 border-2 border-gray-300 border-t-black rounded-sm animate-spin" />
         </div>
       ) : error ? (
         <p className="text-sm text-red-600">{error}</p>
