@@ -107,7 +107,7 @@ export default function StablecoinModal({ onClose, onComplete }: StablecoinModal
           {phase === "test-mode" && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-8 text-center">
               <p className="text-sm text-gray-700">
-                XflowPay's test environment doesn't provide a real Terms of
+                Our test environment doesn't provide a real Terms of
                 Service page to display here - this only happens with a live
                 account.
               </p>

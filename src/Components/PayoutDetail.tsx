@@ -123,7 +123,7 @@ export default function PayoutDetail() {
               <AmountRow label="Total Gross Amount" value={`${payout.breakdownCurrency} ${payout.grossAmount}`} />
             )}
             {payout.feesAmount && (
-              <AmountRow label="Xflow Payout Fees" value={`${payout.breakdownCurrency} ${payout.feesAmount}`} />
+              <AmountRow label="Payout Fees" value={`${payout.breakdownCurrency} ${payout.feesAmount}`} />
             )}
             {payout.netAmount && (
               <AmountRow label="Net Payout" value={`${payout.breakdownCurrency} ${payout.netAmount}`} muted />
@@ -234,7 +234,7 @@ export default function PayoutDetail() {
 
               <div className="mt-3">
                 {payout.grossAmount && <AmountRow label="Gross Payout" value={`${payout.breakdownCurrency} ${payout.grossAmount}`} />}
-                {payout.feesAmount && <AmountRow label="Xflow Payout Fees" value={`${payout.breakdownCurrency} ${payout.feesAmount}`} />}
+                {payout.feesAmount && <AmountRow label="Payout Fees" value={`${payout.breakdownCurrency} ${payout.feesAmount}`} />}
                 {payout.netAmount && <AmountRow label="Net Payout" value={`${payout.breakdownCurrency} ${payout.netAmount}`} strong />}
               </div>
             </div>
