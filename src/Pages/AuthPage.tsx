@@ -315,7 +315,7 @@ export default function AuthPage() {
           </div>
 
           <h1 className="text-sm lg:text-lg mt-15 font-heading font-medium text-blue-300 mb-2">
-            Global Crypto Payments
+            Compliant Stablecoin Payments for India
           </h1>
 
           <div className="flex flex-col gap-1 lg:gap-2 mt-15">
@@ -378,15 +378,6 @@ export default function AuthPage() {
   </div>
 
   
-
-  <div className="flex items-center  gap-4">
-   <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-xs bg-[#132a4e] border border-blue-500/30 text-blue-400">
-      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-      </svg>
-    </div>
-    <span className="text-sm font-medium tracking-wide">Enterprise Security</span>
-  </div>
 
 </div>
           </div>

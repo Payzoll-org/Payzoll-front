@@ -233,7 +233,7 @@ function InternationalBankingContent() {
 
       {loading ? (
         <div className="flex items-center justify-center py-16">
-          <div className="w-5 h-5 border-2 border-gray-300 border-t-black rounded-sm animate-spin" />
+          <div className="w-5 h-5 border-2 border-gray-300 border-t-black rounded-full animate-spin" />
         </div>
       ) : error ? (
         <p className="text-sm text-red-600">{error}</p>
