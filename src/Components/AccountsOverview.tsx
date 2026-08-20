@@ -13,6 +13,7 @@ import { getDeposits, PAYMENT_METHOD_LABELS, type Deposit } from "../services/de
 import { getLiveRate, getRateHistory, type LiveRate, type RateHistoryPoint } from "../services/fxRateApi";
 import { useAuthStore } from "../Zustand/userStore";
 import WaysToReceiveModal from "./WaysToReceiveModal";
+import WalletOfframpWidget from "./WalletOfframpWidget";
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
@@ -610,45 +611,11 @@ export default function AccountsOverview() {
 
   return (
     <div className="p-6 lg:p-8 flex flex-col gap-8 overflow-y-auto h-full">
-      {/* Account Summary */}
-      <div className="rounded-sm p-3 bg-gray-100">
-        <AccountSummaryCard
-        usReceivingAccount={usReceivingAccount}
-        balance={balance}
-        onViewDeposits={scrollToDeposits}
-        onBankTransferDetails={() => setModalSelection("local")}
-      />
-      </div>
+      {/* Wallet + Offramp Calculator */}
+      <WalletOfframpWidget balance={balance} onDeposit={() => setModalSelection("local")} />
 
-      {/* Transfer Details + Live FX Rate */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-        <section className="min-w-0">
-          <div className="flex items-center gap-2 mb-4">
-            <h2 className="text-lg font-medium text-gray-900">Transfer Details</h2>
-            <Info size={15} className="text-gray-400" />
-          </div>
-
-          <div className="flex flex-col bg-gray-100 rounded-sm p-3 gap-4">
-            <TransferMethodCard
-              icon={<Landmark size={16} />}
-              title="Bank Transfers"
-              description="We support ACH, Fedwire and SWIFT transfers."
-              onView={() => setModalSelection("local")}
-            />
-
-            <TransferMethodCard
-              icon={<Coins size={16} />}
-              title="Stablecoin Payments"
-              description="We support EVM, Solana and Tron."
-              onView={() => setModalSelection("stablecoin")}
-            />
-          </div>
-        </section>
-
-        <section className="min-w-0 ">
-          <LiveFxRateCard />
-        </section>
-      </div>
+      {/* Payments Received from Partners */}
+      <PaymentsReceivedTable />
 
       <WaysToReceiveModal
         key={modalSelection}
@@ -659,11 +626,6 @@ export default function AccountsOverview() {
         stablecoinEnabled={!!user?.stablecoinEnabled}
         initialSelection={modalSelection || "local"}
       />
-
-      {/* Payments Received from Partners */}
-      <PaymentsReceivedTable />
-
-      
     </div>
   );
 }

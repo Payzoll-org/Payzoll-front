@@ -4,6 +4,23 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
+    # helmet() on the backend only covers API JSON responses - this is
+    # what actually reaches the browser for the HTML/JS users load, so it
+    # needs its own headers. "always" sends them on error responses too,
+    # not just 2xx/3xx (nginx's add_header default).
+    #
+    # connect-src/frame-ancestors etc. are scoped to this app's real infra
+    # (Cloud Run + payzoll.finance) - everything the SPA talks to (API,
+    # KYC documents, payment advice) is proxied through the backend's own
+    # origin, nothing is fetched directly from Cloudinary/XflowPay/etc.
+    # (confirmed: only Google Fonts is loaded from a third party - index.css).
+    add_header X-Frame-Options "DENY" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()" always;
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://*.payzoll.finance https://*.run.app; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
+
     # Client-side routing (React Router) - any path that isn't a real
     # static file falls back to index.html so deep links and refreshes
     # work instead of 404ing.
@@ -13,8 +30,19 @@ server {
 
     # Static assets Vite content-hashes in their filenames - safe to cache
     # aggressively since a new build always gets new filenames.
+    #
+    # nginx quirk: a location that sets its own add_header stops inheriting
+    # the server block's add_header list entirely, not just overriding
+    # Cache-Control - so the security headers above have to be repeated
+    # here too, or every hashed JS/CSS file would ship with none of them.
     location /assets/ {
         expires 1y;
         add_header Cache-Control "public, immutable";
+        add_header X-Frame-Options "DENY" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()" always;
+        add_header Strict-Transport-Security "max-age=63072000; includeSubDomains" always;
+        add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://*.payzoll.finance https://*.run.app; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
     }
 }

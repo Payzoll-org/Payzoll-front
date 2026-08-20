@@ -80,8 +80,6 @@ async function performRefresh(fetchProfile: boolean): Promise<string | null> {
 
     setAccessToken(accessToken);
     if (nextUser) {
-      console.log("Session refreshed, user:", nextUser);
-      console.log("KYC verified:", nextUser.kycVerified, "| User type:", nextUser.userType);
       setUser(nextUser);
     } else if (fetchProfile || !useAuthStore.getState().user) {
       await fetchCurrentUser();
@@ -119,8 +117,6 @@ async function fetchCurrentUser() {
     const data = await response.json();
     const user = data?.data?.user || data?.data;
     if (user) {
-      console.log("Fetched current user:", user);
-      console.log("KYC verified:", user.kycVerified, "| User type:", user.userType);
       setUser(user);
     }
     return user;

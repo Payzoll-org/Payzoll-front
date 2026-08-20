@@ -23,6 +23,12 @@ interface ResendOtpPayload {
   email: string;
 }
 
+interface ResetPasswordPayload {
+  email: string;
+  otp: string;
+  newPassword: string;
+}
+
 const ROUTES = API_ROUTES.auth;
 
 function assertData(response: Response, data: any) {
@@ -95,6 +101,36 @@ export async function loginUser(payload: LoginPayload) {
     setSession({ user, accessToken });
   }
 
+  return data;
+}
+
+/**
+ * Sends a password reset OTP to the given email - reused here for the
+ * logged-in "Change Password" flow in Settings (send a code to your own
+ * email, then confirm it via resetPassword below), since the backend has
+ * no separate "change password while authenticated" endpoint.
+ */
+export async function requestPasswordReset(email: string) {
+  const response = await http(ROUTES.forgotPassword, {
+    method: "POST",
+    auth: false,
+    body: JSON.stringify({ email }),
+  });
+
+  const data = await response.json();
+  assertData(response, data);
+  return data;
+}
+
+export async function resetPassword(payload: ResetPasswordPayload) {
+  const response = await http(ROUTES.resetPassword, {
+    method: "POST",
+    auth: false,
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+  assertData(response, data);
   return data;
 }
 

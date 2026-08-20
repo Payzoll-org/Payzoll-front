@@ -28,6 +28,8 @@ export const API_ROUTES = {
     me: "/api/auth/me",
     sessions: "/api/auth/sessions",
     revokeSession: (sessionId: string) => `/api/auth/sessions/${sessionId}`,
+    forgotPassword: "/api/auth/forgot-password",
+    resetPassword: "/api/auth/reset-password",
   },
   onboarding: {
     submit: "/api/onboarding",
@@ -85,6 +87,10 @@ export const API_ROUTES = {
   },
   feePlan: {
     payoutFee: "/api/fee-plan/payout-fee",
+  },
+  support: {
+    create: "/api/support",
+    list: "/api/support",
   },
   reconcile: {
     preview: "/api/reconcile/preview",
