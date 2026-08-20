@@ -12,7 +12,7 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
 }
 
 function SettingsCard({ children }: { children: React.ReactNode }) {
-  return <div className="bg-white border border-gray-100 rounded-2xl shadow-sm">{children}</div>;
+  return <div className="bg-white border border-gray-100 rounded-sm shadow-sm">{children}</div>;
 }
 
 function SettingsRow({
@@ -52,11 +52,11 @@ function Toggle({
       disabled={disabled}
       title={disabled ? "Coming soon" : undefined}
       onClick={() => onChange?.(!checked)}
-      className={`w-11 h-6 rounded-full flex items-center px-0.5 transition-colors ${
+      className={`w-9 h-5 rounded-full flex items-center px-0.5 transition-colors ${
         checked ? "bg-emerald-500 justify-end" : "bg-gray-200 justify-start"
       } ${disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}
     >
-      <span className="w-5 h-5 rounded-full bg-white shadow" />
+      <span className="w-4 h-4 rounded-full bg-white shadow" />
     </button>
   );
 }
@@ -67,7 +67,7 @@ function EditButton() {
       type="button"
       disabled
       title="Coming soon"
-      className="px-4 py-1.5 text-sm font-medium text-gray-400 border border-gray-200 rounded-lg cursor-not-allowed"
+      className="px-3 py-1 text-xs font-medium text-gray-400 border border-gray-200 rounded-sm cursor-not-allowed"
     >
       Edit
     </button>
@@ -127,7 +127,7 @@ function ChangePasswordRow({ email }: { email: string }) {
           <button
             onClick={sendCode}
             disabled={loading}
-            className="shrink-0 px-4 py-1.5 text-sm font-medium text-gray-900 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
+            className="shrink-0 px-3 py-1 text-sm font-medium text-gray-900 border border-gray-200 rounded-sm hover:bg-gray-50 disabled:opacity-50 transition-colors"
           >
             {loading ? "Sending…" : "Change"}
           </button>
@@ -195,7 +195,7 @@ function SettingsContent() {
 
   return (
     <div className="bg-gray-50 h-full overflow-y-auto">
-      <div className="max-w-3xl mx-auto px-6 lg:px-8 py-10 flex flex-col gap-8">
+      <div className="max-w-xl mx-auto px-6 lg:px-8 py-10 flex flex-col gap-8">
         <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
 
         <section>
@@ -208,7 +208,7 @@ function SettingsContent() {
               description={user?.kycVerified ? "Identity verified" : "Complete KYC to unlock full access"}
               action={
                 user?.kycVerified ? (
-                  <span className="inline-flex items-center gap-1 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1">
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1">
                     <Check size={13} />
                     Verified
                   </span>
@@ -256,7 +256,7 @@ function SettingsContent() {
         <section>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-sm hover:bg-red-50 transition-colors"
           >
             <LogOut size={15} />
             Log out

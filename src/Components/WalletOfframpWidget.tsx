@@ -137,7 +137,7 @@ function WalletBalanceCard({
   const amount = pendingEntry?.amount || availableEntry?.amount || "0.00";
 
   return (
-    <div className="bg-[#0944A5] text-white rounded-lg p-6 flex flex-col gap-6 h-full min-w-0 overflow-hidden">
+    <div className="bg-[#010631] text-white rounded-lg p-6 flex flex-col gap-6 h-full min-w-0 overflow-hidden">
       {/* Header: title + network/currency selectors */}
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-md">Total Balance</h2>
@@ -183,6 +183,9 @@ function WalletBalanceCard({
           Deposite
         </button>
       </div>
+      <p className="text-xs text-gray-400">
+        The amount you deposited here will be reflected in your account within a few hours.
+      </p>
     </div>
   );
 }
