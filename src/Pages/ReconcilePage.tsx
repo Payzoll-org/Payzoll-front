@@ -1077,8 +1077,8 @@ export default function ReconcilePage() {
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 bg-indigo-50 border-b border-indigo-100 shrink-0">
-        <h1 className="text-lg font-semibold text-gray-800">Reconcile USD Funds</h1>
+      <div className="flex items-center justify-between px-6 py-3 bg-indigo-50 border-b border-indigo-100 shrink-0">
+        <h1 className="text-md font-semibold text-gray-800">Reconcile USD Funds</h1>
         <button
           onClick={() => navigate("/dashboard")}
           className="text-gray-500 hover:text-gray-800 p-1"
