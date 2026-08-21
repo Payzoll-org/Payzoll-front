@@ -120,8 +120,8 @@ const sideBAr: React.FC = () => {
 
 
       {
-        id: 'setting',
-        label: 'Setting',
+        id: 'settings',
+        label: 'Settings',
         icon: Settings,
         isFolder: false,
         route: '/settings',
