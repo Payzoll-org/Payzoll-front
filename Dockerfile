@@ -17,7 +17,7 @@ COPY . .
 # copy of this file keeps the production value
 # (https://api.payzoll.finance); do not carry this line forward when
 # promoting dev -> main. Update this if the dev AuthService URL changes.
-ENV VITE_AUTH_API_URL=https://backend-payzoll-dev-97498937015.europe-west1.run.app
+ENV VITE_AUTH_API_URL=https://back-dev-payzoll-97498937015.europe-west1.run.app
 
 RUN npm run build
 
