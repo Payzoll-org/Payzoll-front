@@ -181,7 +181,7 @@ export default function PayoutDetail() {
             {payout.utr && <AmountRow label="UTR" value={payout.utr} />}
           </div>
 
-          <div className="border border-gray-200 rounded-2xl p-6">
+          <div className="border border-gray-200 rounded-sm p-6">
             <h3 className="text-sm font-semibold text-gray-900 mb-3">Related Documents</h3>
             {payout.hasPaymentAdvice ? (
               <button
@@ -205,7 +205,7 @@ export default function PayoutDetail() {
           {payout.receivables.length > 0 && (
             <div className="border border-gray-200 rounded-sm p-6">
               <h3 className="text-sm font-semibold text-gray-900 mb-3">Payout Break-up By Receivables</h3>
-              <div className="border border-gray-200 rounded-xl overflow-hidden overflow-x-auto">
+              <div className="border border-gray-200 rounded-sm overflow-hidden overflow-x-auto">
                 <table className="w-full min-w-[480px]">
                   <thead>
                     <tr className="border-b border-gray-200 bg-gray-50">
