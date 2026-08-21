@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Landmark, Coins, Check, AlertTriangle } from "lucide-react";
+import { X, Landmark, Coins, Check, AlertTriangle, Copy } from "lucide-react";
 import type { BankAccount, BankAccountDetails } from "../services/bankAccountApi";
 import { useAuthStore } from "../Zustand/userStore";
 
@@ -27,11 +27,39 @@ const LOCAL_RAILS: {
 
 type Category = "local" | "stablecoin";
 
-function DetailRow({ label, value }: { label: string; value: string }) {
+function CopyIconButton({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 last:border-0">
-      <span className="text-sm text-gray-500">{label}</span>
-      <span className="text-sm font-semibold text-gray-900 text-right break-all">{value}</span>
+    <button
+      type="button"
+      onClick={() => {
+        navigator.clipboard
+          .writeText(value)
+          .then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1500);
+          })
+          .catch(() => {});
+      }}
+      className="shrink-0 text-gray-400 hover:text-gray-700 transition-colors"
+      aria-label="Copy"
+    >
+      {copied ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
+    </button>
+  );
+}
+
+function DetailRow({ label, value, copyable }: { label: string; value: string; copyable?: boolean }) {
+  const isCopyable = copyable && value && value !== "-";
+
+  return (
+    <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-gray-100 last:border-0">
+      <span className="text-sm text-gray-500 shrink-0">{label}</span>
+      <span className="flex items-center gap-2 min-w-0">
+        <span className="text-sm font-semibold text-gray-900 text-right break-all">{value}</span>
+        {isCopyable && <CopyIconButton value={value} />}
+      </span>
     </div>
   );
 }
@@ -40,7 +68,7 @@ function DetailBlock({ title, children }: { title: string; children: React.React
   return (
     <div className="mb-5 last:mb-0">
       <h4 className="text-sm font-semibold text-gray-900 mb-2">{title}</h4>
-      <div className="border border-gray-200 rounded-xl overflow-hidden">{children}</div>
+      <div className="border border-gray-200 rounded-sm overflow-hidden">{children}</div>
     </div>
   );
 }
@@ -68,12 +96,12 @@ function LocalBankDetails({ account }: { account: BankAccount }) {
 
   return (
     <div>
-      <div className="flex bg-gray-100 rounded-full p-0.5 w-fit mb-4">
+      <div className="flex bg-gray-100 rounded-sm p-0.5 w-fit mb-4">
         {(["local", "swift"] as const).map((r) => (
           <button
             key={r}
             onClick={() => setRail(r)}
-            className={`px-5 py-1.5 rounded-full text-sm font-medium transition-colors ${
+            className={`px-5 py-1.5 rounded-sm text-sm font-medium transition-colors ${
               rail === r ? "bg-blue-600 text-white" : "text-gray-600 hover:text-gray-900"
             }`}
           >
@@ -88,7 +116,7 @@ function LocalBankDetails({ account }: { account: BankAccount }) {
             <DetailBlock key={r.key} title={r.label}>
               <DetailRow label="Beneficiary" value={account.name || "-"} />
               <DetailRow label="Receiving Currency" value={account.currency} />
-              <DetailRow label="Account Number" value={bank.number || "-"} />
+              <DetailRow label="Account Number" value={bank.number || "-"} copyable />
               <DetailRow label="Routing Number" value={r.routing(bank) || "-"} />
               <DetailRow label="Account Type" value={accountType} />
               {bank.bank_name && <DetailRow label="Bank" value={bank.bank_name} />}
@@ -101,7 +129,7 @@ function LocalBankDetails({ account }: { account: BankAccount }) {
         <DetailBlock title="SWIFT">
           <DetailRow label="Beneficiary" value={account.name || "-"} />
           <DetailRow label="Receiving Currency" value={account.currency} />
-          <DetailRow label="Account Number" value={bank.number || "-"} />
+          <DetailRow label="Account Number" value={bank.number || "-"} copyable />
           <DetailRow label="SWIFT / BIC" value={bank.global_wire} />
           <DetailRow label="Account Type" value={accountType} />
           {bank.bank_name && <DetailRow label="Bank" value={bank.bank_name} />}
@@ -125,12 +153,12 @@ function StablecoinDetails({ bankAccounts }: { bankAccounts: BankAccount[] }) {
 
   return (
     <div>
-      <div className="flex bg-gray-100 rounded-full p-0.5 w-fit mb-4">
+      <div className="flex bg-gray-100 rounded-sm p-0.5 w-fit mb-4">
         {(["all", "USDC", "USDT"] as const).map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-5 py-1.5 rounded-full text-sm font-medium transition-colors ${
+            className={`px-5 py-1.5 rounded-sm text-sm font-medium transition-colors ${
               filter === f ? "bg-blue-600 text-white" : "text-gray-600 hover:text-gray-900"
             }`}
           >
@@ -148,7 +176,7 @@ function StablecoinDetails({ bankAccounts }: { bankAccounts: BankAccount[] }) {
                 <DetailRow label="Beneficiary" value={account.name || "-"} />
                 <DetailRow label="Receiving Token" value={account.currency} />
                 <DetailRow label="Network" value={slot.network} />
-                <DetailRow label="Receiving Address" value={account.receivingAddress || "-"} />
+                <DetailRow label="Receiving Address" value={account.receivingAddress || "-"} copyable />
                 {account.external && (
                   <div className="flex items-start gap-2 px-4 py-3 bg-amber-50 border-t border-amber-200">
                     <AlertTriangle size={14} className="text-amber-600 shrink-0 mt-0.5" />
@@ -192,7 +220,7 @@ export default function WaysToReceiveModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
 
-      <div className="relative bg-white rounded-sm shadow-xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden">
+      <div className="relative bg-white rounded-sm shadow-xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
           <h2 className="text-lg font-semibold text-gray-900">Ways To Receive Payments</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700 p-1" aria-label="Close">
@@ -211,34 +239,34 @@ export default function WaysToReceiveModal({
               {usReceivingAccount && (
                 <button
                   onClick={() => setCategory("local")}
-                  className={`w-full flex items-center gap-2 px-3 py-3 rounded-xl text-sm font-medium border ${
+                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-sm text-sm font-medium border ${
                     category === "local"
                       ? "bg-blue-50 text-blue-700 border-blue-200"
                       : "text-gray-700 hover:bg-gray-50 border-gray-200"
                   }`}
                 >
-                  <span className="w-8 h-8 rounded-lg bg-gray-900 flex items-center justify-center text-white shrink-0">
-                    <Landmark size={15} />
+                  <span className="w-6 h-6 rounded-sm bg-gray-900 flex items-center justify-center text-white shrink-0">
+                    <Landmark size={13} />
                   </span>
                   <span className="flex-1 text-left">Local Payment methods</span>
-                  {category === "local" && <Check size={14} />}
+                 
                 </button>
               )}
 
               {stablecoinEnabled && (
                 <button
                   onClick={() => setCategory("stablecoin")}
-                  className={`w-full flex items-center gap-2 px-3 py-3 rounded-xl text-sm font-medium border ${
+                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-sm text-sm font-medium border ${
                     category === "stablecoin"
                       ? "bg-blue-50 text-blue-700 border-blue-200"
                       : "text-gray-700 hover:bg-gray-50 border-gray-200"
                   }`}
                 >
-                  <span className="w-8 h-8 rounded-lg bg-gray-900 flex items-center justify-center text-white shrink-0">
+                  <span className="w-6 h-6 rounded-sm bg-gray-900 flex items-center justify-center text-white shrink-0">
                     <Coins size={15} />
                   </span>
                   <span className="flex-1 text-left">Stablecoin Payments</span>
-                  {category === "stablecoin" && <Check size={14} />}
+                  
                 </button>
               )}
             </div>
@@ -267,7 +295,7 @@ export default function WaysToReceiveModal({
         <div className="flex items-center justify-end px-6 py-4 border-t border-gray-100 shrink-0">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50"
+            className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-200 rounded-sm hover:bg-gray-50"
           >
             Cancel
           </button>
