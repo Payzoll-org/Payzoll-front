@@ -107,7 +107,7 @@ export default function PayoutDetail() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         {/* Left column */}
-        <div className="border border-gray-200 rounded-2xl p-6 min-w-0">
+        <div className="border border-gray-200 rounded-sm p-6 min-w-0">
           <p className="text-xs text-gray-500 mb-1">
             {firstReceivable?.partnerName && <>Partner: <span className="text-blue-600 font-medium">{firstReceivable.partnerName}</span> · </>}
             {firstReceivable?.purposeCode && (
@@ -167,7 +167,7 @@ export default function PayoutDetail() {
 
         {/* Right column */}
         <div className="flex flex-col gap-6 min-w-0">
-          <div className="border border-gray-200 rounded-2xl p-6">
+          <div className="border border-gray-200 rounded-sm p-6">
             <h3 className="text-sm font-semibold text-gray-900 mb-3">Bank Details</h3>
             {payout.bankInfo ? (
               <AmountRow
@@ -203,7 +203,7 @@ export default function PayoutDetail() {
           </div>
 
           {payout.receivables.length > 0 && (
-            <div className="border border-gray-200 rounded-2xl p-6">
+            <div className="border border-gray-200 rounded-sm p-6">
               <h3 className="text-sm font-semibold text-gray-900 mb-3">Payout Break-up By Receivables</h3>
               <div className="border border-gray-200 rounded-xl overflow-hidden overflow-x-auto">
                 <table className="w-full min-w-[480px]">
