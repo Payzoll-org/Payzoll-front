@@ -149,7 +149,15 @@ function StablecoinDetails({ bankAccounts }: { bankAccounts: BankAccount[] }) {
       (a) => a.category === "xflow_receive" && a.currency === slot.currency && a.network === slot.network
     );
 
-  const slots = STABLECOIN_SLOTS.filter((slot) => filter === "all" || slot.currency === filter);
+  const slots = STABLECOIN_SLOTS.filter((slot) => {
+    if (filter !== "all" && slot.currency !== filter) return false;
+    // Stellar isn't an XflowPay-supported network - only ever a manually
+    // recorded external address for the specific account it was added for
+    // (BankAccount.external: true). Unlike the real XflowPay slots, it
+    // shouldn't show as "Not yet available" for every other user.
+    if (slot.network === "STELLAR" && !accountFor(slot)) return false;
+    return true;
+  });
 
   return (
     <div>
