@@ -30,13 +30,13 @@ import {
 } from "../services/reconcileApi";
 
 const inputClass =
-  "px-3 py-2.5 focus:outline-none focus:ring-0 border border-gray-300 rounded-lg focus:border-black transition text-sm bg-white";
+  "px-3 py-2.5 focus:outline-none focus:ring-0 border border-gray-300 rounded-sm focus:border-black transition text-sm bg-white";
 
 const spaciousInputClass =
-  "w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black transition text-sm placeholder:text-gray-400 bg-white";
+  "w-full px-3 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-black transition text-sm placeholder:text-gray-400 bg-white";
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <label className="text-sm font-semibold text-gray-900 mb-2 block">{children}</label>;
+  return <label className="text-sm font-semibold text-gray-900 mb-1 block">{children}</label>;
 }
 
 /** Centered modal dialog, matching the "Add New Partner"/"Add New Receivable" reference design. */
@@ -52,7 +52,7 @@ function FormModal({
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[85vh] overflow-y-auto p-8">
+      <div className="relative bg-white rounded-sm shadow-xl w-full max-w-lg max-h-[85vh] overflow-y-auto px-6 py-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700 p-1" aria-label="Close">
@@ -132,7 +132,7 @@ function Combobox({
       </button>
 
       {open && !disabled && (
-        <div className="absolute z-20 mt-1.5 w-full bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+        <div className="absolute z-20 mt-1.5 w-full bg-white border border-gray-200 rounded-sm shadow-lg overflow-hidden">
           <button
             type="button"
             onClick={() => {
@@ -324,12 +324,12 @@ function PartnerCreateForm({
   return (
     <FormModal title="Add New Partner" onClose={onCancel}>
       {submitError && (
-        <div className="mb-5 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+        <div className="mb-5 px-4 py-3 rounded-sm bg-red-50 border border-red-200 text-sm text-red-700">
           {submitError}
         </div>
       )}
 
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-3">
         <div>
           <FieldLabel>Legal Name</FieldLabel>
           <input
@@ -449,12 +449,12 @@ function PartnerCreateForm({
               />
             </div>
             <div>
-              <FieldLabel>State/Province/Region</FieldLabel>
+              <FieldLabel>State</FieldLabel>
               <input
                 type="text"
                 value={form.state}
                 onChange={(e) => update("state", e.target.value)}
-                placeholder="Enter State/Province/Region"
+                placeholder="Enter State"
                 className={spaciousInputClass}
                 disabled={loading}
               />
@@ -478,7 +478,7 @@ function PartnerCreateForm({
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="px-8 h-12 flex items-center justify-center gap-2 bg-black text-white text-sm font-medium rounded-full
+            className="px-5 h-10 flex items-center justify-center gap-2 bg-black text-white text-sm font-medium rounded-full
                       hover:scale-105 transition-transform shadow-lg hover:shadow-xl
                       disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
@@ -496,7 +496,7 @@ function PartnerCreateForm({
 
 function PartnerDetailCard({ partner }: { partner: Partner }) {
   return (
-    <div className="border border-gray-200 rounded-xl p-4 bg-gray-50 flex flex-col gap-1.5 text-sm">
+    <div className="border border-gray-200 rounded-sm p-4 bg-gray-50 flex flex-col gap-1.5 text-sm">
       <div className="flex items-center justify-between">
         <span className="font-semibold text-gray-900">{partner.legalName}</span>
         <span className="text-xs text-gray-400 capitalize">{partner.partnerType?.replace(/_/g, " ")}</span>
@@ -679,7 +679,7 @@ function ReceivableCreateForm({
 
         <div>
           <FieldLabel>Invoice Amount</FieldLabel>
-          <div className="flex items-center gap-3 border border-gray-300 rounded-lg px-4 focus-within:border-black transition">
+          <div className="flex items-center gap-3 border border-gray-300 rounded-sm px-3 focus-within:border-black transition">
             <span className="text-sm font-medium text-gray-500">USD</span>
             <input
               type="number"
@@ -688,7 +688,7 @@ function ReceivableCreateForm({
               value={form.invoiceAmount}
               onChange={(e) => update("invoiceAmount", e.target.value)}
               placeholder="0.00"
-              className="flex-1 py-3 focus:outline-none focus:ring-0 text-sm bg-transparent"
+              className="flex-1 py-2 focus:outline-none focus:ring-0 text-sm bg-transparent"
               disabled={loading}
             />
           </div>
@@ -696,7 +696,7 @@ function ReceivableCreateForm({
 
         <div>
           <FieldLabel>Receivable Amount</FieldLabel>
-          <div className="flex items-center gap-3 border border-gray-300 rounded-lg px-4 focus-within:border-black transition">
+          <div className="flex items-center gap-3 border border-gray-300 rounded-sm px-3 focus-within:border-black transition">
             <span className="text-sm font-medium text-gray-500">USD</span>
             <input
               type="number"
@@ -705,7 +705,7 @@ function ReceivableCreateForm({
               value={form.amountMaximumReconcilable}
               onChange={(e) => update("amountMaximumReconcilable", e.target.value)}
               placeholder="0.00"
-              className="flex-1 py-3 focus:outline-none focus:ring-0 text-sm bg-transparent"
+              className="flex-1 py-2 focus:outline-none focus:ring-0 text-sm bg-transparent"
               disabled={loading}
             />
           </div>
@@ -741,7 +741,7 @@ function ReceivableCreateForm({
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="px-8 h-12 flex items-center justify-center gap-2 bg-black text-white text-sm font-medium rounded-full
+            className="px-5 h-10 flex items-center justify-center gap-2 bg-black text-white text-sm font-medium rounded-full
                       hover:scale-105 transition-transform shadow-lg hover:shadow-xl
                       disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
@@ -1102,7 +1102,7 @@ export default function ReconcilePage() {
               </div>
             )}
 
-            <div className="flex flex-col gap-8">
+            <div className="flex flex-col gap-4">
               {/* 1. Partner */}
               <div>
                 <SectionLabel step={1} title="Partner" subtitle="Select a partner to reconcile with" />
@@ -1183,13 +1183,13 @@ export default function ReconcilePage() {
               <div>
                 <SectionLabel step={3} title="Amount" subtitle="Enter the amount to reconcile" />
 
-                <div className="flex items-center justify-between border border-gray-200 rounded-xl px-4 py-3 mb-4">
+                <div className="flex items-center justify-between border border-gray-200 rounded-sm px-4 py-2 mb-4">
                   <span className="text-sm text-gray-700">Common Balance</span>
                   <span className="text-sm font-semibold text-gray-900">USD {commonBalance}</span>
                 </div>
 
                 {hasNoBalance && (
-                  <div className="mb-4 px-4 py-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-700">
+                  <div className="mb-4 px-4 py-2 rounded-sm bg-amber-50 border border-amber-200 text-sm text-amber-700">
                     You don't have any balance to reconcile yet. Funds need to arrive in your account before you can
                     reconcile.
                   </div>
@@ -1260,20 +1260,20 @@ export default function ReconcilePage() {
                 <h3 className="text-base font-semibold text-gray-900 mb-3">5. Payout Information</h3>
 
                 {previewLoading && (
-                  <div className="border border-gray-200 rounded-xl p-5 flex items-center gap-3">
+                  <div className="border border-gray-200 rounded-sm px-5 py-3 flex items-center gap-3">
                     <div className="w-4 h-4 border-2 border-gray-300 border-t-black rounded-full animate-spin" />
                     <span className="text-sm text-gray-500">Fetching payout preview...</span>
                   </div>
                 )}
 
                 {!previewLoading && previewError && (
-                  <div className="border border-amber-200 bg-amber-50 rounded-xl p-5 text-sm text-amber-700">
+                  <div className="border border-amber-200 bg-amber-50 rounded-sm px-5 py-3 text-sm text-amber-700">
                     {previewError}
                   </div>
                 )}
 
                 {!previewLoading && !previewError && preview && (
-                  <div className="border border-gray-200 rounded-xl p-5 flex flex-col gap-3">
+                  <div className="border border-gray-200 rounded-sm px-5 py-3 flex flex-col gap-3">
                     <p className="text-sm text-gray-600">
                       Converting <span className="font-medium text-gray-900">{preview.source_currency}</span> to{" "}
                       <span className="font-medium text-gray-900">{preview.destination_currency}</span>. Expected
@@ -1293,7 +1293,7 @@ export default function ReconcilePage() {
                 )}
 
                 {!previewLoading && !previewError && !preview && (
-                  <div className="border border-dashed border-gray-200 rounded-xl p-5 text-sm text-gray-400">
+                  <div className="border border-dashed border-gray-200 rounded-sm px-5 py-3 text-sm text-gray-400">
                     Select a receivable, amount, and bank account to preview payout timing.
                   </div>
                 )}
