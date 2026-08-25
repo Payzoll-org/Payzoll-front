@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Landmark, Coins, Check, AlertTriangle, Copy } from "lucide-react";
+import { X, Landmark, Coins, Check, Copy } from "lucide-react";
 import type { BankAccount, BankAccountDetails } from "../services/bankAccountApi";
 import { useAuthStore } from "../Zustand/userStore";
 
