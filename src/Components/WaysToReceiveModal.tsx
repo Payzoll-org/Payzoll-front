@@ -185,15 +185,6 @@ function StablecoinDetails({ bankAccounts }: { bankAccounts: BankAccount[] }) {
                 <DetailRow label="Receiving Token" value={account.currency} />
                 <DetailRow label="Network" value={slot.network} />
                 <DetailRow label="Receiving Address" value={account.receivingAddress || "-"} copyable />
-                {account.external && (
-                  <div className="flex items-start gap-2 px-4 py-3 bg-amber-50 border-t border-amber-200">
-                    <AlertTriangle size={14} className="text-amber-600 shrink-0 mt-0.5" />
-                    <p className="text-xs text-amber-800">
-                      Not tracked by Payzoll - this network isn't supported by our payment
-                      processor. Deposits here won't show up in your balance or payment history.
-                    </p>
-                  </div>
-                )}
               </>
             ) : (
               <div className="px-4 py-3 text-sm text-gray-400">Not yet available</div>
