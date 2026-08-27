@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, type NavigateFunction } from "react-router-dom";
 import {
   ChevronDown,
   ChevronUp,
@@ -11,6 +11,20 @@ import {
 import type { Balance, BalanceEntry } from "../services/accountActivationApi";
 import { getLiveRate, getRateHistory, type LiveRate, type RateHistoryPoint } from "../services/fxRateApi";
 import { getPayoutFeeRule, type PayoutFeeRule } from "../services/feePlanApi";
+import { useAuthStore } from "../Zustand/userStore";
+
+// Shared gate for Withdraw/Deposit/Reconcile - same user.kycVerified field
+// KycBanner already polls and shows a persistent banner for. Rather than
+// let a not-yet-verified user into a flow that would just fail server-side
+// later, stop them here with a clear message and send them to finish KYC.
+function requireKyc(kycVerified: boolean | undefined, navigate: NavigateFunction, action: () => void) {
+  if (!kycVerified) {
+    alert("Please complete your KYC first to access this feature.");
+    navigate("/kyc");
+    return;
+  }
+  action();
+}
 
 // ---------------------------------------------------------------------------
 // Left: Total Balance (wallet) card
@@ -119,6 +133,7 @@ function WalletBalanceCard({
   onDeposit: () => void;
 }) {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [currency, setCurrency] = useState<CurrencyOption>("USD");
   const [network, setNetwork] = useState<NetworkOption>("EVM");
 
@@ -162,14 +177,14 @@ function WalletBalanceCard({
       {/* Convert / Deposit */}
       <div className="flex items-center gap-3">
         <button
-          onClick={() => navigate("/reconcile")}
+          onClick={() => requireKyc(user?.kycVerified, navigate, () => navigate("/reconcile"))}
           className="flex-1 flex items-center justify-center gap-2 bg-white text-gray-900 rounded-sm py-2 font-medium hover:bg-gray-100 transition-colors"
         >
           <ArrowUpRight size={16} />
           Withdraw in INR
         </button>
         <button
-          onClick={onDeposit}
+          onClick={() => requireKyc(user?.kycVerified, navigate, onDeposit)}
           className="flex-1 flex items-center justify-center gap-2 bg-white/10 rounded-sm py-2 font-medium hover:bg-white/15 transition-colors"
         >
           <ArrowDownLeft size={16} />
@@ -234,6 +249,7 @@ function RateChart({ points }: { points: number[] }) {
  */
 function OfframpCalculatorCard() {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [payAmount, setPayAmount] = useState("1000");
 
   const [liveRate, setLiveRate] = useState<LiveRate | null>(null);
@@ -401,7 +417,7 @@ function OfframpCalculatorCard() {
           </div>
 
           <button
-            onClick={() => navigate("/reconcile")}
+            onClick={() => requireKyc(user?.kycVerified, navigate, () => navigate("/reconcile"))}
             className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-sm text-white rounded-sm py-1.5 font-medium  transition-colors"
           >
             <ArrowUpRight size={15} />
