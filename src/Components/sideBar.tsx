@@ -9,7 +9,6 @@ import {
   Folder,
   FolderOpen,
   Settings,
-  Search,
   LogOut
 } from 'lucide-react';
 
