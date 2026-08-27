@@ -249,13 +249,17 @@ export default function AuthPage() {
         setShowVerification(true);
         alert("Account created! Please check your email for the verification code.");
       } else {
+        // No alert()/navigate() here - the useEffect above already reacts to
+        // `user` changing (set by loginUser via setSession) and correctly
+        // routes to /dashboard or the onboarding form depending on
+        // user.userType. Navigating here unconditionally used to send
+        // every login straight to /dashboard even when onboarding wasn't
+        // done, causing a visible flash - briefly landing there before
+        // getting bounced back by ProtectedRoute.
         await loginUser({
           email: form.email,
           password: form.password,
         });
-
-        alert("Login successful!");
-        navigate("/dashboard");
       }
     } catch (error: any) {
       console.error("Error:", error);

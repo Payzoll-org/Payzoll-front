@@ -7,12 +7,12 @@ import {
   ArrowUpRight,
   ArrowDownLeft,
   Info,
-  AlertTriangle,
 } from "lucide-react";
 import type { Balance, BalanceEntry } from "../services/accountActivationApi";
 import { getLiveRate, getRateHistory, type LiveRate, type RateHistoryPoint } from "../services/fxRateApi";
 import { getPayoutFeeRule, type PayoutFeeRule } from "../services/feePlanApi";
 import { useAuthStore } from "../Zustand/userStore";
+import KycRequiredModal from "./KycRequiredModal";
 
 // Shared gate for Withdraw/Deposit/Reconcile - same user.kycVerified field
 // KycBanner already polls and shows a persistent banner for. Rather than
@@ -24,50 +24,6 @@ function requireKyc(kycVerified: boolean | undefined, onBlocked: () => void, act
     return;
   }
   action();
-}
-
-// Centered confirm/cancel modal, styled to match the app's other modals
-// (HelpSupportModal etc) - replaces a plain browser alert() so the user
-// gets an actual choice instead of a dead-end dismiss.
-function KycRequiredModal({
-  open,
-  onCancel,
-  onProceed,
-}: {
-  open: boolean;
-  onCancel: () => void;
-  onProceed: () => void;
-}) {
-  if (!open) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40" onClick={onCancel} />
-      <div className="relative bg-white rounded-sm shadow-xl w-full max-w-sm p-6 flex flex-col items-center text-center gap-3">
-        <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center">
-          <AlertTriangle size={22} className="text-amber-600" />
-        </div>
-        <h3 className="text-base font-semibold text-gray-900">Complete your KYC first</h3>
-        <p className="text-sm text-gray-500">
-          You need to complete KYC verification before you can withdraw, deposit, or reconcile funds.
-        </p>
-        <div className="flex items-center gap-3 w-full mt-2">
-          <button
-            onClick={onCancel}
-            className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 border border-gray-200 rounded-sm hover:bg-gray-50 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onProceed}
-            className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-sm hover:bg-blue-700 transition-colors"
-          >
-            Complete KYC
-          </button>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 // ---------------------------------------------------------------------------
