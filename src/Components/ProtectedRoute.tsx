@@ -13,7 +13,19 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (hasHydrated && !user) {
+    if (!hasHydrated) {
+      return;
+    }
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+    // user.userType is null until the onboarding form (legal name, type of
+    // user, DOB, etc) is actually submitted - AuthPage shows that form
+    // itself once it sees a logged-in user with no userType yet, so route
+    // there instead of letting a logged-in-but-not-onboarded user reach a
+    // protected page (dashboard, settings, ...) directly.
+    if (user.userType == null) {
       navigate("/auth");
     }
   }, [user, navigate, hasHydrated]);
@@ -26,7 +38,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  if (!user) {
+  if (!user || user.userType == null) {
     return (
       <div className="flex items-center justify-center h-screen">
         <p className="text-gray-600 text-lg">Redirecting to login...</p>

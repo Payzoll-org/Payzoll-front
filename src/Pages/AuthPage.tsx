@@ -44,7 +44,7 @@ export default function AuthPage() {
     email: "", 
     password: "" 
   });
-  const { user } = useAuthStore();
+  const { user, hasHydrated } = useAuthStore();
   const [isSignup, setIsSignup] = useState<boolean>(false);
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -66,13 +66,26 @@ export default function AuthPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Skip the auto-redirect while the onboarding form still needs to be
-    // shown post-verification — otherwise `user` becoming truthy right
-    // after OTP verification would bounce straight to /dashboard.
-    if (user && !showVerification && !showOnboarding) {
+    // Driven by the real user.userType (null until the onboarding form is
+    // actually submitted), not just the showOnboarding component state -
+    // that state doesn't survive a reload, so reloading mid-onboarding
+    // (e.g. right after OTP verification, before submitting the form) used
+    // to fall through to the dashboard-redirect below and skip onboarding
+    // entirely. Now a reload in that state re-shows the onboarding form
+    // instead, since it's based on the user's actual persisted status.
+    if (!hasHydrated || !user || showVerification) {
+      return;
+    }
+
+    if (user.userType == null) {
+      setShowOnboarding(true);
+      return;
+    }
+
+    if (!showOnboarding) {
       navigate("/dashboard", { replace: true });
     }
-  }, [user, navigate, showVerification, showOnboarding]);
+  }, [user, navigate, showVerification, showOnboarding, hasHydrated]);
 
   const handleOtpInput = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     const value = e.target.value;
