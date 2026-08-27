@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, type NavigateFunction } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   ChevronDown,
   ChevronUp,
@@ -7,6 +7,7 @@ import {
   ArrowUpRight,
   ArrowDownLeft,
   Info,
+  AlertTriangle,
 } from "lucide-react";
 import type { Balance, BalanceEntry } from "../services/accountActivationApi";
 import { getLiveRate, getRateHistory, type LiveRate, type RateHistoryPoint } from "../services/fxRateApi";
@@ -16,14 +17,57 @@ import { useAuthStore } from "../Zustand/userStore";
 // Shared gate for Withdraw/Deposit/Reconcile - same user.kycVerified field
 // KycBanner already polls and shows a persistent banner for. Rather than
 // let a not-yet-verified user into a flow that would just fail server-side
-// later, stop them here with a clear message and send them to finish KYC.
-function requireKyc(kycVerified: boolean | undefined, navigate: NavigateFunction, action: () => void) {
+// later, stop them here and prompt them to finish KYC instead of proceeding.
+function requireKyc(kycVerified: boolean | undefined, onBlocked: () => void, action: () => void) {
   if (!kycVerified) {
-    alert("Please complete your KYC first to access this feature.");
-    navigate("/kyc");
+    onBlocked();
     return;
   }
   action();
+}
+
+// Centered confirm/cancel modal, styled to match the app's other modals
+// (HelpSupportModal etc) - replaces a plain browser alert() so the user
+// gets an actual choice instead of a dead-end dismiss.
+function KycRequiredModal({
+  open,
+  onCancel,
+  onProceed,
+}: {
+  open: boolean;
+  onCancel: () => void;
+  onProceed: () => void;
+}) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40" onClick={onCancel} />
+      <div className="relative bg-white rounded-sm shadow-xl w-full max-w-sm p-6 flex flex-col items-center text-center gap-3">
+        <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center">
+          <AlertTriangle size={22} className="text-amber-600" />
+        </div>
+        <h3 className="text-base font-semibold text-gray-900">Complete your KYC first</h3>
+        <p className="text-sm text-gray-500">
+          You need to complete KYC verification before you can withdraw, deposit, or reconcile funds.
+        </p>
+        <div className="flex items-center gap-3 w-full mt-2">
+          <button
+            onClick={onCancel}
+            className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 border border-gray-200 rounded-sm hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onProceed}
+            className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-sm hover:bg-blue-700 transition-colors"
+          >
+            Complete KYC
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -128,9 +172,11 @@ function ChipDropdown<T extends string>({
 function WalletBalanceCard({
   balance,
   onDeposit,
+  onRequireKyc,
 }: {
   balance: Balance | null;
   onDeposit: () => void;
+  onRequireKyc: () => void;
 }) {
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -177,14 +223,14 @@ function WalletBalanceCard({
       {/* Convert / Deposit */}
       <div className="flex items-center gap-3">
         <button
-          onClick={() => requireKyc(user?.kycVerified, navigate, () => navigate("/reconcile"))}
+          onClick={() => requireKyc(user?.kycVerified, onRequireKyc, () => navigate("/reconcile"))}
           className="flex-1 flex items-center justify-center gap-2 bg-white text-gray-900 rounded-sm py-2 font-medium hover:bg-gray-100 transition-colors"
         >
           <ArrowUpRight size={16} />
           Withdraw in INR
         </button>
         <button
-          onClick={() => requireKyc(user?.kycVerified, navigate, onDeposit)}
+          onClick={() => requireKyc(user?.kycVerified, onRequireKyc, onDeposit)}
           className="flex-1 flex items-center justify-center gap-2 bg-white/10 rounded-sm py-2 font-medium hover:bg-white/15 transition-colors"
         >
           <ArrowDownLeft size={16} />
@@ -247,7 +293,7 @@ function RateChart({ points }: { points: number[] }) {
  * Services/reconcile.service.js), so "You Pay" is fixed to USD rather than
  * offering a USDT/USDC toggle that wouldn't actually change anything.
  */
-function OfframpCalculatorCard() {
+function OfframpCalculatorCard({ onRequireKyc }: { onRequireKyc: () => void }) {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const [payAmount, setPayAmount] = useState("1000");
@@ -417,7 +463,7 @@ function OfframpCalculatorCard() {
           </div>
 
           <button
-            onClick={() => requireKyc(user?.kycVerified, navigate, () => navigate("/reconcile"))}
+            onClick={() => requireKyc(user?.kycVerified, onRequireKyc, () => navigate("/reconcile"))}
             className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-sm text-white rounded-sm py-1.5 font-medium  transition-colors"
           >
             <ArrowUpRight size={15} />
@@ -440,10 +486,21 @@ export default function WalletOfframpWidget({
   balance: Balance | null;
   onDeposit: () => void;
 }) {
+  const navigate = useNavigate();
+  const [kycModalOpen, setKycModalOpen] = useState(false);
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 rounded-xl bg-gray-100 p-4 items-stretch">
-      <WalletBalanceCard balance={balance} onDeposit={onDeposit} />
-      <OfframpCalculatorCard />
+      <WalletBalanceCard balance={balance} onDeposit={onDeposit} onRequireKyc={() => setKycModalOpen(true)} />
+      <OfframpCalculatorCard onRequireKyc={() => setKycModalOpen(true)} />
+      <KycRequiredModal
+        open={kycModalOpen}
+        onCancel={() => setKycModalOpen(false)}
+        onProceed={() => {
+          setKycModalOpen(false);
+          navigate("/kyc");
+        }}
+      />
     </div>
   );
 }
