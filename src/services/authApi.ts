@@ -33,7 +33,15 @@ const ROUTES = API_ROUTES.auth;
 
 function assertData(response: Response, data: any) {
   if (!response.ok) {
-    const message = data?.message || data?.error || "Request failed";
+    // Validation failures put the actual specific reason(s) in `errors`
+    // (an array) - `message` on those responses is just the generic
+    // "Validation failed" wrapper, which told the user nothing about what
+    // was actually wrong (e.g. why their password was rejected).
+    const message =
+      (Array.isArray(data?.errors) && data.errors.length > 0 ? data.errors.join(" ") : null) ||
+      data?.message ||
+      data?.error ||
+      "Request failed";
     throw new Error(message);
   }
 }
