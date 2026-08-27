@@ -18,6 +18,7 @@ import logo from "../assets/payzoll.png";
 import { useAuthStore } from "../Zustand/userStore";
 import { logoutUser } from "../services/authApi";
 import HelpSupportModal from "./HelpSupportModal";
+import KycRequiredModal from "./KycRequiredModal";
 
 
 interface NavigationChild {
@@ -35,6 +36,7 @@ interface NavigationItem {
   route?: string;
   disabled?: boolean;
   disabledReason?: string;
+  requiresKyc?: boolean;
 }
 
 
@@ -53,6 +55,7 @@ const sideBAr: React.FC = () => {
   });
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [helpModalOpen, setHelpModalOpen] = useState(false);
+  const [kycModalOpen, setKycModalOpen] = useState(false);
 
   const toggleFolder = (folderName: string): void => {
     setExpandedFolders(prev => ({
@@ -89,6 +92,7 @@ const sideBAr: React.FC = () => {
       icon: Clock,
       isFolder: false,
       route: '/transactionhistory',
+      requiresKyc: true,
     },
      {
       id: 'international Banking',
@@ -138,6 +142,10 @@ const sideBAr: React.FC = () => {
       toggleFolder(item.id);
       return;
     }
+    if (item.requiresKyc && !user?.kycVerified) {
+      setKycModalOpen(true);
+      return;
+    }
     if (item.route) {
       navigate(item.route);
       return;
@@ -158,7 +166,7 @@ const sideBAr: React.FC = () => {
               </div>
               <div className='text-black dark:text-white'>
                 <h4 className="text-black dark:text-white">{user?.name || "Loading..."}</h4>
-                <p className='text-xs text-gray-600 dark:text-gray-400'>Standard plan</p>
+               
               </div>
             </div>
             <div className="relative">
@@ -205,14 +213,7 @@ const sideBAr: React.FC = () => {
         </div>
     </div>
 
-    <div className="mb-4  flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md px-3 py-1.5 w-full max-w-sm focus-within:ring-2 focus-within:ring-gray-500 transition-colors">
-        <Search className="text-gray-600 dark:text-gray-400" size={20} />
-            <input
-            type="text"
-            placeholder="Search…"
-            className="bg-transparent outline-none w-full placeholder:text-gray-500 dark:placeholder:text-gray-400 text-gray-900 dark:text-gray-100"
-        />
-    </div>
+    
 
     <div className="flex-1  overflow-y-auto">
           <nav className="space-y-1">
@@ -337,6 +338,14 @@ const sideBAr: React.FC = () => {
         </div>
 
         <HelpSupportModal open={helpModalOpen} onClose={() => setHelpModalOpen(false)} />
+        <KycRequiredModal
+          open={kycModalOpen}
+          onCancel={() => setKycModalOpen(false)}
+          onProceed={() => {
+            setKycModalOpen(false);
+            navigate("/kyc");
+          }}
+        />
     </div>
   )
 }
