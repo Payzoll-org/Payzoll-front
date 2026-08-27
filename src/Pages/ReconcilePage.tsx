@@ -20,7 +20,7 @@ import {
 } from "../services/receivableApi";
 import { PURPOSE_CODE_OPTIONS } from "../services/aboutBusinessApi";
 import { getBankAccounts, type BankAccount } from "../services/bankAccountApi";
-import { getBalance } from "../services/accountActivationApi";
+import { getBalance, getKycProgress } from "../services/accountActivationApi";
 import { getLiveRate, type LiveRate } from "../services/fxRateApi";
 import { getPayoutFeeRule, type PayoutFeeRule } from "../services/feePlanApi";
 import {
@@ -549,6 +549,23 @@ function ReceivableCreateForm({
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  // Only the purpose codes the user actually selected on the KYC "About
+  // Business" step - showing the full PURPOSE_CODE_OPTIONS list here would
+  // let someone pick a code XflowPay never approved them for. null while
+  // loading; falls back to the full list only if the fetch itself fails,
+  // so a transient error doesn't block receivable creation entirely.
+  const [allowedPurposeCodes, setAllowedPurposeCodes] = useState<string[] | null>(null);
+
+  useEffect(() => {
+    getKycProgress()
+      .then((progress) => setAllowedPurposeCodes(progress.aboutBusiness?.purposeCodes ?? []))
+      .catch(() => setAllowedPurposeCodes(PURPOSE_CODE_OPTIONS.map((p) => p.code)));
+  }, []);
+
+  const purposeCodeOptions = allowedPurposeCodes
+    ? PURPOSE_CODE_OPTIONS.filter((p) => allowedPurposeCodes.includes(p.code))
+    : [];
+
   const update = <K extends keyof ReceivableForm>(key: K, value: ReceivableForm[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
@@ -626,10 +643,10 @@ function ReceivableCreateForm({
             value={form.purposeCode}
             onChange={(e) => update("purposeCode", e.target.value)}
             className={spaciousInputClass}
-            disabled={loading}
+            disabled={loading || allowedPurposeCodes === null}
           >
-            <option value="">Select...</option>
-            {PURPOSE_CODE_OPTIONS.map((p) => (
+            <option value="">{allowedPurposeCodes === null ? "Loading..." : "Select..."}</option>
+            {purposeCodeOptions.map((p) => (
               <option key={p.code} value={p.code}>
                 {p.label}
               </option>
