@@ -57,6 +57,7 @@ export const API_ROUTES = {
   account: {
     activate: "/api/account/activate",
     balance: "/api/account/balance",
+    kycProgress: "/api/account/kyc-progress",
   },
   stablecoin: {
     start: "/api/stablecoin/start",

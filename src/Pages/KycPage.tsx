@@ -4,7 +4,7 @@ import { Check, ChevronsUpDown, X } from "lucide-react";
 import { submitAboutBusiness, getIndustryCodes, PURPOSE_CODE_OPTIONS, type IndustryCodeOption,} from "../services/aboutBusinessApi";
 import { submitBusinessIdentifiers, uploadPanCard, uploadAddressDocument, uploadSourceOfIncome,} from "../services/businessIdentifiersApi";
 import { submitInrBankAccount, submitEefcBankAccount,} from "../services/bankAccountApi";
-import { submitOwnerPerson, activateAccount } from "../services/accountActivationApi";
+import { submitOwnerPerson, activateAccount, getKycProgress } from "../services/accountActivationApi";
 import { refreshCurrentUser } from "../services/authApi";
 import { useAuthStore } from "../Zustand/userStore";
 import StablecoinModal from "../Components/StablecoinModal";
@@ -1555,6 +1555,79 @@ export default function KycPage() {
     // never had a chance to refresh since. Re-fetch so the sole-
     // proprietorship-only fields below show up correctly.
     refreshCurrentUser().catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    // Resume where a returning user left off instead of starting the whole
+    // form over - each step is only reported done once its required fields
+    // are actually on file (Services/account.service.js's getKycProgress),
+    // so this only ever jumps forward as far as real progress goes.
+    getKycProgress()
+      .then((progress) => {
+        // SummaryStep only renders once all three are non-null (see the
+        // step === 4 guard below), so resuming has to advance one step at a
+        // time in order - jumping ahead on, say, bank details alone (a
+        // migrated/atypical account could have that without the earlier
+        // steps) would land on a blank step 4 instead of a real form.
+        let resumeStep: 1 | 2 | 3 | 4 = 1;
+
+        if (progress.aboutBusiness) {
+          const ab = progress.aboutBusiness;
+          setAboutBusiness({
+            ...ab,
+            purposeLabels: ab.purposeCodes.map(
+              (code) => PURPOSE_CODE_OPTIONS.find((opt) => opt.code === code)?.label ?? code
+            ),
+          });
+          if (resumeStep === 1) resumeStep = 2;
+        }
+
+        if (progress.businessIdentifiers) {
+          const bi = progress.businessIdentifiers;
+          setBusinessIdentifiers({
+            addressLine1: bi.addressLine1,
+            addressLine2: bi.addressLine2,
+            city: bi.city,
+            state: bi.state,
+            zipcode: bi.zipcode,
+            panNumber: bi.panNumber,
+            nameOnPan: bi.nameOnPan,
+            gstin: bi.gstin,
+            // Real filenames aren't retrievable after the fact - these are
+            // only ever shown as "On file: X - pick a new file to replace
+            // it", never sent back to the server.
+            panFileName: bi.hasPanFile ? "Previously uploaded" : "",
+            gstFileName: bi.gstin ? "Previously uploaded" : undefined,
+            sourceOfIncomeFileName: bi.hasSourceOfIncomeFile ? "Previously uploaded" : "",
+          });
+          if (resumeStep === 2) resumeStep = 3;
+        }
+
+        if (progress.bankDetails) {
+          const bd = progress.bankDetails;
+          setBankDetails({
+            currency: bd.currency as "INR" | "USD",
+            accountHolderName: bd.accountHolderName,
+            accountNumber: bd.accountNumber,
+            routingCode: bd.routingCode,
+            line1: bd.line1,
+            city: bd.city,
+            state: bd.state,
+            postalCode: bd.postalCode,
+            bankStatementFileName: bd.hasBankStatementFile ? "Previously uploaded" : undefined,
+          });
+          if (resumeStep === 3) {
+            resumeStep = 4;
+            setReachedSummary(true);
+          }
+        }
+
+        setStep(resumeStep);
+      })
+      .catch(() => {
+        // No progress yet, or a transient fetch error - either way, starting
+        // fresh at step 1 (the existing default) is the right fallback.
+      });
   }, []);
 
   return (

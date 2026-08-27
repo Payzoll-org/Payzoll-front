@@ -63,3 +63,59 @@ export async function getBalance(): Promise<Balance> {
   assertData(response, data);
   return data?.data?.balance;
 }
+
+export interface KycProgressAboutBusiness {
+  website: string;
+  dba: string;
+  productDescription: string;
+  estimatedMonthlyVolume: string;
+  estimatedAnnualRevenue: string;
+  purposeCodes: string[];
+  businessIndustry?: string;
+}
+
+export interface KycProgressBusinessIdentifiers {
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state: string;
+  zipcode: string;
+  panNumber: string;
+  nameOnPan: string;
+  gstin?: string;
+  hasPanFile: boolean;
+  hasAddressFile: boolean;
+  hasSourceOfIncomeFile: boolean;
+}
+
+export interface KycProgressBankDetails {
+  currency: string;
+  accountHolderName: string;
+  accountNumber: string;
+  routingCode: string;
+  line1: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  hasBankStatementFile: boolean;
+}
+
+export interface KycProgress {
+  aboutBusiness: KycProgressAboutBusiness | null;
+  businessIdentifiers: KycProgressBusinessIdentifiers | null;
+  bankDetails: KycProgressBankDetails | null;
+}
+
+/**
+ * What's already on file for each step of the KYC flow - lets a user who
+ * leaves partway through resume instead of re-entering everything.
+ */
+export async function getKycProgress(): Promise<KycProgress> {
+  const response = await http(API_ROUTES.account.kycProgress, {
+    method: "GET",
+  });
+
+  const data = await response.json();
+  assertData(response, data);
+  return data?.data;
+}
