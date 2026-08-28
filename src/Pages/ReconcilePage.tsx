@@ -494,18 +494,45 @@ function PartnerCreateForm({
   );
 }
 
+// "activated" is the only status either a partner or a receivable can
+// actually be used in (create a receivable against a partner, or reconcile
+// a receivable) - everything else (draft/verifying/hold/input_required) is
+// real in-progress state worth showing, not an error, but needs to read as
+// "not ready yet" rather than looking identical to a usable one.
+function StatusBadge({ status }: { status: string }) {
+  const isActivated = status === "activated";
+  return (
+    <span
+      className={`text-[11px] font-medium px-2 py-0.5 rounded-full capitalize shrink-0 ${
+        isActivated ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
+      }`}
+    >
+      {status}
+    </span>
+  );
+}
+
 function PartnerDetailCard({ partner }: { partner: Partner }) {
   return (
     <div className="border border-gray-200 rounded-sm p-4 bg-gray-50 flex flex-col gap-1.5 text-sm">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <span className="font-semibold text-gray-900">{partner.legalName}</span>
-        <span className="text-xs text-gray-400 capitalize">{partner.partnerType?.replace(/_/g, " ")}</span>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-xs text-gray-400 capitalize">{partner.partnerType?.replace(/_/g, " ")}</span>
+          <StatusBadge status={partner.status} />
+        </div>
       </div>
       <p className="text-gray-500">{partner.nickname}</p>
       <p className="text-gray-500">{partner.email}</p>
       {partner.physicalAddress?.country && (
         <p className="text-gray-400 text-xs">
           {[partner.physicalAddress.city, partner.physicalAddress.country].filter(Boolean).join(", ")}
+        </p>
+      )}
+      {partner.status !== "activated" && (
+        <p className="text-xs text-amber-700 mt-1">
+          This partner is still being verified by Payzoll. You'll be able to create a receivable against them once
+          verification completes.
         </p>
       )}
     </div>
@@ -1063,6 +1090,13 @@ export default function ReconcilePage() {
   const partnerMissing = partnerTouched && !partnerId;
   const receivableMissing = receivableTouched && !receivableId;
   const amountExceedsBalance = amount.trim() !== "" && Number(amount) > Number(commonBalance);
+  // XflowPay rejects both "create a receivable against this partner" and
+  // "reconcile against this receivable" outright until each is actually
+  // activated (Payzoll-back's partner.service.js/receivable.service.js
+  // comments) - a partner/receivable can otherwise sit in verifying/hold/
+  // input_required for real days in live mode. Checked here so the user
+  // sees a clear reason before hitting that raw error, not after.
+  const partnerNotActivated = !!selectedPartner && selectedPartner.status !== "activated";
 
   const handleSubmit = async () => {
     setPartnerTouched(true);
@@ -1076,6 +1110,13 @@ export default function ReconcilePage() {
 
     if (amountExceedsBalance) {
       setSubmitError(`Amount cannot exceed your common balance of USD ${commonBalance}`);
+      return;
+    }
+
+    if (selectedReceivable && selectedReceivable.status !== "activated") {
+      setSubmitError(
+        `This receivable is still ${selectedReceivable.status} and can't be reconciled yet. Please wait for it to be activated.`
+      );
       return;
     }
 
@@ -1127,7 +1168,13 @@ export default function ReconcilePage() {
 
                 <Combobox
                   value={partnerId}
-                  options={partners.map((p) => ({ id: p._id, label: `${p.legalName} (${p.nickname})` }))}
+                  options={partners.map((p) => ({
+                    id: p._id,
+                    label:
+                      p.status === "activated"
+                        ? `${p.legalName} (${p.nickname})`
+                        : `${p.legalName} (${p.nickname}) - ${p.status}`,
+                  }))}
                   placeholder="Select or Upload a partner"
                   createLabel="Create partner"
                   emptyLabel="No partners found yet"
@@ -1169,17 +1216,28 @@ export default function ReconcilePage() {
                   value={receivableId}
                   options={partnerReceivables.map((r) => ({
                     id: r._id,
-                    label: `${r.invoice.referenceNumber || r._id} - ${r.currency} ${r.amountMaximumReconcilable}`,
+                    label:
+                      r.status === "activated"
+                        ? `${r.invoice.referenceNumber || r._id} - ${r.currency} ${r.amountMaximumReconcilable}`
+                        : `${r.invoice.referenceNumber || r._id} - ${r.currency} ${r.amountMaximumReconcilable} - ${r.status}`,
                   }))}
                   placeholder="Select or Upload an receivable"
-                  disabledPlaceholder="Select a partner first"
+                  disabledPlaceholder={
+                    !partnerId ? "Select a partner first" : partnerNotActivated ? "Partner still being verified" : undefined
+                  }
                   createLabel="Create receivable"
                   emptyLabel="No active USD invoices found"
-                  disabled={!partnerId}
+                  disabled={!partnerId || partnerNotActivated}
                   invalid={receivableMissing}
                   onSelect={setReceivableId}
                   onCreateNew={() => setCreatingReceivable(true)}
                 />
+                {partnerNotActivated && (
+                  <p className="text-xs text-amber-700 mt-2">
+                    This partner is still {selectedPartner?.status} - you can create a receivable once Payzoll finishes
+                    verifying them.
+                  </p>
+                )}
 
                 {creatingReceivable && (
                   <ReceivableCreateForm
