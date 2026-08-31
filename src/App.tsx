@@ -29,6 +29,10 @@ const router = createBrowserRouter([
   {
     path: "/dashboard",
     element: (
+      // KYC is done from the dashboard (KycBanner, or the requiresKyc gates
+      // on Reconcile/Transaction History/International Banking below), not
+      // a prerequisite to reach it - only the basic onboarding form
+      // (ProtectedRoute's own userType check) gates this route.
       <ProtectedRoute>
         <MainPage />
       </ProtectedRoute>

@@ -90,6 +90,9 @@ export default function AuthPage() {
     }
 
     if (!showOnboarding) {
+      // Only the basic onboarding form gates /dashboard - KYC is done from
+      // there (KycBanner, or the requiresKyc gates on specific features),
+      // not a prerequisite to reach it.
       navigate("/dashboard", { replace: true });
     }
   }, [user, navigate, showVerification, showOnboarding, hasHydrated]);
@@ -190,6 +193,8 @@ export default function AuthPage() {
       toast.error("Your details were saved, but we couldn't confirm your account is ready. Please try again.");
       return;
     }
+    // Onboarding done -> dashboard. KYC happens from there, whenever the
+    // user chooses to do it (or when they hit a feature that requires it).
     navigate("/dashboard");
   };
 
@@ -324,7 +329,15 @@ export default function AuthPage() {
       await requestPasswordReset(forgotEmail);
       setForgotStep("reset");
     } catch (error: any) {
-      setForgotError(error.message || "Failed to send reset code");
+      // This whole flow only ever showed an inline red line under the
+      // email field, never a toast - easy to miss, especially now that
+      // every other error in the app shows as a toast (e.g. rate-limit
+      // messages like "Too many password reset attempts..."). Keeping the
+      // inline text too since it stays visible next to the field, not just
+      // for a few seconds.
+      const message = error.message || "Failed to send reset code";
+      setForgotError(message);
+      toast.error(message);
     } finally {
       setForgotLoading(false);
     }
@@ -337,7 +350,9 @@ export default function AuthPage() {
       await resetPassword({ email: forgotEmail, otp: forgotOtp, newPassword: forgotNewPassword });
       setForgotStep("done");
     } catch (error: any) {
-      setForgotError(error.message || "Failed to reset password");
+      const message = error.message || "Failed to reset password";
+      setForgotError(message);
+      toast.error(message);
     } finally {
       setForgotLoading(false);
     }

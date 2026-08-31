@@ -9,6 +9,7 @@ import { submitOwnerPerson, activateAccount, getKycProgress } from "../services/
 import { refreshCurrentUser } from "../services/authApi";
 import { useAuthStore } from "../Zustand/userStore";
 import StablecoinModal from "../Components/StablecoinModal";
+import payzollLogo from "../assets/payzoll.png";
 
 const inputClass =
   "px-1 py-2 focus:outline-none focus:ring-0 border-b-2 border-gray-300 focus:border-black transition text-sm lg:text-base";
@@ -759,9 +760,11 @@ interface BusinessIdentifiersSummary {
 function BusinessIdentifiersStep({
   initial,
   onDone,
+  onBack,
 }: {
   initial?: BusinessIdentifiersSummary | null;
   onDone: (data: BusinessIdentifiersSummary) => void;
+  onBack: () => void;
 }) {
   const user = useAuthStore((s) => s.user);
   const isSoleProprietorship = user?.userType === "soleproprietorship";
@@ -1047,7 +1050,17 @@ function BusinessIdentifiersStep({
             </div>
           </div>
 
-          <div className="flex justify-end pt-1">
+          <div className="flex justify-between items-center pt-1">
+            <button
+              type="button"
+              onClick={onBack}
+              disabled={loading}
+              className="px-6 h-11 flex items-center justify-center gap-2 text-gray-600 font-medium
+                        hover:text-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className="text-xl">←</span>
+              <span>Back</span>
+            </button>
             <button
               onClick={handleSubmit}
               disabled={loading}
@@ -1088,9 +1101,11 @@ interface BankDetailsSummary {
 function BankDetailsStep({
   initial,
   onDone,
+  onBack,
 }: {
   initial?: BankDetailsSummary | null;
   onDone: (data: BankDetailsSummary) => void;
+  onBack: () => void;
 }) {
   const [currency, setCurrency] = useState<Currency>(initial?.currency ?? "INR");
   const [accountHolderName, setAccountHolderName] = useState(initial?.accountHolderName ?? "");
@@ -1312,7 +1327,17 @@ function BankDetailsStep({
             </div>
           )}
 
-          <div className="flex mt-5 justify-end">
+          <div className="flex mt-5 justify-between items-center">
+            <button
+              type="button"
+              onClick={onBack}
+              disabled={bankLoading}
+              className="px-6 h-11 flex items-center justify-center gap-2 text-gray-600 font-medium
+                        hover:text-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className="text-xl">←</span>
+              <span>Back</span>
+            </button>
             <button
               onClick={handleContinue}
               disabled={bankLoading}
@@ -1635,8 +1660,8 @@ export default function KycPage() {
     <div className="h-screen w-screen bg-gray-50 flex flex-col overflow-hidden">
       <header className="w-full border-b border-gray-200 bg-white px-6 lg:px-10 py-3 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
-            P
+          <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden">
+            <img src={payzollLogo} alt="Payzoll logo" className="w-full h-full object-contain p-1" />
           </div>
           <span className="font-semibold text-gray-900">Payzoll</span>
         </div>
@@ -1669,11 +1694,13 @@ export default function KycPage() {
                   setBusinessIdentifiers(data);
                   setStep(reachedSummary ? 4 : 3);
                 }}
+                onBack={() => setStep(1)}
               />
             )}
             {step === 3 && (
               <BankDetailsStep
                 initial={bankDetails}
+                onBack={() => setStep(2)}
                 onDone={(data) => {
                   setBankDetails(data);
                   setReachedSummary(true);
