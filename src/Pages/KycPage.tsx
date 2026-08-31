@@ -759,9 +759,11 @@ interface BusinessIdentifiersSummary {
 function BusinessIdentifiersStep({
   initial,
   onDone,
+  onBack,
 }: {
   initial?: BusinessIdentifiersSummary | null;
   onDone: (data: BusinessIdentifiersSummary) => void;
+  onBack: () => void;
 }) {
   const user = useAuthStore((s) => s.user);
   const isSoleProprietorship = user?.userType === "soleproprietorship";
@@ -1047,7 +1049,17 @@ function BusinessIdentifiersStep({
             </div>
           </div>
 
-          <div className="flex justify-end pt-1">
+          <div className="flex justify-between items-center pt-1">
+            <button
+              type="button"
+              onClick={onBack}
+              disabled={loading}
+              className="px-6 h-11 flex items-center justify-center gap-2 text-gray-600 font-medium
+                        hover:text-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className="text-xl">←</span>
+              <span>Back</span>
+            </button>
             <button
               onClick={handleSubmit}
               disabled={loading}
@@ -1088,9 +1100,11 @@ interface BankDetailsSummary {
 function BankDetailsStep({
   initial,
   onDone,
+  onBack,
 }: {
   initial?: BankDetailsSummary | null;
   onDone: (data: BankDetailsSummary) => void;
+  onBack: () => void;
 }) {
   const [currency, setCurrency] = useState<Currency>(initial?.currency ?? "INR");
   const [accountHolderName, setAccountHolderName] = useState(initial?.accountHolderName ?? "");
@@ -1312,7 +1326,17 @@ function BankDetailsStep({
             </div>
           )}
 
-          <div className="flex mt-5 justify-end">
+          <div className="flex mt-5 justify-between items-center">
+            <button
+              type="button"
+              onClick={onBack}
+              disabled={bankLoading}
+              className="px-6 h-11 flex items-center justify-center gap-2 text-gray-600 font-medium
+                        hover:text-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className="text-xl">←</span>
+              <span>Back</span>
+            </button>
             <button
               onClick={handleContinue}
               disabled={bankLoading}
@@ -1669,11 +1693,13 @@ export default function KycPage() {
                   setBusinessIdentifiers(data);
                   setStep(reachedSummary ? 4 : 3);
                 }}
+                onBack={() => setStep(1)}
               />
             )}
             {step === 3 && (
               <BankDetailsStep
                 initial={bankDetails}
+                onBack={() => setStep(2)}
                 onDone={(data) => {
                   setBankDetails(data);
                   setReachedSummary(true);
