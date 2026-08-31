@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import toast from "react-hot-toast";
 import { useAuthStore } from "../Zustand/userStore";
 import Logo from "../assets/logo.png";
 import { useNavigate } from "react-router-dom";
@@ -117,7 +118,7 @@ export default function AuthPage() {
     const code = otp.join("");
   
     if (code.length !== 6) {
-      alert("Please enter all 6 digits");
+      toast.error("Please enter all 6 digits");
       return;
     }
   
@@ -134,7 +135,7 @@ export default function AuthPage() {
 
     } catch (error: any) {
       console.error("OTP verification failed:", error);
-      alert(error.message || "Invalid OTP");
+      toast.error(error.message || "Invalid OTP");
     } finally {
       setLoading(false);
     }
@@ -146,14 +147,14 @@ export default function AuthPage() {
   
       await resendOtpRequest({ email: userEmail });
 
-      alert("OTP resent successfully! Check your email.");
+      toast.success("OTP resent successfully! Check your email.");
       
       // Clear OTP inputs
       setOtp(["", "", "", "", "", ""]);
   
     } catch (error: any) {
       console.error("Resend OTP failed:", error);
-      alert(error.message || "Failed to resend OTP");
+      toast.error(error.message || "Failed to resend OTP");
     } finally {
       setResendLoading(false);
     }
@@ -181,12 +182,12 @@ export default function AuthPage() {
       !onboardingForm.monthlyVolume ||
       !onboardingForm.yearlyVolume
     ) {
-      alert("Please fill in all required fields");
+      toast.error("Please fill in all required fields");
       return;
     }
 
     if (!onboardingForm.isTermAndConditionAccepted) {
-      alert("Please accept the terms and conditions to continue");
+      toast.error("Please accept the terms and conditions to continue");
       return;
     }
 
@@ -210,7 +211,7 @@ export default function AuthPage() {
         await refreshCurrentUser().catch(() => {});
         navigate("/dashboard");
       } else {
-        alert(message);
+        toast.error(message);
       }
     } finally {
       setOnboardingLoading(false);
@@ -226,12 +227,12 @@ export default function AuthPage() {
     
     // Validation
     if (!form.email || !form.password) {
-      alert("Please fill in all required fields");
+      toast.error("Please fill in all required fields");
       return;
     }
 
     if (isSignup && (!form.firstName || !form.lastName)) {
-      alert("Please fill in all required fields");
+      toast.error("Please fill in all required fields");
       return;
     }
 
@@ -248,7 +249,7 @@ export default function AuthPage() {
 
         setUserEmail(form.email);
         setShowVerification(true);
-        alert("Account created! Please check your email for the verification code.");
+        toast.success("Account created! Please check your email for the verification code.");
       } else {
         // No alert()/navigate() here - the useEffect above already reacts to
         // `user` changing (set by loginUser via setSession) and correctly
@@ -272,9 +273,9 @@ export default function AuthPage() {
       ) {
         setUserEmail(form.email);
         setShowVerification(true);
-        alert("Please verify your email first. Check your inbox for the verification code.");
+        toast.error("Please verify your email first. Check your inbox for the verification code.");
       } else {
-        alert(errorMessage);
+        toast.error(errorMessage);
       }
     } finally {
       setIsLoading(false);
@@ -810,7 +811,7 @@ export default function AuthPage() {
               </h2>
               <p className="text-sm text-gray-600 mb-8 lg:mb-10">
                 {isSignup
-                  ? "Set up your workspace and start managing projects with confidence"
+                  ? "Create your account and start receiving, converting, and withdrawing stablecoin payments"
                   : "Log in to access your dashboard and continue your work"}
               </p>
 

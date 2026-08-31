@@ -3,6 +3,7 @@ import {
   RouterProvider,
   Navigate,
 } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import './App.css';
 import MainPage from './Pages/MainPageLayout';
 import AuthPage from './Pages/AuthPage';
@@ -91,7 +92,26 @@ const router = createBrowserRouter([
 
 function App() {
   useAuthBootstrap();
-  return <RouterProvider router={router} />;
+  return (
+    <>
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: "#111827",
+            color: "#fff",
+            fontSize: "14px",
+            borderRadius: "8px",
+            padding: "10px 16px",
+          },
+          success: { iconTheme: { primary: "#10b981", secondary: "#fff" } },
+          error: { iconTheme: { primary: "#ef4444", secondary: "#fff" } },
+        }}
+      />
+      <RouterProvider router={router} />
+    </>
+  );
 }
 
 export default App;

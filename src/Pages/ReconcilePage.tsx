@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import {
   X,
   ClipboardList,
@@ -1123,7 +1124,7 @@ export default function ReconcilePage() {
     setLoading(true);
     try {
       await submitReconciliation({ receivableId, amount: amount.trim(), bankAccountId });
-      alert("Reconciled successfully");
+      toast.success("Reconciled successfully");
       navigate("/dashboard");
     } catch (error: any) {
       setSubmitError(error.message || "Failed to reconcile");
