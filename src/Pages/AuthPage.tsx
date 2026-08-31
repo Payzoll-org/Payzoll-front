@@ -329,7 +329,15 @@ export default function AuthPage() {
       await requestPasswordReset(forgotEmail);
       setForgotStep("reset");
     } catch (error: any) {
-      setForgotError(error.message || "Failed to send reset code");
+      // This whole flow only ever showed an inline red line under the
+      // email field, never a toast - easy to miss, especially now that
+      // every other error in the app shows as a toast (e.g. rate-limit
+      // messages like "Too many password reset attempts..."). Keeping the
+      // inline text too since it stays visible next to the field, not just
+      // for a few seconds.
+      const message = error.message || "Failed to send reset code";
+      setForgotError(message);
+      toast.error(message);
     } finally {
       setForgotLoading(false);
     }
@@ -342,7 +350,9 @@ export default function AuthPage() {
       await resetPassword({ email: forgotEmail, otp: forgotOtp, newPassword: forgotNewPassword });
       setForgotStep("done");
     } catch (error: any) {
-      setForgotError(error.message || "Failed to reset password");
+      const message = error.message || "Failed to reset password";
+      setForgotError(message);
+      toast.error(message);
     } finally {
       setForgotLoading(false);
     }
