@@ -90,7 +90,11 @@ export default function AuthPage() {
     }
 
     if (!showOnboarding) {
-      navigate("/dashboard", { replace: true });
+      // /dashboard itself requires kycVerified (ProtectedRoute's
+      // requiresKyc) - navigating there directly when KYC isn't done would
+      // just bounce straight back to /kyc a moment later. Going there
+      // directly avoids that flash.
+      navigate(user.kycVerified ? "/dashboard" : "/kyc", { replace: true });
     }
   }, [user, navigate, showVerification, showOnboarding, hasHydrated]);
 
@@ -186,11 +190,15 @@ export default function AuthPage() {
   // previous attempt's refresh failed transiently.
   const finishOnboarding = async () => {
     await refreshCurrentUser().catch(() => {});
-    if (useAuthStore.getState().user?.userType == null) {
+    const freshUser = useAuthStore.getState().user;
+    if (freshUser?.userType == null) {
       toast.error("Your details were saved, but we couldn't confirm your account is ready. Please try again.");
       return;
     }
-    navigate("/dashboard");
+    // Straight from the basic onboarding form into KYC if it isn't done yet
+    // (true for every fresh signup) - /dashboard itself requires
+    // kycVerified, so going there first would just bounce back to /kyc.
+    navigate(freshUser.kycVerified ? "/dashboard" : "/kyc");
   };
 
   const handleOnboardingSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
