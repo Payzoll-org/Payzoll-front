@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 
 import { IoNotificationsOutline } from "react-icons/io5";
+import toast from "react-hot-toast";
 import logo from "../assets/payzoll.png";
 import { useAuthStore } from "../Zustand/userStore";
 import { logoutUser } from "../services/authApi";
@@ -66,6 +67,11 @@ const sideBAr: React.FC = () => {
   const handleLogout = async (): Promise<void> => {
     try {
       await logoutUser();
+    } catch {
+      // Local session is cleared either way (see authApi.ts) - this is
+      // just letting the user know the server-side session might still be
+      // considered active until it expires naturally.
+      toast.error("Logged out here, but couldn't reach the server to end the session remotely.");
     } finally {
       navigate("/auth");
     }

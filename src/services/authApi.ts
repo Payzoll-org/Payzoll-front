@@ -142,17 +142,33 @@ export async function resetPassword(payload: ResetPasswordPayload) {
   return data;
 }
 
+// Clearing the local session must never depend on the server call
+// succeeding - if the request itself fails (network loss, endpoint
+// unavailable), the old code exited before clearSession() ran at all,
+// leaving the browser fully authenticated even though the user believed
+// they'd logged out (both callers navigate to /auth in a finally
+// regardless, so nothing else surfaced the failure). Remote revocation is
+// now best-effort: attempted, but the local session always clears either
+// way, and a failure is reported back to the caller to show separately.
 export async function logoutUser() {
-  await http(ROUTES.logout, {
-    method: "POST",
-  });
+  try {
+    await http(ROUTES.logout, { method: "POST" });
+  } catch (error) {
+    console.error("Logout request failed (session cleared locally anyway):", error);
+    useAuthStore.getState().clearSession();
+    throw error;
+  }
   useAuthStore.getState().clearSession();
 }
 
 export async function logoutAllSessions() {
-  await http(ROUTES.logoutAll, {
-    method: "POST",
-  });
+  try {
+    await http(ROUTES.logoutAll, { method: "POST" });
+  } catch (error) {
+    console.error("Logout-all request failed (session cleared locally anyway):", error);
+    useAuthStore.getState().clearSession();
+    throw error;
+  }
   useAuthStore.getState().clearSession();
 }
 

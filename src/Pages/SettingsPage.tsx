@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogOut, Check, ShieldAlert, Eye, EyeOff } from "lucide-react";
+import toast from "react-hot-toast";
 import AppShell from "../Components/AppShell";
 import { useAuthStore } from "../Zustand/userStore";
 import { logoutUser, requestPasswordReset, resetPassword } from "../services/authApi";
@@ -198,6 +199,8 @@ function SettingsContent() {
   const handleLogout = async () => {
     try {
       await logoutUser();
+    } catch {
+      toast.error("Logged out here, but couldn't reach the server to end the session remotely.");
     } finally {
       navigate("/auth");
     }
