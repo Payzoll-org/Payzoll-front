@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, ChevronsUpDown, X } from "lucide-react";
+import toast from "react-hot-toast";
 import { submitAboutBusiness, getIndustryCodes, PURPOSE_CODE_OPTIONS, type IndustryCodeOption,} from "../services/aboutBusinessApi";
 import { submitBusinessIdentifiers, uploadPanCard, uploadAddressDocument, uploadSourceOfIncome,} from "../services/businessIdentifiersApi";
 import { submitInrBankAccount, submitEefcBankAccount,} from "../services/bankAccountApi";
@@ -560,22 +561,22 @@ function AboutBusinessStep({
       !estimatedMonthlyVolume.trim() ||
       !estimatedAnnualRevenue.trim()
     ) {
-      alert("Please fill in all required fields");
+      toast.error("Please fill in all required fields");
       return;
     }
 
     if (dba.trim().length > 16) {
-      alert("Business display name (DBA) must be 16 characters or fewer");
+      toast.error("Business display name (DBA) must be 16 characters or fewer");
       return;
     }
 
     if (selectedCodes.length === 0) {
-      alert("Please select at least one purpose code");
+      toast.error("Please select at least one purpose code");
       return;
     }
 
     if (isSoleProprietorship && !businessIndustry) {
-      alert("Please select your business industry code");
+      toast.error("Please select your business industry code");
       return;
     }
 
@@ -605,7 +606,7 @@ function AboutBusinessStep({
         businessIndustry: isSoleProprietorship ? businessIndustry : undefined,
       });
     } catch (error: any) {
-      alert(error.message || "Failed to submit business details");
+      toast.error(error.message || "Failed to submit business details");
     } finally {
       setLoading(false);
     }
@@ -789,27 +790,27 @@ function BusinessIdentifiersStep({
       !panNumber.trim() ||
       !nameOnPan.trim()
     ) {
-      alert("Please fill in all required fields");
+      toast.error("Please fill in all required fields");
       return;
     }
 
     if (isSoleProprietorship && !gstin.trim()) {
-      alert("Please enter your GST number");
+      toast.error("Please enter your GST number");
       return;
     }
 
     if (!panFile && !initial?.panFileName) {
-      alert("Please upload your PAN card");
+      toast.error("Please upload your PAN card");
       return;
     }
 
     if (isSoleProprietorship && !gstFile && !initial?.gstFileName) {
-      alert("Please upload your GST document");
+      toast.error("Please upload your GST document");
       return;
     }
 
     if (!sourceOfIncomeFile && !initial?.sourceOfIncomeFileName) {
-      alert("Please upload a source of income document");
+      toast.error("Please upload a source of income document");
       return;
     }
 
@@ -855,7 +856,7 @@ function BusinessIdentifiersStep({
           sourceOfIncomeFile?.name ?? initial?.sourceOfIncomeFileName ?? "",
       });
     } catch (error: any) {
-      alert(error.message || "Failed to submit business identifiers");
+      toast.error(error.message || "Failed to submit business identifiers");
     } finally {
       setLoading(false);
     }
@@ -1117,7 +1118,7 @@ function BankDetailsStep({
       !state.trim() ||
       (currency === "INR" ? !ifsc.trim() : !globalWire.trim())
     ) {
-      alert("Please fill in all required fields");
+      toast.error("Please fill in all required fields");
       return;
     }
 
@@ -1125,7 +1126,7 @@ function BankDetailsStep({
       // Every submit creates a fresh bank account server-side (there's no
       // update endpoint), so the statement must be re-attached even when
       // editing a previously-submitted EEFC account.
-      alert("Please upload a bank statement for the USD EEFC account");
+      toast.error("Please upload a bank statement for the USD EEFC account");
       return;
     }
 
@@ -1162,7 +1163,7 @@ function BankDetailsStep({
         bankStatementFileName: bankStatement?.name ?? initial?.bankStatementFileName,
       });
     } catch (error: any) {
-      alert(error.message || "Failed to add bank account");
+      toast.error(error.message || "Failed to add bank account");
     } finally {
       setBankLoading(false);
     }
@@ -1392,7 +1393,7 @@ function SummaryStep({
     e.preventDefault();
 
     if (!declared) {
-      alert("Please confirm the declaration before activating your account");
+      toast.error("Please confirm the declaration before activating your account");
       return;
     }
 
@@ -1415,7 +1416,7 @@ function SummaryStep({
       await new Promise((resolve) => setTimeout(resolve, 2500));
       onDone();
     } catch (error: any) {
-      alert(error.message || "Failed to activate account");
+      toast.error(error.message || "Failed to activate account");
     } finally {
       setLoading(false);
     }
