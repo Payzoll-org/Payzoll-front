@@ -9,6 +9,7 @@ import { submitOwnerPerson, activateAccount, getKycProgress } from "../services/
 import { refreshCurrentUser } from "../services/authApi";
 import { useAuthStore } from "../Zustand/userStore";
 import StablecoinModal from "../Components/StablecoinModal";
+import payzollLogo from "../assets/payzoll.png";
 
 const inputClass =
   "px-1 py-2 focus:outline-none focus:ring-0 border-b-2 border-gray-300 focus:border-black transition text-sm lg:text-base";
@@ -1659,8 +1660,8 @@ export default function KycPage() {
     <div className="h-screen w-screen bg-gray-50 flex flex-col overflow-hidden">
       <header className="w-full border-b border-gray-200 bg-white px-6 lg:px-10 py-3 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
-            P
+          <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden">
+            <img src={payzollLogo} alt="Payzoll logo" className="w-full h-full object-contain p-1" />
           </div>
           <span className="font-semibold text-gray-900">Payzoll</span>
         </div>
