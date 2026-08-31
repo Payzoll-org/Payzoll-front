@@ -45,7 +45,7 @@ const router = createBrowserRouter([
   {
     path: "/reconcile",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute requiresKyc>
         <ReconcilePage />
       </ProtectedRoute>
     ),
@@ -53,7 +53,7 @@ const router = createBrowserRouter([
   {
     path: "/transactionhistory",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute requiresKyc>
         <TransactionHistoryPage />
       </ProtectedRoute>
     ),
@@ -61,7 +61,7 @@ const router = createBrowserRouter([
   {
     path: "/transactionhistory/:payoutId",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute requiresKyc>
         <PayoutDetailPage />
       </ProtectedRoute>
     ),
@@ -83,7 +83,7 @@ const router = createBrowserRouter([
   {
     path: "/international-banking",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute requiresInternationalBankingReady>
         <InternationalBankingPage />
       </ProtectedRoute>
     ),

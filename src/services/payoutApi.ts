@@ -99,6 +99,11 @@ export async function getPayoutDetail(payoutId: string) {
  * through the same http() client every other authenticated request uses,
  * then trigger a client-side save.
  */
+// A 25MB cap - a real PDF payment advice is a few pages at most; a runaway
+// or unexpected body this large is itself a sign something's wrong, same
+// ceiling HelpSupportModal already uses for attachments.
+const MAX_PAYMENT_ADVICE_BYTES = 25 * 1024 * 1024;
+
 export async function downloadPaymentAdvice(payoutId: string) {
   const response = await http(ROUTES.paymentAdvice(payoutId), { method: "GET" });
   if (!response.ok) {
@@ -106,11 +111,36 @@ export async function downloadPaymentAdvice(payoutId: string) {
     throw new Error(data?.message || "Failed to download payment advice");
   }
 
+  // A 200 response isn't proof the body is actually a PDF - a proxy/gateway
+  // error page, or a misconfigured endpoint, can still return 200 with an
+  // unexpected body. Without this check, that body would be saved to disk
+  // under a hardcoded .pdf name regardless of what it actually contains,
+  // and the OS would try to open it as a PDF.
+  const contentType = response.headers.get("Content-Type") || "";
+  if (!contentType.toLowerCase().startsWith("application/pdf")) {
+    throw new Error("The server didn't return a valid PDF for this payment advice.");
+  }
+
+  const contentLength = Number(response.headers.get("Content-Length"));
+  if (contentLength && contentLength > MAX_PAYMENT_ADVICE_BYTES) {
+    throw new Error("The payment advice file is larger than expected.");
+  }
+
   const blob = await response.blob();
+  if (blob.size > MAX_PAYMENT_ADVICE_BYTES) {
+    throw new Error("The payment advice file is larger than expected.");
+  }
+
+  // Prefer the server's own filename (Content-Disposition: attachment;
+  // filename="...") when present, falling back to a constructed one.
+  const disposition = response.headers.get("Content-Disposition") || "";
+  const filenameMatch = disposition.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
+  const filename = filenameMatch ? decodeURIComponent(filenameMatch[1]) : `payment-advice-${payoutId}.pdf`;
+
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `payment-advice-${payoutId}.pdf`;
+  link.download = filename;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);

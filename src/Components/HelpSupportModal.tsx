@@ -37,6 +37,11 @@ export default function HelpSupportModal({ open, onClose }: { open: boolean; onC
 
   const handleFilePick = (picked: File | undefined) => {
     setFileError(null);
+    // Clear any previously-selected file up front, before validation - if a
+    // replacement pick gets rejected below, the old file must not stay
+    // armed for submission while the UI shows a rejection error implying
+    // nothing is attached.
+    setFile(null);
     if (!picked) return;
 
     if (!ALLOWED_TYPES.includes(picked.type)) {

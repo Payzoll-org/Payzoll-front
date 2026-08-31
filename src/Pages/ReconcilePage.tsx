@@ -1051,9 +1051,14 @@ export default function ReconcilePage() {
     ]).then(([partnersList, receivablesList, bankAccountsList, balance]) => {
       setPartners(partnersList);
       setReceivables(receivablesList.filter((r) => r.currency === "USD"));
-      const payoutAccounts = bankAccountsList.filter((a) => a.category === "user_payout");
+      // This flow only ever settles into INR ("Reconcile USD Funds" ->
+      // "Withdraw in INR") - a EUR/USD EEFC payout account is a different
+      // currency rail entirely, not just "not ready yet" like a verifying
+      // status is, so it's excluded outright rather than shown-but-blocked
+      // the way a non-activated status is below.
+      const payoutAccounts = bankAccountsList.filter((a) => a.category === "user_payout" && a.currency === "INR");
       setBankAccounts(payoutAccounts);
-      if (payoutAccounts.length === 1) {
+      if (payoutAccounts.length === 1 && payoutAccounts[0].status === "activated") {
         setBankAccountId(payoutAccounts[0]._id);
       }
       const pendingUsd = balance?.pending.find((b) => b.currency === "USD");
@@ -1088,6 +1093,7 @@ export default function ReconcilePage() {
   const partnerReceivables = receivables.filter((r) => r.partner === partnerId);
   const selectedPartner = partners.find((p) => p._id === partnerId);
   const selectedReceivable = receivables.find((r) => r._id === receivableId);
+  const selectedBankAccount = bankAccounts.find((a) => a._id === bankAccountId);
   const partnerMissing = partnerTouched && !partnerId;
   const receivableMissing = receivableTouched && !receivableId;
   const amountExceedsBalance = amount.trim() !== "" && Number(amount) > Number(commonBalance);
@@ -1117,6 +1123,13 @@ export default function ReconcilePage() {
     if (selectedReceivable && selectedReceivable.status !== "activated") {
       setSubmitError(
         `This receivable is still ${selectedReceivable.status} and can't be reconciled yet. Please wait for it to be activated.`
+      );
+      return;
+    }
+
+    if (selectedBankAccount && selectedBankAccount.status !== "activated") {
+      setSubmitError(
+        `This bank account is still ${selectedBankAccount.status} and can't receive funds yet. Please wait for it to be activated.`
       );
       return;
     }
@@ -1319,6 +1332,7 @@ export default function ReconcilePage() {
                   {bankAccounts.map((a) => (
                     <option key={a._id} value={a._id}>
                       {a.currency} - AC: **** {a.bankAccount?.number?.slice(-4) || a.bankAccount?.last4 || "----"}
+                      {a.status !== "activated" ? ` - ${a.status}` : ""}
                     </option>
                   ))}
                 </select>

@@ -61,6 +61,11 @@ export default function AuthPage() {
   const [forgotLoading, setForgotLoading] = useState<boolean>(false);
   const [onboardingForm, setOnboardingForm] = useState<OnboardingPayload>(emptyOnboardingForm);
   const [onboardingLoading, setOnboardingLoading] = useState<boolean>(false);
+  // True once submitOnboarding has actually succeeded (or the backend says
+  // it already had) - lets the same "Continue to dashboard" button safely
+  // retry just the refresh+navigate step, without ever resubmitting form
+  // data the backend has already recorded.
+  const [onboardingSubmitted, setOnboardingSubmitted] = useState<boolean>(false);
   const [userEmail, setUserEmail] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [loading, setLoading] = useState(false);
@@ -172,50 +177,67 @@ export default function AuthPage() {
     }
   };
 
+  // The store's user was populated at login/signup time, before onboarding
+  // (and its typeOfUser) existed - refetch so user.userType is fresh before
+  // navigating, since ProtectedRoute treats a null userType as "onboarding
+  // not done" and would otherwise bounce the user straight back here even
+  // though the submission already succeeded. Safe to call more than once -
+  // this is also what the "Continue to dashboard" button retries if a
+  // previous attempt's refresh failed transiently.
+  const finishOnboarding = async () => {
+    await refreshCurrentUser().catch(() => {});
+    if (useAuthStore.getState().user?.userType == null) {
+      toast.error("Your details were saved, but we couldn't confirm your account is ready. Please try again.");
+      return;
+    }
+    navigate("/dashboard");
+  };
+
   const handleOnboardingSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
 
-    if (
-      !onboardingForm.legalName ||
-      !onboardingForm.dateOfBirth ||
-      !onboardingForm.phoneNumber ||
-      !onboardingForm.monthlyVolume ||
-      !onboardingForm.yearlyVolume
-    ) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-
-    if (!onboardingForm.isTermAndConditionAccepted) {
-      toast.error("Please accept the terms and conditions to continue");
-      return;
-    }
-
-    setOnboardingLoading(true);
-
-    try {
-      await submitOnboarding(onboardingForm);
-      // The store's user was populated at login/signup time, before
-      // onboarding (and its typeOfUser) existed - re-fetch so user.userType
-      // is fresh before anything downstream (e.g. KycPage's sole-
-      // proprietorship fields) reads it.
-      await refreshCurrentUser().catch(() => {});
-      navigate("/dashboard");
-    } catch (error: any) {
-      console.error("Onboarding submission failed:", error);
-      const message: string = error.message || "Failed to submit onboarding details";
-
-      // Resuming an already-onboarded account (e.g. re-verified after a
-      // previous completed run) — just continue to the dashboard.
-      if (message.toLowerCase().includes("already completed")) {
-        await refreshCurrentUser().catch(() => {});
-        navigate("/dashboard");
-      } else {
-        toast.error(message);
+    if (!onboardingSubmitted) {
+      if (
+        !onboardingForm.legalName ||
+        !onboardingForm.dateOfBirth ||
+        !onboardingForm.phoneNumber ||
+        !onboardingForm.monthlyVolume ||
+        !onboardingForm.yearlyVolume
+      ) {
+        toast.error("Please fill in all required fields");
+        return;
       }
-    } finally {
-      setOnboardingLoading(false);
+
+      if (!onboardingForm.isTermAndConditionAccepted) {
+        toast.error("Please accept the terms and conditions to continue");
+        return;
+      }
+
+      setOnboardingLoading(true);
+      try {
+        await submitOnboarding(onboardingForm);
+        setOnboardingSubmitted(true);
+      } catch (error: any) {
+        console.error("Onboarding submission failed:", error);
+        const message: string = error.message || "Failed to submit onboarding details";
+
+        // Resuming an already-onboarded account (e.g. re-verified after a
+        // previous completed run) - the submission itself is done, only
+        // the refresh+navigate step below is still needed.
+        if (message.toLowerCase().includes("already completed")) {
+          setOnboardingSubmitted(true);
+        } else {
+          toast.error(message);
+          setOnboardingLoading(false);
+          return;
+        }
+      }
+    } else {
+      setOnboardingLoading(true);
     }
+
+    await finishOnboarding();
+    setOnboardingLoading(false);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

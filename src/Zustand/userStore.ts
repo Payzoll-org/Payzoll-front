@@ -22,6 +22,12 @@ interface AuthState {
   user: User | null;
   accessToken: string | null;
   hasHydrated: boolean;
+  // Bumped on every real session change (login, OTP, logout) - a background
+  // token refresh (lib/httpClient.ts's performRefresh) captures this when it
+  // starts and checks it again before writing its result, so a refresh that
+  // was already in flight when the user logged in doesn't later overwrite
+  // or clear the newer session it knows nothing about.
+  sessionGeneration: number;
   setUser: (user: User | null) => void;
   updateUser: (updates: Partial<User>) => void;
   setAccessToken: (token: string | null) => void;
@@ -34,6 +40,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   accessToken: null,
   hasHydrated: false,
+  sessionGeneration: 0,
   setUser: (user) => set({ user }),
   updateUser: (updates) =>
     set((state) => ({
@@ -41,8 +48,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     })),
   setAccessToken: (accessToken) => set({ accessToken }),
   setSession: ({ user, accessToken }) => {
-    set({ user, accessToken });
+    set((state) => ({ user, accessToken, sessionGeneration: state.sessionGeneration + 1 }));
   },
-  clearSession: () => set({ user: null, accessToken: null }),
+  clearSession: () =>
+    set((state) => ({ user: null, accessToken: null, sessionGeneration: state.sessionGeneration + 1 })),
   markHydrated: () => set({ hasHydrated: true }),
 }));

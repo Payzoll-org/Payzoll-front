@@ -57,7 +57,12 @@ export function refreshSession(
 
 
 async function performRefresh(fetchProfile: boolean): Promise<string | null> {
-  const { setAccessToken, setUser, clearSession } = useAuthStore.getState();
+  const { setAccessToken, setUser, clearSession, sessionGeneration: startGeneration } = useAuthStore.getState();
+
+  // True once a real session change (login, OTP, logout) has happened since
+  // this refresh started - its result is stale and must not overwrite or
+  // clear whatever is current now.
+  const isStale = () => useAuthStore.getState().sessionGeneration !== startGeneration;
 
   try {
     const response = await fetch(`${getApiBase("auth")}/api/auth/refresh`, {
@@ -66,7 +71,9 @@ async function performRefresh(fetchProfile: boolean): Promise<string | null> {
     });
 
     if (!response.ok) {
-      clearSession();
+      if (!isStale()) {
+        clearSession();
+      }
       return null;
     }
 
@@ -78,23 +85,31 @@ async function performRefresh(fetchProfile: boolean): Promise<string | null> {
       throw new Error("Missing access token");
     }
 
+    if (isStale()) {
+      return accessToken;
+    }
+
     setAccessToken(accessToken);
     if (nextUser) {
       setUser(nextUser);
     } else if (fetchProfile || !useAuthStore.getState().user) {
-      await fetchCurrentUser();
+      await fetchCurrentUser(startGeneration);
     }
 
     return accessToken;
   } catch (error) {
-    clearSession();
+    if (!isStale()) {
+      clearSession();
+    }
     return null;
   }
 }
 
 
-async function fetchCurrentUser() {
+async function fetchCurrentUser(expectedGeneration?: number) {
   const { setUser, accessToken, clearSession } = useAuthStore.getState();
+  const isStale = () =>
+    expectedGeneration !== undefined && useAuthStore.getState().sessionGeneration !== expectedGeneration;
 
   if (!accessToken) return null;
 
@@ -108,7 +123,7 @@ async function fetchCurrentUser() {
     });
 
     if (!response.ok) {
-      if (response.status === 401) {
+      if (response.status === 401 && !isStale()) {
         clearSession();
       }
       return null;
@@ -116,7 +131,7 @@ async function fetchCurrentUser() {
 
     const data = await response.json();
     const user = data?.data?.user || data?.data;
-    if (user) {
+    if (user && !isStale()) {
       setUser(user);
     }
     return user;
