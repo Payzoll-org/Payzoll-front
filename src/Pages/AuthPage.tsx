@@ -90,11 +90,10 @@ export default function AuthPage() {
     }
 
     if (!showOnboarding) {
-      // /dashboard itself requires kycVerified (ProtectedRoute's
-      // requiresKyc) - navigating there directly when KYC isn't done would
-      // just bounce straight back to /kyc a moment later. Going there
-      // directly avoids that flash.
-      navigate(user.kycVerified ? "/dashboard" : "/kyc", { replace: true });
+      // Only the basic onboarding form gates /dashboard - KYC is done from
+      // there (KycBanner, or the requiresKyc gates on specific features),
+      // not a prerequisite to reach it.
+      navigate("/dashboard", { replace: true });
     }
   }, [user, navigate, showVerification, showOnboarding, hasHydrated]);
 
@@ -190,15 +189,13 @@ export default function AuthPage() {
   // previous attempt's refresh failed transiently.
   const finishOnboarding = async () => {
     await refreshCurrentUser().catch(() => {});
-    const freshUser = useAuthStore.getState().user;
-    if (freshUser?.userType == null) {
+    if (useAuthStore.getState().user?.userType == null) {
       toast.error("Your details were saved, but we couldn't confirm your account is ready. Please try again.");
       return;
     }
-    // Straight from the basic onboarding form into KYC if it isn't done yet
-    // (true for every fresh signup) - /dashboard itself requires
-    // kycVerified, so going there first would just bounce back to /kyc.
-    navigate(freshUser.kycVerified ? "/dashboard" : "/kyc");
+    // Onboarding done -> dashboard. KYC happens from there, whenever the
+    // user chooses to do it (or when they hit a feature that requires it).
+    navigate("/dashboard");
   };
 
   const handleOnboardingSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
