@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Copy, Check, Download, FileText } from "lucide-react";
+import toast from "react-hot-toast";
 import { getPayoutDetail, downloadPaymentAdvice, type PayoutDetail as PayoutDetailType } from "../services/payoutApi";
 
 const STATUS_STYLES: Record<string, string> = {
@@ -188,7 +189,11 @@ export default function PayoutDetail() {
                 onClick={() => {
                   if (!payoutId) return;
                   setDownloading(true);
-                  downloadPaymentAdvice(payoutId).finally(() => setDownloading(false));
+                  downloadPaymentAdvice(payoutId)
+                    .catch((error: any) => {
+                      toast.error(error.message || "Failed to download payment advice");
+                    })
+                    .finally(() => setDownloading(false));
                 }}
                 disabled={downloading}
                 className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 disabled:opacity-50"
