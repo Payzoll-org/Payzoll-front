@@ -194,7 +194,11 @@ function WalletBalanceCard({
         </button>
       </div>
       <p className="text-xs text-gray-400">
-        The amount you deposited here will be reflected in your account within a few hours.
+        <strong className="text-gray-300 font-semibold">Note:</strong> If you have deposited stablecoins and
+        don&rsquo;t see the amount reflected on your dashboard immediately, please don&rsquo;t panic &mdash; we
+        generally take a few hours to complete our basic checks and verify that the funds are not coming from
+        sanctioned wallets or associated with any illegal activities. Once the checks are complete, the amount will
+        be reflected in your dashboard and VBAN.
       </p>
     </div>
   );
