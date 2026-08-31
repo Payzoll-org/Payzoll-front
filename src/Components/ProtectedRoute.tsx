@@ -6,11 +6,29 @@ import { useNavigate } from "react-router-dom";
 
 interface ProtectedRouteProps {
   children: ReactNode;
+  // Redirects to /kyc if the user hasn't completed KYC yet. Without this,
+  // sideBar.tsx's own requiresKyc click-handler gate (Transaction History,
+  // Withdraw/Deposit/Reconcile) was the *only* enforcement - typing
+  // /reconcile or /transactionhistory into the address bar directly
+  // bypassed it entirely, since the router itself never checked kycVerified.
+  requiresKyc?: boolean;
+  // Redirects to /dashboard if the account isn't activated with stablecoin
+  // payments enabled yet - same gap as above, but for /international-banking,
+  // which sideBar.tsx only ever *disabled* rather than gated at the route.
+  requiresInternationalBankingReady?: boolean;
 }
 
-export default function ProtectedRoute({ children }: ProtectedRouteProps) {
+export default function ProtectedRoute({
+  children,
+  requiresKyc,
+  requiresInternationalBankingReady,
+}: ProtectedRouteProps) {
   const { user, hasHydrated } = useAuthStore();
   const navigate = useNavigate();
+
+  const kycBlocked = requiresKyc && !user?.kycVerified;
+  const internationalBankingBlocked =
+    requiresInternationalBankingReady && !(user?.accountStatus === "activated" && user?.stablecoinEnabled);
 
   useEffect(() => {
     if (!hasHydrated) {
@@ -27,8 +45,16 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     // protected page (dashboard, settings, ...) directly.
     if (user.userType == null) {
       navigate("/auth");
+      return;
     }
-  }, [user, navigate, hasHydrated]);
+    if (kycBlocked) {
+      navigate("/kyc");
+      return;
+    }
+    if (internationalBankingBlocked) {
+      navigate("/dashboard");
+    }
+  }, [user, navigate, hasHydrated, kycBlocked, internationalBankingBlocked]);
 
   if (!hasHydrated) {
     return (
@@ -38,10 +64,10 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  if (!user || user.userType == null) {
+  if (!user || user.userType == null || kycBlocked || internationalBankingBlocked) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <p className="text-gray-600 text-lg">Redirecting to login...</p>
+        <p className="text-gray-600 text-lg">Redirecting...</p>
       </div>
     );
   }
