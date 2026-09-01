@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ChevronDown,
-  ChevronUp,
   Eye,
   ArrowUpRight,
   ArrowDownLeft,
@@ -37,93 +35,7 @@ function nonZero(entries: BalanceEntry[]) {
 const CURRENCY_OPTIONS = ["USD", "USDC", "USDT"] as const;
 type CurrencyOption = (typeof CURRENCY_OPTIONS)[number];
 
-const NETWORK_OPTIONS = ["EVM", "Solana", "Tron"] as const;
-type NetworkOption = (typeof NETWORK_OPTIONS)[number];
 
-const CURRENCY_ICON_COLOR: Record<CurrencyOption, string> = {
-  USD: "bg-gray-600",
-  USDC: "bg-blue-500",
-  USDT: "bg-emerald-500",
-};
-
-// Explicit labels rather than slicing the currency string - "USD" has no
-// 4th character to index into the way "USDC"/"USDT" do.
-const CURRENCY_ICON_LABEL: Record<CurrencyOption, string> = {
-  USD: "$",
-  USDC: "C",
-  USDT: "T",
-};
-
-function CurrencyIcon({ currency }: { currency: CurrencyOption }) {
-  return (
-    <span
-      className={`w-4 h-4 rounded-full ${CURRENCY_ICON_COLOR[currency]} flex items-center justify-center text-[9px] font-bold text-white shrink-0`}
-    >
-      {CURRENCY_ICON_LABEL[currency]}
-    </span>
-  );
-}
-
-function NetworkIcon() {
-  return (
-    <span className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
-      <ChevronUp size={10} className="text-white" strokeWidth={3} />
-    </span>
-  );
-}
-
-/**
- * Small pill button that opens a floating option list on click - used for
- * both the network and currency selectors on the wallet card header.
- */
-function ChipDropdown<T extends string>({
-  value,
-  options,
-  onChange,
-  renderIcon,
-}: {
-  value: T;
-  options: readonly T[];
-  onChange: (v: T) => void;
-  renderIcon?: (v: T) => React.ReactNode;
-}) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 bg-white/10 hover:bg-white/15 rounded-full px-3 py-1.5 text-xs font-medium transition-colors"
-      >
-        {renderIcon?.(value)}
-        {value}
-        <ChevronDown size={14} />
-      </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 bg-gray-900 border border-white/10 rounded-lg shadow-lg py-1 min-w-[110px] z-20">
-            {options.map((opt) => (
-              <button
-                key={opt}
-                onClick={() => {
-                  onChange(opt);
-                  setOpen(false);
-                }}
-                className={`w-full flex items-center gap-2 text-left px-3 py-2 text-xs font-medium hover:bg-white/10 transition-colors ${
-                  opt === value ? "text-blue-400" : "text-white/80"
-                }`}
-              >
-                {renderIcon?.(opt)}
-                {opt}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
 
 function WalletBalanceCard({
   balance,
@@ -136,8 +48,7 @@ function WalletBalanceCard({
 }) {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const [currency, setCurrency] = useState<CurrencyOption>("USD");
-  const [network, setNetwork] = useState<NetworkOption>("EVM");
+  const [currency] = useState<CurrencyOption>("USD");
 
   // Real figures from XflowPay's own Balance object - pending (received,
   // not yet reconciled) first, falling back to available, same precedence
@@ -151,20 +62,7 @@ function WalletBalanceCard({
       {/* Header: title + network/currency selectors */}
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-md">Total Balance</h2>
-        <div className="flex items-center gap-2">
-          <ChipDropdown
-            value={network}
-            options={NETWORK_OPTIONS}
-            onChange={setNetwork}
-            renderIcon={() => <NetworkIcon />}
-          />
-          <ChipDropdown
-            value={currency}
-            options={CURRENCY_OPTIONS}
-            onChange={setCurrency}
-            renderIcon={(c) => <CurrencyIcon currency={c} />}
-          />
-        </div>
+
       </div>
 
       {/* Balance figure - real balance for the selected currency */}
@@ -271,7 +169,7 @@ function OfframpCalculatorCard({ onRequireKyc }: { onRequireKyc: () => void }) {
 
     getRateHistory(30)
       .then(setRateHistory)
-      .catch(() => {});
+      .catch(() => { });
 
     getPayoutFeeRule("USD")
       .then(setFeeRule)
@@ -287,9 +185,9 @@ function OfframpCalculatorCard({ onRequireKyc }: { onRequireKyc: () => void }) {
   const receiveAmount =
     liveRate && netAmount !== null
       ? (netAmount * Number(liveRate.userRate)).toLocaleString(undefined, {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })
       : null;
 
   const chartPoints = rateHistory.length >= 2 ? rateHistory.map((p) => Number(p.userRate)) : null;
@@ -305,68 +203,68 @@ function OfframpCalculatorCard({ onRequireKyc }: { onRequireKyc: () => void }) {
 
       <div className="grid grid-cols-1 xl:grid-cols-2  gap-5 flex-1 min-w-0">
         {/* Left: live rate + real history */}
-       <div className="flex flex-col h-full">
-  <div>
-    {rateLoading ? (
-      <div className="flex items-center gap-2 text-sm text-gray-500">
-        <span>1 USD = ... INR</span>
-        <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 rounded-full px-2 py-0.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-          Live
-        </span>
-      </div>
-    ) : rateError || !liveRate ? (
-      <div className="text-sm text-red-600">
-        {rateError || "Rate unavailable"}
-      </div>
-    ) : (
-      <div className="flex items-center gap-2 text-sm text-gray-500">
-        <span>
-          1 USD = ₹{Number(liveRate.userRate)} INR
-        </span>
+        <div className="flex flex-col h-full">
+          <div>
+            {rateLoading ? (
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <span>1 USD = ... INR</span>
+                <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 rounded-full px-2 py-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                  Live
+                </span>
+              </div>
+            ) : rateError || !liveRate ? (
+              <div className="text-sm text-red-600">
+                {rateError || "Rate unavailable"}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <span>
+                  1 USD = ₹{Number(liveRate.userRate)} INR
+                </span>
 
-        <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 rounded-full px-2 py-0.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-          Live
-        </span>
-      </div>
-    )}
+                <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 rounded-full px-2 py-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                  Live
+                </span>
+              </div>
+            )}
 
-    <div className="flex items-baseline gap-2 mt-1 mb-4">
-      {rateLoading ? (
-        <span className="text-3xl font-semibold text-gray-300">
-          ...
-        </span>
-      ) : rateError || !liveRate ? (
-        <span className="text-sm text-red-600">
-          {rateError || "Rate unavailable"}
-        </span>
-      ) : (
-        <>
-          <span className="text-3xl font-semibold text-gray-900">
-            ₹{Number(liveRate.userRate).toFixed(2)}
-          </span>
+            <div className="flex items-baseline gap-2 mt-1 mb-4">
+              {rateLoading ? (
+                <span className="text-3xl font-semibold text-gray-300">
+                  ...
+                </span>
+              ) : rateError || !liveRate ? (
+                <span className="text-sm text-red-600">
+                  {rateError || "Rate unavailable"}
+                </span>
+              ) : (
+                <>
+                  <span className="text-3xl font-semibold text-gray-900">
+                    ₹{Number(liveRate.userRate).toFixed(2)}
+                  </span>
 
-          <span className="text-xs text-gray-400">
-            updated{" "}
-            {new Date(liveRate.fetchedAt).toLocaleTimeString(undefined, {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </span>
-        </>
-      )}
-    </div>
+                  <span className="text-xs text-gray-400">
+                    updated{" "}
+                    {new Date(liveRate.fetchedAt).toLocaleTimeString(undefined, {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </>
+              )}
+            </div>
 
-    {chartPoints ? (
-      <RateChart points={chartPoints} />
-    ) : (
-      <div className="h-40 flex items-center justify-center text-xs text-gray-400 border border-dashed border-gray-200 rounded-lg">
-        Rate history will appear here as more conversions happen
-      </div>
-    )}
-  </div>
-</div>
+            {chartPoints ? (
+              <RateChart points={chartPoints} />
+            ) : (
+              <div className="h-40 flex items-center justify-center text-xs text-gray-400 border border-dashed border-gray-200 rounded-lg">
+                Rate history will appear here as more conversions happen
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Right: convert form */}
         <div className="flex flex-col  gap-3 h-full ">
