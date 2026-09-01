@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Eye,
+  EyeOff,
   ArrowUpRight,
   ArrowDownLeft,
   Info,
@@ -57,6 +58,8 @@ function WalletBalanceCard({
   const availableEntry = balance ? nonZero(balance.available).find((b) => b.currency === currency) : undefined;
   const amount = pendingEntry?.amount || availableEntry?.amount || "0.00";
 
+  const [showBalance, setShowBalance] = useState(true);
+
   return (
     <div className="bg-[#010631] text-white rounded-lg p-6 flex flex-col gap-6 h-full min-w-0 overflow-hidden">
       {/* Header: title + network/currency selectors */}
@@ -68,9 +71,15 @@ function WalletBalanceCard({
       {/* Balance figure - real balance for the selected currency */}
       <div>
         <div className="flex items-baseline gap-2">
-          <span className="text-4xl font-normal">{amount}</span>
+          <span className="text-4xl font-normal">{showBalance ? amount : "****"}</span>
           <span className="text-gray-400 text-lg">{currency}</span>
-          <Eye size={16} className="text-white/60 ml-1" />
+          <button
+            onClick={() => setShowBalance(!showBalance)}
+            className="text-white/60 ml-1 hover:text-white transition-colors cursor-pointer"
+            aria-label={showBalance ? "Hide balance" : "Show balance"}
+          >
+            {showBalance ? <Eye size={16} /> : <EyeOff size={16} />}
+          </button>
         </div>
       </div>
 
