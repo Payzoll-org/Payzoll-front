@@ -297,9 +297,9 @@ function OfframpCalculatorCard({ onRequireKyc }: { onRequireKyc: () => void }) {
   return (
     <div className="bg-white border border-gray-200  rounded-lg p-5 flex flex-col gap-6 min-w-0 overflow-hidden">
       <div>
-        <h1 className="text-lg font-semibold text-gray-900">Inward Remittance Calculator</h1>
+        <h1 className="text-lg font-semibold text-gray-900">Payout Calculator</h1>
         <p className="text-xs text-gray-500 mt-0.5">
-          Estimate what a USD → INR reconciliation would cost right now.
+          Estimate what a USD → INR payout would cost right now.
         </p>
       </div>
 
