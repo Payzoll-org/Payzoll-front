@@ -183,7 +183,7 @@ function WalletBalanceCard({
           className="flex-1 flex items-center justify-center gap-2 bg-white text-gray-900 rounded-sm py-2 font-medium hover:bg-gray-100 transition-colors"
         >
           <ArrowUpRight size={16} />
-          Withdraw in INR
+          Withdraw
         </button>
         <button
           onClick={() => requireKyc(user?.kycVerified, onRequireKyc, onDeposit)}
@@ -194,11 +194,7 @@ function WalletBalanceCard({
         </button>
       </div>
       <p className="text-xs text-gray-400">
-        <strong className="text-gray-300 font-semibold">Note:</strong> If you have deposited stablecoins and
-        don&rsquo;t see the amount reflected on your dashboard immediately, please don&rsquo;t panic &mdash; we
-        generally take a few hours to complete our basic checks and verify that the funds are not coming from
-        sanctioned wallets or associated with any illegal activities. Once the checks are complete, the amount will
-        be reflected in your dashboard and VBAN.
+        <strong className="text-gray-300 font-semibold">Note:</strong> Deposits may take a few hours to reflect in your USD VBAN balance.
       </p>
     </div>
   );
@@ -419,7 +415,7 @@ function OfframpCalculatorCard({ onRequireKyc }: { onRequireKyc: () => void }) {
 
           <div className="flex items-start gap-1.5 text-[11px] text-gray-400 px-0.5">
             <Info size={12} className="shrink-0 mt-0.5" />
-            <span>Estimate only — final amount confirmed on reconciliation.</span>
+            <span>Estimate only, final amount confirmed on withdrawl.</span>
           </div>
 
           <button
@@ -427,7 +423,7 @@ function OfframpCalculatorCard({ onRequireKyc }: { onRequireKyc: () => void }) {
             className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-sm text-white rounded-sm py-1.5 font-medium  transition-colors"
           >
             <ArrowUpRight size={15} />
-            Continue to Reconcile
+            Withdraw in INR
           </button>
         </div>
       </div>

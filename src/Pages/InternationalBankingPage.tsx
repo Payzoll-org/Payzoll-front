@@ -46,9 +46,8 @@ function FilterField<T extends string>({
                     onChange(opt);
                     setOpen(false);
                   }}
-                  className={`w-full flex items-center gap-2 text-left px-4 py-2 text-sm font-medium hover:bg-gray-50 transition-colors ${
-                    opt === value ? "text-blue-600" : "text-gray-700"
-                  }`}
+                  className={`w-full flex items-center gap-2 text-left px-4 py-2 text-sm font-medium hover:bg-gray-50 transition-colors ${opt === value ? "text-blue-600" : "text-gray-700"
+                    }`}
                 >
                   {renderValue(opt)}
                 </button>
@@ -67,12 +66,10 @@ const COUNTRY_LABELS: Record<CountryOption, { flag: string; label: string }> = {
   US: { flag: "🇺🇸", label: "United States of America" },
 };
 
-const CURRENCY_OPTIONS = ["USD", "USDC", "USDT"] as const;
+const CURRENCY_OPTIONS = ["USD"] as const;
 type CurrencyOption = (typeof CURRENCY_OPTIONS)[number];
 const CURRENCY_LABELS: Record<CurrencyOption, { badge: string; label: string }> = {
   USD: { badge: "USD", label: "US Dollars" },
-  USDC: { badge: "USDC", label: "USD Coin" },
-  USDT: { badge: "USDT", label: "Tether USD" },
 };
 
 // Payment method options depend on the selected currency - ACH/Fedwire/SWIFT
@@ -80,8 +77,6 @@ const CURRENCY_LABELS: Record<CurrencyOption, { badge: string; label: string }> 
 // (same real category=xflow_receive addresses used in WaysToReceiveModal).
 const PAYMENT_METHODS_BY_CURRENCY: Record<CurrencyOption, string[]> = {
   USD: ["ACH", "Fedwire", "SWIFT"],
-  USDC: ["EVM", "Solana"],
-  USDT: ["Tron"],
 };
 
 // ---------------------------------------------------------------------------
@@ -189,10 +184,6 @@ function InternationalBankingContent() {
     <div className="p-6 lg:p-8 flex flex-col gap-8 overflow-y-auto h-full">
       <div>
         <h1 className="text-xl font-semibold text-gray-900 mb-1">International Banking</h1>
-        <p className="text-sm text-gray-500 flex items-center gap-1">
-          <Info size={13} />
-          Receive payments into your real USD or stablecoin account.
-        </p>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">

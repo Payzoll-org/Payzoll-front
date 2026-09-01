@@ -825,7 +825,7 @@ export default function AuthPage() {
                       : "text-black hover:text-gray-900"
                   }`}
                 >
-                  Log In
+                  Sign In
                 </button>
                 <button
                   onClick={() => {
@@ -848,8 +848,8 @@ export default function AuthPage() {
               </h2>
               <p className="text-sm text-gray-600 mb-8 lg:mb-10">
                 {isSignup
-                  ? "Create your account and start receiving, converting, and withdrawing stablecoin payments"
-                  : "Log in to access your dashboard and continue your work"}
+                  ? "Start receiving and withdrawing international payments"
+                  : "Continue managing your international payments with ease"}
               </p>
 
               <div className="flex flex-col gap-5">
