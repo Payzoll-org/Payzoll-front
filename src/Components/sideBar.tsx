@@ -63,6 +63,7 @@ const sideBAr: React.FC = () => {
     (async function () {
       const cal = await getCalApi({ namespace: "payzoll-booking" });
       cal("ui", {
+        theme: "light",
         styles: { branding: { brandColor: "#2563eb" } },
         hideEventTypeDetails: false,
         layout: "month_view",
@@ -257,37 +258,32 @@ const sideBAr: React.FC = () => {
       </div>
 
 
-      <div className={`text-sm absolute bottom-25`}>
-        <div className="px-4 gap-5">
-          <button
-            data-cal-link="payzoll/30min"
-            data-cal-namespace="payzoll-booking"
-            data-cal-config={JSON.stringify({
-              layout: "month_view",
-              ...(user?.name ? { name: user.name } : {}),
-              ...(user?.email ? { email: user.email } : {}),
-            })}
-            className="text-left font-medium text-sm text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
-          >
-            Book a Demo
-          </button>
-
-          <button
-            onClick={() => setHelpModalOpen(true)}
-            className="pt-4 text-left hover:text-blue-600 dark:hover:text-blue-400 transition-colors block"
-          >
-            Help and Support
-          </button>
-        </div>
-      </div>
-
-
-
       {/* Bottom Section */}
-      <div className="absolute bottom-5 left-0 right-0">
+      <div className="absolute bottom-5 left-0 right-0 px-3 space-y-1">
+        <button
+          data-cal-link="payzoll/30min"
+          data-cal-namespace="payzoll-booking"
+          data-cal-config={JSON.stringify({
+            layout: "month_view",
+            theme: "light",
+            ...(user?.name ? { name: user.name } : {}),
+            ...(user?.email ? { email: user.email } : {}),
+          })}
+          className="w-full flex items-center gap-3 py-1.5 px-3 rounded-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200"
+        >
+          <span className="font-medium text-sm">Book a Demo</span>
+        </button>
+
+        <button
+          onClick={() => setHelpModalOpen(true)}
+          className="w-full flex items-center gap-3 py-1.5 px-3 rounded-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200"
+        >
+          <span className="font-medium text-sm">Help and Support</span>
+        </button>
+
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 py-1.5 pl-3 pr-3 rounded-sm text-left text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200"
+          className="w-full flex items-center gap-3 py-1.5 px-3 rounded-sm text-left text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200"
         >
           <LogOut size={18} />
           <span className="font-medium text-sm">Log out</span>
