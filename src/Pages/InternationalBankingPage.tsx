@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, Info } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import AppShell from "../Components/AppShell";
 import { getBankAccounts, type BankAccount } from "../services/bankAccountApi";
 
