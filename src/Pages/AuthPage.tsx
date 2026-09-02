@@ -300,7 +300,11 @@ export default function AuthPage() {
       ) {
         setUserEmail(form.email);
         setShowVerification(true);
-        toast.error("Please verify your email first. Check your inbox for the verification code.");
+        // Show the real message, not a generic "check your inbox" - it
+        // also covers signup succeeding but the OTP email itself failing
+        // to send, where there's nothing in the inbox yet and the user
+        // needs to know to hit Resend Code rather than go looking for it.
+        toast.error(errorMessage);
       } else {
         toast.error(errorMessage);
       }
