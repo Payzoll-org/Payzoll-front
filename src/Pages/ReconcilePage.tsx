@@ -577,16 +577,23 @@ function ReceivableCreateForm({
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Only the purpose codes the user actually selected on the KYC "About
-  // Business" step - showing the full PURPOSE_CODE_OPTIONS list here would
-  // let someone pick a code XflowPay never approved them for. null while
-  // loading; falls back to the full list only if the fetch itself fails,
-  // so a transient error doesn't block receivable creation entirely.
+  // Only the purpose codes XflowPay has actually approved for this account
+  // (Services/account.service.js's getKycProgress reads these live, filtered
+  // to status "approved") - showing the full PURPOSE_CODE_OPTIONS list here
+  // would let someone pick a code XflowPay never granted them, which then
+  // fails at XflowPay when the receivable is filed. null while loading;
+  // falls back to the full list only if the fetch itself fails, so a
+  // transient error doesn't block receivable creation entirely. A
+  // successful fetch that comes back empty (KYC not done, or codes still
+  // pending approval) stays an empty array - it is never widened to "all
+  // codes" just because the user happens to have none granted yet.
   const [allowedPurposeCodes, setAllowedPurposeCodes] = useState<string[] | null>(null);
 
   useEffect(() => {
     getKycProgress()
-      .then((progress) => setAllowedPurposeCodes(progress.aboutBusiness?.purposeCodes ?? []))
+      .then((progress) => {
+        setAllowedPurposeCodes(progress.aboutBusiness?.purposeCodes ?? []);
+      })
       .catch(() => setAllowedPurposeCodes(PURPOSE_CODE_OPTIONS.map((p) => p.code)));
   }, []);
 
@@ -671,15 +678,27 @@ function ReceivableCreateForm({
             value={form.purposeCode}
             onChange={(e) => update("purposeCode", e.target.value)}
             className={spaciousInputClass}
-            disabled={loading || allowedPurposeCodes === null}
+            disabled={loading || allowedPurposeCodes === null || purposeCodeOptions.length === 0}
           >
-            <option value="">{allowedPurposeCodes === null ? "Loading..." : "Select..."}</option>
+            <option value="">
+              {allowedPurposeCodes === null
+                ? "Loading..."
+                : purposeCodeOptions.length === 0
+                ? "No approved purpose codes yet"
+                : "Select..."}
+            </option>
             {purposeCodeOptions.map((p) => (
               <option key={p.code} value={p.code}>
                 {p.label}
               </option>
             ))}
           </select>
+          {allowedPurposeCodes !== null && purposeCodeOptions.length === 0 && (
+            <p className="text-xs text-amber-700 mt-1">
+              XflowPay hasn't approved a purpose code for your account yet. Complete the "About Business" step in
+              KYC if you haven't, or wait for approval - you'll get a notification once it's granted.
+            </p>
+          )}
         </div>
 
         <div>
