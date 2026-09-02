@@ -7,7 +7,7 @@ interface StablecoinModalProps {
   onComplete: () => void;
 }
 
-type Phase = "loading" | "ready" | "test-mode" | "completing" | "success" | "error";
+type Phase = "loading" | "ready" | "waiting" | "test-mode" | "completing" | "success" | "error";
 
 // XflowPay's testmode start_tos always returns a URL on this unresolvable
 // host instead of a real Bridge.xyz page (confirmed against the sandbox -
@@ -22,6 +22,8 @@ export default function StablecoinModal({ onClose, onComplete }: StablecoinModal
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [deferred, setDeferred] = useState(false);
   const handledRef = useRef(false);
+  const popupRef = useRef<Window | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     startStablecoinTos()
@@ -36,9 +38,17 @@ export default function StablecoinModal({ onClose, onComplete }: StablecoinModal
       });
   }, []);
 
+  const stopWatchingPopup = () => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  };
+
   const completeWithToken = async (token: string | null) => {
     if (handledRef.current) return;
     handledRef.current = true;
+    stopWatchingPopup();
 
     if (!token) {
       setErrorMessage("Terms of Service were not completed. Please try again.");
@@ -58,6 +68,37 @@ export default function StablecoinModal({ onClose, onComplete }: StablecoinModal
       setPhase("error");
     }
   };
+
+  // Bridge's real ToS page refuses to be framed (confirmed in production:
+  // Chrome shows "This content is blocked" for the iframe XflowPay's own
+  // docs otherwise say is a valid option) - open it in a real new window
+  // instead, per the alternative guide.md offers. Must run directly inside
+  // a click handler, not after the startStablecoinTos() promise resolves,
+  // or browsers treat it as an unrequested popup and block it silently.
+  const openTosWindow = () => {
+    if (!tosUrl) return;
+    handledRef.current = false;
+    const win = window.open(tosUrl, "xflow_stablecoin_tos", "width=520,height=720");
+    if (!win) {
+      setErrorMessage(
+        "Your browser blocked the Terms of Service window. Please allow pop-ups for this site and try again."
+      );
+      setPhase("error");
+      return;
+    }
+    popupRef.current = win;
+    setPhase("waiting");
+
+    stopWatchingPopup();
+    pollRef.current = setInterval(() => {
+      if (popupRef.current?.closed && !handledRef.current) {
+        stopWatchingPopup();
+        setPhase("ready");
+      }
+    }, 500);
+  };
+
+  useEffect(() => stopWatchingPopup, []);
 
   useEffect(() => {
     // Only accept messages from our own origin (StablecoinCallbackPage is
@@ -97,11 +138,35 @@ export default function StablecoinModal({ onClose, onComplete }: StablecoinModal
           )}
 
           {phase === "ready" && tosUrl && (
-            <iframe
-              src={tosUrl}
-              title="Stablecoin Terms of Service"
-              className="w-full h-full border-0"
-            />
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-8 text-center">
+              <p className="text-sm text-gray-700">
+                XflowPay's partner Bridge needs you to review and accept their Terms of Service
+                in a new window before stablecoin payments can turn on.
+              </p>
+              <button
+                onClick={openTosWindow}
+                className="px-6 h-11 bg-black text-white text-sm font-medium rounded-full
+                          hover:scale-105 transition-transform"
+              >
+                Continue in new window
+              </button>
+            </div>
+          )}
+
+          {phase === "waiting" && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-8 text-center">
+              <div className="w-6 h-6 border-2 border-gray-300 border-t-black rounded-full animate-spin" />
+              <p className="text-sm text-gray-500">
+                Complete the Terms of Service in the window that just opened. This closes
+                automatically once you're done.
+              </p>
+              <button
+                onClick={openTosWindow}
+                className="text-sm text-gray-500 underline hover:text-gray-700"
+              >
+                Didn't see it open? Try again
+              </button>
+            </div>
           )}
 
           {phase === "test-mode" && (
