@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ChevronDown,
-  ChevronUp,
   Eye,
+  EyeOff,
   ArrowUpRight,
   ArrowDownLeft,
   Info,
@@ -37,93 +36,7 @@ function nonZero(entries: BalanceEntry[]) {
 const CURRENCY_OPTIONS = ["USD", "USDC", "USDT"] as const;
 type CurrencyOption = (typeof CURRENCY_OPTIONS)[number];
 
-const NETWORK_OPTIONS = ["EVM", "Solana", "Tron"] as const;
-type NetworkOption = (typeof NETWORK_OPTIONS)[number];
 
-const CURRENCY_ICON_COLOR: Record<CurrencyOption, string> = {
-  USD: "bg-gray-600",
-  USDC: "bg-blue-500",
-  USDT: "bg-emerald-500",
-};
-
-// Explicit labels rather than slicing the currency string - "USD" has no
-// 4th character to index into the way "USDC"/"USDT" do.
-const CURRENCY_ICON_LABEL: Record<CurrencyOption, string> = {
-  USD: "$",
-  USDC: "C",
-  USDT: "T",
-};
-
-function CurrencyIcon({ currency }: { currency: CurrencyOption }) {
-  return (
-    <span
-      className={`w-4 h-4 rounded-full ${CURRENCY_ICON_COLOR[currency]} flex items-center justify-center text-[9px] font-bold text-white shrink-0`}
-    >
-      {CURRENCY_ICON_LABEL[currency]}
-    </span>
-  );
-}
-
-function NetworkIcon() {
-  return (
-    <span className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
-      <ChevronUp size={10} className="text-white" strokeWidth={3} />
-    </span>
-  );
-}
-
-/**
- * Small pill button that opens a floating option list on click - used for
- * both the network and currency selectors on the wallet card header.
- */
-function ChipDropdown<T extends string>({
-  value,
-  options,
-  onChange,
-  renderIcon,
-}: {
-  value: T;
-  options: readonly T[];
-  onChange: (v: T) => void;
-  renderIcon?: (v: T) => React.ReactNode;
-}) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 bg-white/10 hover:bg-white/15 rounded-full px-3 py-1.5 text-xs font-medium transition-colors"
-      >
-        {renderIcon?.(value)}
-        {value}
-        <ChevronDown size={14} />
-      </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 bg-gray-900 border border-white/10 rounded-lg shadow-lg py-1 min-w-[110px] z-20">
-            {options.map((opt) => (
-              <button
-                key={opt}
-                onClick={() => {
-                  onChange(opt);
-                  setOpen(false);
-                }}
-                className={`w-full flex items-center gap-2 text-left px-3 py-2 text-xs font-medium hover:bg-white/10 transition-colors ${
-                  opt === value ? "text-blue-400" : "text-white/80"
-                }`}
-              >
-                {renderIcon?.(opt)}
-                {opt}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
 
 function WalletBalanceCard({
   balance,
@@ -136,8 +49,7 @@ function WalletBalanceCard({
 }) {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const [currency, setCurrency] = useState<CurrencyOption>("USD");
-  const [network, setNetwork] = useState<NetworkOption>("EVM");
+  const [currency] = useState<CurrencyOption>("USD");
 
   // Real figures from XflowPay's own Balance object - pending (received,
   // not yet reconciled) first, falling back to available, same precedence
@@ -146,33 +58,28 @@ function WalletBalanceCard({
   const availableEntry = balance ? nonZero(balance.available).find((b) => b.currency === currency) : undefined;
   const amount = pendingEntry?.amount || availableEntry?.amount || "0.00";
 
+  const [showBalance, setShowBalance] = useState(true);
+
   return (
     <div className="bg-[#010631] text-white rounded-lg p-6 flex flex-col gap-6 h-full min-w-0 overflow-hidden">
       {/* Header: title + network/currency selectors */}
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-md">Total Balance</h2>
-        <div className="flex items-center gap-2">
-          <ChipDropdown
-            value={network}
-            options={NETWORK_OPTIONS}
-            onChange={setNetwork}
-            renderIcon={() => <NetworkIcon />}
-          />
-          <ChipDropdown
-            value={currency}
-            options={CURRENCY_OPTIONS}
-            onChange={setCurrency}
-            renderIcon={(c) => <CurrencyIcon currency={c} />}
-          />
-        </div>
+
       </div>
 
       {/* Balance figure - real balance for the selected currency */}
       <div>
         <div className="flex items-baseline gap-2">
-          <span className="text-4xl font-normal">{amount}</span>
+          <span className="text-4xl font-normal">{showBalance ? amount : "****"}</span>
           <span className="text-gray-400 text-lg">{currency}</span>
-          <Eye size={16} className="text-white/60 ml-1" />
+          <button
+            onClick={() => setShowBalance(!showBalance)}
+            className="text-white/60 ml-1 hover:text-white transition-colors cursor-pointer"
+            aria-label={showBalance ? "Hide balance" : "Show balance"}
+          >
+            {showBalance ? <Eye size={16} /> : <EyeOff size={16} />}
+          </button>
         </div>
       </div>
 
@@ -183,7 +90,7 @@ function WalletBalanceCard({
           className="flex-1 flex items-center justify-center gap-2 bg-white text-gray-900 rounded-sm py-2 font-medium hover:bg-gray-100 transition-colors"
         >
           <ArrowUpRight size={16} />
-          Withdraw in INR
+          Withdraw
         </button>
         <button
           onClick={() => requireKyc(user?.kycVerified, onRequireKyc, onDeposit)}
@@ -194,11 +101,7 @@ function WalletBalanceCard({
         </button>
       </div>
       <p className="text-xs text-gray-400">
-        <strong className="text-gray-300 font-semibold">Note:</strong> If you have deposited stablecoins and
-        don&rsquo;t see the amount reflected on your dashboard immediately, please don&rsquo;t panic &mdash; we
-        generally take a few hours to complete our basic checks and verify that the funds are not coming from
-        sanctioned wallets or associated with any illegal activities. Once the checks are complete, the amount will
-        be reflected in your dashboard and VBAN.
+        <strong className="text-gray-300 font-semibold">Note:</strong> Deposits may take a few hours to reflect in your USD VBAN balance.
       </p>
     </div>
   );
@@ -275,7 +178,7 @@ function OfframpCalculatorCard({ onRequireKyc }: { onRequireKyc: () => void }) {
 
     getRateHistory(30)
       .then(setRateHistory)
-      .catch(() => {});
+      .catch(() => { });
 
     getPayoutFeeRule("USD")
       .then(setFeeRule)
@@ -291,9 +194,9 @@ function OfframpCalculatorCard({ onRequireKyc }: { onRequireKyc: () => void }) {
   const receiveAmount =
     liveRate && netAmount !== null
       ? (netAmount * Number(liveRate.userRate)).toLocaleString(undefined, {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })
       : null;
 
   const chartPoints = rateHistory.length >= 2 ? rateHistory.map((p) => Number(p.userRate)) : null;
@@ -301,76 +204,76 @@ function OfframpCalculatorCard({ onRequireKyc }: { onRequireKyc: () => void }) {
   return (
     <div className="bg-white border border-gray-200  rounded-lg p-5 flex flex-col gap-6 min-w-0 overflow-hidden">
       <div>
-        <h1 className="text-lg font-semibold text-gray-900">Inward Remittance Calculator</h1>
+        <h1 className="text-lg font-semibold text-gray-900">Payout Calculator</h1>
         <p className="text-xs text-gray-500 mt-0.5">
-          Estimate what a USD → INR reconciliation would cost right now.
+          Estimate what a USD → INR payout would cost right now.
         </p>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2  gap-5 flex-1 min-w-0">
         {/* Left: live rate + real history */}
-       <div className="flex flex-col h-full">
-  <div>
-    {rateLoading ? (
-      <div className="flex items-center gap-2 text-sm text-gray-500">
-        <span>1 USD = ... INR</span>
-        <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 rounded-full px-2 py-0.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-          Live
-        </span>
-      </div>
-    ) : rateError || !liveRate ? (
-      <div className="text-sm text-red-600">
-        {rateError || "Rate unavailable"}
-      </div>
-    ) : (
-      <div className="flex items-center gap-2 text-sm text-gray-500">
-        <span>
-          1 USD = ₹{Number(liveRate.userRate)} INR
-        </span>
+        <div className="flex flex-col h-full">
+          <div>
+            {rateLoading ? (
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <span>1 USD = ... INR</span>
+                <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 rounded-full px-2 py-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                  Live
+                </span>
+              </div>
+            ) : rateError || !liveRate ? (
+              <div className="text-sm text-red-600">
+                {rateError || "Rate unavailable"}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <span>
+                  1 USD = ₹{Number(liveRate.userRate)} INR
+                </span>
 
-        <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 rounded-full px-2 py-0.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-          Live
-        </span>
-      </div>
-    )}
+                <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 rounded-full px-2 py-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                  Live
+                </span>
+              </div>
+            )}
 
-    <div className="flex items-baseline gap-2 mt-1 mb-4">
-      {rateLoading ? (
-        <span className="text-3xl font-semibold text-gray-300">
-          ...
-        </span>
-      ) : rateError || !liveRate ? (
-        <span className="text-sm text-red-600">
-          {rateError || "Rate unavailable"}
-        </span>
-      ) : (
-        <>
-          <span className="text-3xl font-semibold text-gray-900">
-            ₹{Number(liveRate.userRate).toFixed(2)}
-          </span>
+            <div className="flex items-baseline gap-2 mt-1 mb-4">
+              {rateLoading ? (
+                <span className="text-3xl font-semibold text-gray-300">
+                  ...
+                </span>
+              ) : rateError || !liveRate ? (
+                <span className="text-sm text-red-600">
+                  {rateError || "Rate unavailable"}
+                </span>
+              ) : (
+                <>
+                  <span className="text-3xl font-semibold text-gray-900">
+                    ₹{Number(liveRate.userRate).toFixed(2)}
+                  </span>
 
-          <span className="text-xs text-gray-400">
-            updated{" "}
-            {new Date(liveRate.fetchedAt).toLocaleTimeString(undefined, {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </span>
-        </>
-      )}
-    </div>
+                  <span className="text-xs text-gray-400">
+                    updated{" "}
+                    {new Date(liveRate.fetchedAt).toLocaleTimeString(undefined, {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </>
+              )}
+            </div>
 
-    {chartPoints ? (
-      <RateChart points={chartPoints} />
-    ) : (
-      <div className="h-40 flex items-center justify-center text-xs text-gray-400 border border-dashed border-gray-200 rounded-lg">
-        Rate history will appear here as more conversions happen
-      </div>
-    )}
-  </div>
-</div>
+            {chartPoints ? (
+              <RateChart points={chartPoints} />
+            ) : (
+              <div className="h-40 flex items-center justify-center text-xs text-gray-400 border border-dashed border-gray-200 rounded-lg">
+                Rate history will appear here as more conversions happen
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Right: convert form */}
         <div className="flex flex-col  gap-3 h-full ">
@@ -419,7 +322,7 @@ function OfframpCalculatorCard({ onRequireKyc }: { onRequireKyc: () => void }) {
 
           <div className="flex items-start gap-1.5 text-[11px] text-gray-400 px-0.5">
             <Info size={12} className="shrink-0 mt-0.5" />
-            <span>Estimate only — final amount confirmed on reconciliation.</span>
+            <span>Estimate only, final amount confirmed on withdrawl.</span>
           </div>
 
           <button
@@ -427,7 +330,7 @@ function OfframpCalculatorCard({ onRequireKyc }: { onRequireKyc: () => void }) {
             className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-sm text-white rounded-sm py-1.5 font-medium  transition-colors"
           >
             <ArrowUpRight size={15} />
-            Continue to Reconcile
+            Withdraw in INR
           </button>
         </div>
       </div>

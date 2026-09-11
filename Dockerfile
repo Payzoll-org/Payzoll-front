@@ -8,16 +8,24 @@ COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
 
-# Dev-branch value: points at the dev AuthService Cloud Run service, not
-# production. This is baked in at build time (Vite compiles import.meta.env
-# straight into the JS bundle - can't be overridden at runtime), and a
-# Cloud Build substitution can't reach into a Dockerfile ENV line, so the
-# only way to get dev/prod pointing at different backends is for this
-# Dockerfile to actually differ between the dev and main branches. main's
-# copy of this file keeps the production value
-# (https://api.payzoll.finance); do not carry this line forward when
-# promoting dev -> main. Update this if the dev AuthService URL changes.
-ENV VITE_AUTH_API_URL=https://back-dev-payzoll-97498937015.europe-west1.run.app
+# Hardcoded rather than passed as a --build-arg: this needs to build
+# correctly no matter which path actually builds it (our cloudbuild.yaml,
+# Cloud Run's own "Create service" wizard with Build type=Dockerfile,
+# etc.) without every path having to remember to pass it. It's the real,
+# public, live AuthService URL - not a secret, safe to bake in directly.
+#
+# Custom domain (api.payzoll.finance), not the raw *.run.app URL - Cloud
+# Run's default domains are each their own entry on the Public Suffix
+# List, so a browser treats app.payzoll.finance and a *.run.app backend
+# as different "sites" entirely and blocks the httpOnly refresh-token
+# cookie as third-party no matter how SameSite is configured (confirmed
+# live). Both services living under payzoll.finance fixes that at the
+# root instead of fighting it with more cookie config. Update this if
+# AuthService is ever redeployed under a different URL.
+#
+# dev's copy of this file intentionally diverges here (dev AuthService
+# URL) - do not carry that divergence forward when promoting dev -> main.
+ENV VITE_AUTH_API_URL=https://api.payzoll.finance
 
 RUN npm run build
 
