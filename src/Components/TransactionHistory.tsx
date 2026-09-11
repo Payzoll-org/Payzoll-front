@@ -35,7 +35,7 @@ function PayoutRow({ payout }: { payout: Payout }) {
     <tr className="border-b border-gray-100 last:border-0">
       <td className="py-4 px-4 text-sm text-gray-700 whitespace-nowrap">{formatDate(payout.created)}</td>
       <td className="py-4 px-4 text-sm">
-        <Link to={`/transactionhistory/${payout.id}`} className="text-blue-600 hover:text-blue-700 font-medium">
+        <Link to={`/transactionhistory/${payout.id}`} className="text-arc-gold-600 hover:text-arc-gold-700 font-medium">
           {payout.id}
         </Link>
       </td>

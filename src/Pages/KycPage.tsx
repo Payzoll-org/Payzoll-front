@@ -35,10 +35,10 @@ function StepHeader({
   return (
     <div className=" mt-10 shrink-0">
       <div className="flex items-center gap-2 mb-1.5">
-        <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center">
+        <span className="w-5 h-5 rounded-full bg-arc-gold-600 text-white text-[10px] font-bold flex items-center justify-center">
           {step}
         </span>
-        <span className="text-xs font-semibold text-blue-600 tracking-wide">
+        <span className="text-xs font-semibold text-arc-gold-600 tracking-wide">
           STEP {step} OF {TOTAL_STEPS}
         </span>
       </div>
@@ -114,7 +114,7 @@ function PurposeCodeDropdown({
         {selectedCodes.map((code) => (
           <span
             key={code}
-            className="flex items-center gap-1 pl-2.5 pr-1.5 py-1 rounded-sm bg-blue-50 text-blue-700 text-xs font-medium"
+            className="flex items-center gap-1 pl-2.5 pr-1.5 py-1 rounded-sm bg-arc-gold-50 text-arc-gold-700 text-xs font-medium"
           >
             {code}
             <button
@@ -124,7 +124,7 @@ function PurposeCodeDropdown({
                 onToggle(code);
               }}
               disabled={disabled}
-              className="hover:bg-blue-100 rounded-full p-0.5"
+              className="hover:bg-arc-gold-100 rounded-full p-0.5"
             >
               <X className="w-3 h-3" />
             </button>
@@ -181,9 +181,9 @@ function PurposeCodeDropdown({
             ) : (
               groups.map((group) => (
                 <div key={group.name}>
-                  <div className="flex items-center justify-between px-3 py-2 bg-blue-50/60 sticky top-0">
+                  <div className="flex items-center justify-between px-3 py-2 bg-arc-gold-50/60 sticky top-0">
                     <span className="flex items-center gap-2 text-xs font-semibold text-gray-600">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-arc-gold-500" />
                       {group.name}
                     </span>
                     <span className="text-xs text-gray-400">{group.options.length}</span>
@@ -195,7 +195,7 @@ function PurposeCodeDropdown({
                         <label
                           key={option.code}
                           className={`flex items-start gap-3 px-3 py-2.5 text-sm cursor-pointer ${
-                            checked ? "bg-blue-50" : "hover:bg-gray-50"
+                            checked ? "bg-arc-gold-50" : "hover:bg-gray-50"
                           }`}
                         >
                           <span
@@ -289,7 +289,7 @@ function IndustryCodeDropdown({
           ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
       >
         {selectedOption && (
-          <span className="flex items-center gap-1 pl-2.5 pr-1.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium">
+          <span className="flex items-center gap-1 pl-2.5 pr-1.5 py-1 rounded-full bg-arc-gold-50 text-arc-gold-700 text-xs font-medium">
             {selectedOption.code}
             <button
               type="button"
@@ -298,7 +298,7 @@ function IndustryCodeDropdown({
                 onClear();
               }}
               disabled={disabled}
-              className="hover:bg-blue-100 rounded-sm p-0.5"
+              className="hover:bg-arc-gold-100 rounded-sm p-0.5"
             >
               <X className="w-3 h-3" />
             </button>
@@ -354,9 +354,9 @@ function IndustryCodeDropdown({
               <p className="px-3 py-3 text-sm text-gray-400">Type to search NAICS industry codes…</p>
             ) : (
               <>
-                <div className="flex items-center justify-between px-3 py-2 bg-blue-50/60 sticky top-0">
+                <div className="flex items-center justify-between px-3 py-2 bg-arc-gold-50/60 sticky top-0">
                   <span className="flex items-center gap-2 text-xs font-semibold text-gray-600">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-arc-gold-500" />
                     Industry codes
                   </span>
                   <span className="text-xs text-gray-400">{filteredOptions.length}</span>
@@ -376,7 +376,7 @@ function IndustryCodeDropdown({
                             setOpen(false);
                           }}
                           className={`flex items-start gap-3 px-3 py-2.5 text-sm cursor-pointer ${
-                            checked ? "bg-blue-50" : "hover:bg-gray-50"
+                            checked ? "bg-arc-gold-50" : "hover:bg-gray-50"
                           }`}
                         >
                           <span
@@ -450,7 +450,7 @@ function OnboardingSidebar({
                 <div
                   className={
                     isDone
-                      ? "w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center shrink-0"
+                      ? "w-10 h-10 rounded-full bg-arc-gold-600 flex items-center justify-center shrink-0"
                       : isActive
                       ? "w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center shrink-0"
                       : "w-10 h-10 rounded-full border-2 border-gray-200 bg-white flex items-center justify-center shrink-0"
@@ -471,7 +471,7 @@ function OnboardingSidebar({
                 {!isLast && (
                   <div
                     className={`w-px flex-1 min-h-[2.75rem] ${
-                      isDone ? "bg-blue-600" : "bg-gray-200"
+                      isDone ? "bg-arc-gold-600" : "bg-gray-200"
                     }`}
                   />
                 )}
@@ -489,7 +489,7 @@ function OnboardingSidebar({
                 <p
                   className={
                     isActive
-                      ? "text-xs text-blue-600 font-medium mt-0.5"
+                      ? "text-xs text-arc-gold-600 font-medium mt-0.5"
                       : "text-xs text-gray-400 mt-0.5"
                   }
                 >
@@ -664,9 +664,11 @@ function AboutBusinessStep({
               onChange={(e) => setProductDescription(e.target.value)}
               placeholder="Describe what your business does"
               rows={2}
+              maxLength={400}
               className={`${inputClass} resize-none`}
               disabled={loading}
             />
+            <p className="text-xs text-gray-400 mt-1">{productDescription.length}/400 characters</p>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4">
@@ -723,7 +725,7 @@ function AboutBusinessStep({
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="px-8 h-11 flex items-center justify-center gap-3 bg-blue-600 rounded-full
+              className="px-8 h-11 flex items-center justify-center gap-3 bg-arc-gold-600 rounded-full
                         hover:scale-105 transition-transform shadow-lg hover:shadow-xl
                         disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
@@ -1064,7 +1066,7 @@ function BusinessIdentifiersStep({
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="px-8 h-11 flex items-center justify-center gap-3 bg-blue-600 rounded-full
+              className="px-8 h-11 flex items-center justify-center gap-3 bg-arc-gold-600 rounded-full
                         hover:scale-105 transition-transform shadow-lg hover:shadow-xl
                         disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
@@ -1341,7 +1343,7 @@ function BankDetailsStep({
             <button
               onClick={handleContinue}
               disabled={bankLoading}
-              className="px-8 h-11 flex items-center justify-center gap-3 bg-blue-600 rounded-full
+              className="px-8 h-11 flex items-center justify-center gap-3 bg-arc-gold-600 rounded-full
                         hover:scale-105 transition-transform shadow-lg hover:shadow-xl
                         disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
@@ -1388,12 +1390,12 @@ function SummarySection({
         <button
           type="button"
           onClick={onEdit}
-          className="text-sm font-semibold text-blue-600 hover:text-blue-700"
+          className="text-sm font-semibold text-arc-gold-600 hover:text-arc-gold-700"
         >
           Edit
         </button>
       </div>
-      <div className="flex flex-col gap-3.5 bg-blue-50/70 rounded-xl p-4">{children}</div>
+      <div className="flex flex-col gap-3.5 bg-arc-gold-50/70 rounded-xl p-4">{children}</div>
     </div>
   );
 }

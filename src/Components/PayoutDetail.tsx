@@ -110,12 +110,12 @@ export default function PayoutDetail() {
         {/* Left column */}
         <div className="border border-gray-200 rounded-sm p-6 min-w-0">
           <p className="text-xs text-gray-500 mb-1">
-            {firstReceivable?.partnerName && <>Partner: <span className="text-blue-600 font-medium">{firstReceivable.partnerName}</span> · </>}
+            {firstReceivable?.partnerName && <>Partner: <span className="text-arc-gold-600 font-medium">{firstReceivable.partnerName}</span> · </>}
             {firstReceivable?.purposeCode && (
               <>Payout for Purpose Code: {firstReceivable.purposeCode} - {firstReceivable.purposeCodeDescription}</>
             )}
           </p>
-          <p className="text-3xl font-bold text-gray-900 mt-2 mb-4">
+          <p className="font-heading text-3xl font-semibold text-gray-900 mt-2 mb-4">
             {payout.settledAmount ? `${payout.settledCurrency} ${payout.settledAmount}` : "Pending settlement"}
           </p>
 
@@ -149,7 +149,7 @@ export default function PayoutDetail() {
                 {payout.tracker.map((step, i) => (
                   <div key={i} className="flex gap-3">
                     <div className="flex flex-col items-center">
-                      <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${i === payout.tracker.length - 1 ? "bg-green-500" : "bg-blue-400"}`} />
+                      <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${i === payout.tracker.length - 1 ? "bg-green-500" : "bg-arc-gold-400"}`} />
                       {i < payout.tracker.length - 1 && <div className="w-px flex-1 bg-gray-200 my-1" />}
                     </div>
                     <div className="pb-4">
@@ -196,7 +196,7 @@ export default function PayoutDetail() {
                     .finally(() => setDownloading(false));
                 }}
                 disabled={downloading}
-                className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 disabled:opacity-50"
+                className="flex items-center gap-2 text-sm text-arc-gold-600 hover:text-arc-gold-700 disabled:opacity-50"
               >
                 <FileText size={15} />
                 FIRA certificate
@@ -226,7 +226,7 @@ export default function PayoutDetail() {
                         <td className="py-2 px-3 text-sm text-gray-700 whitespace-nowrap">
                           {r.reconcileDate ? formatTimestamp(r.reconcileDate) : "-"}
                         </td>
-                        <td className="py-2 px-3 text-sm text-blue-600">{r.invoiceNumber || "-"}</td>
+                        <td className="py-2 px-3 text-sm text-arc-gold-600">{r.invoiceNumber || "-"}</td>
                         <td className="py-2 px-3 text-sm text-gray-700">{r.invoiceDescription || "-"}</td>
                         <td className="py-2 px-3 text-sm text-gray-900 text-right whitespace-nowrap">
                           {r.amount ? `${r.currency} ${r.amount}` : "-"}

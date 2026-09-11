@@ -102,7 +102,7 @@ function LocalBankDetails({ account }: { account: BankAccount }) {
             key={r}
             onClick={() => setRail(r)}
             className={`px-5 py-1.5 rounded-sm text-sm font-medium transition-colors ${
-              rail === r ? "bg-blue-600 text-white" : "text-gray-600 hover:text-gray-900"
+              rail === r ? "bg-arc-gold-600 text-white" : "text-gray-600 hover:text-gray-900"
             }`}
           >
             {r === "local" ? "Local" : "SWIFT"}
@@ -167,7 +167,7 @@ function StablecoinDetails({ bankAccounts }: { bankAccounts: BankAccount[] }) {
             key={f}
             onClick={() => setFilter(f)}
             className={`px-5 py-1.5 rounded-sm text-sm font-medium transition-colors ${
-              filter === f ? "bg-blue-600 text-white" : "text-gray-600 hover:text-gray-900"
+              filter === f ? "bg-arc-gold-600 text-white" : "text-gray-600 hover:text-gray-900"
             }`}
           >
             {f === "all" ? "All" : f}
@@ -240,7 +240,7 @@ export default function WaysToReceiveModal({
                   onClick={() => setCategory("local")}
                   className={`w-full flex items-center gap-3 px-3 py-3 rounded-sm text-sm font-medium border ${
                     category === "local"
-                      ? "bg-blue-50 text-blue-700 border-blue-200"
+                      ? "bg-arc-gold-50 text-arc-gold-700 border-arc-gold-200"
                       : "text-gray-700 hover:bg-gray-50 border-gray-200"
                   }`}
                 >
@@ -257,7 +257,7 @@ export default function WaysToReceiveModal({
                   onClick={() => setCategory("stablecoin")}
                   className={`w-full flex items-center gap-3 px-3 py-3 rounded-sm text-sm font-medium border ${
                     category === "stablecoin"
-                      ? "bg-blue-50 text-blue-700 border-blue-200"
+                      ? "bg-arc-gold-50 text-arc-gold-700 border-arc-gold-200"
                       : "text-gray-700 hover:bg-gray-50 border-gray-200"
                   }`}
                 >

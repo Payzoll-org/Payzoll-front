@@ -1,5 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Ancizar+Serif:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700;800&family=Manrope:wght@400;500;600;700&display=swap');
 
 
 @custom-variant dark (&:is(.dark *));
@@ -9,8 +9,23 @@ html {
 }
 
 @theme inline {
-  --font-heading: "Space Grotesk", sans-serif;
-  --font-body: "Manrope", sans-serif;
+  /* Ancizar Serif used everywhere, not just display headlines. */
+  --font-sans: 'Ancizar Serif', 'Iowan Old Style', Georgia, serif;
+  --font-heading: 'Ancizar Serif', 'Iowan Old Style', Georgia, serif;
+  --font-body: 'Ancizar Serif', 'Iowan Old Style', Georgia, serif;
+
+  /* Arc gold ramp (matches Payzoll-Landing brand accent), for utility
+     classes like bg-arc-gold-600 where a plain semantic token isn't enough. */
+  --color-arc-gold-50: #f7edd9;
+  --color-arc-gold-100: #ead5ab;
+  --color-arc-gold-200: #e0c38c;
+  --color-arc-gold-300: #d3b073;
+  --color-arc-gold-400: #c19b58;
+  --color-arc-gold-500: #ab823f;
+  --color-arc-gold-600: #96702f;
+  --color-arc-gold-700: #7f5b26;
+  --color-arc-gold-800: #563b17;
+  --color-arc-gold-900: #38260f;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -50,71 +65,73 @@ html {
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+
+  /* Arc theme (matches Payzoll-Landing): warm paper + ink + gold accent */
+  --background: #fdfbf7;
+  --foreground: #12110f;
+  --card: #ffffff;
+  --card-foreground: #12110f;
+  --popover: #ffffff;
+  --popover-foreground: #12110f;
+  --primary: #ab823f;
+  --primary-foreground: #12110f;
+  --secondary: #f8f4ed;
+  --secondary-foreground: #12110f;
+  --muted: #efe8dc;
+  --muted-foreground: #6d6b68;
+  --accent: #ead5ab;
+  --accent-foreground: #38260f;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --border: #edecea;
+  --input: #edecea;
+  --ring: #ab823f;
+  --chart-1: #ab823f;
+  --chart-2: #7f5b26;
+  --chart-3: #cfc6b4;
+  --chart-4: #d3b073;
+  --chart-5: #38260f;
+  --sidebar: #fbfaf8;
+  --sidebar-foreground: #12110f;
+  --sidebar-primary: #ab823f;
+  --sidebar-primary-foreground: #12110f;
+  --sidebar-accent: #ead5ab;
+  --sidebar-accent-foreground: #38260f;
+  --sidebar-border: #edecea;
+  --sidebar-ring: #ab823f;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --background: #100e0e;
+  --foreground: #fdfbf7;
+  --card: #1a1815;
+  --card-foreground: #fdfbf7;
+  --popover: #1a1815;
+  --popover-foreground: #fdfbf7;
+  --primary: #d3b073;
+  --primary-foreground: #100e0e;
+  --secondary: #221f1a;
+  --secondary-foreground: #fdfbf7;
+  --muted: #221f1a;
+  --muted-foreground: #c3c1bd;
+  --accent: #563b17;
+  --accent-foreground: #ead5ab;
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --border: #2a2723;
+  --input: #2a2723;
+  --ring: #d3b073;
+  --chart-1: #d3b073;
+  --chart-2: #ab823f;
+  --chart-3: #cfc6b4;
+  --chart-4: #ead5ab;
+  --chart-5: #7f5b26;
+  --sidebar: #151310;
+  --sidebar-foreground: #fdfbf7;
+  --sidebar-primary: #d3b073;
+  --sidebar-primary-foreground: #100e0e;
+  --sidebar-accent: #221f1a;
+  --sidebar-accent-foreground: #ead5ab;
+  --sidebar-border: #2a2723;
+  --sidebar-ring: #d3b073;
 }
 
 @layer base {
@@ -123,5 +140,6 @@ html {
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Ancizar Serif', 'Iowan Old Style', Georgia, serif;
   }
 }

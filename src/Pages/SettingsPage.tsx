@@ -147,7 +147,7 @@ function ChangePasswordRow({ email }: { email: string }) {
             placeholder="6-digit code"
             value={otp}
             onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400"
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-arc-gold-400"
           />
           <div className="relative">
             <input
@@ -155,7 +155,7 @@ function ChangePasswordRow({ email }: { email: string }) {
               placeholder="New password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 pr-10 text-sm outline-none focus:border-blue-400"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 pr-10 text-sm outline-none focus:border-arc-gold-400"
             />
             <button
               type="button"
@@ -170,7 +170,7 @@ function ChangePasswordRow({ email }: { email: string }) {
             <button
               onClick={submitReset}
               disabled={loading || otp.length !== 6 || !newPassword}
-              className="px-4 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="px-4 py-1.5 text-sm font-medium text-white bg-arc-gold-600 rounded-lg hover:bg-arc-gold-700 disabled:opacity-50 transition-colors"
             >
               {loading ? "Updating…" : "Confirm"}
             </button>

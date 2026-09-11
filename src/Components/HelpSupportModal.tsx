@@ -3,7 +3,7 @@ import { X, Wrench, CreditCard, HelpCircle, Upload, Send, FileText, Check } from
 import { createSupportTicket, type SupportCategory } from "../services/supportApi";
 
 const CATEGORIES: { value: SupportCategory; label: string; description: string; icon: React.ReactNode }[] = [
-  { value: "technical", label: "Technical", description: "App or wallet bug", icon: <Wrench size={20} className="text-blue-600" /> },
+  { value: "technical", label: "Technical", description: "App or wallet bug", icon: <Wrench size={20} className="text-arc-gold-600" /> },
   { value: "payment", label: "Payment", description: "Transfer or payout", icon: <CreditCard size={20} className="text-gray-500" /> },
   { value: "general", label: "General", description: "Questions & help", icon: <HelpCircle size={20} className="text-gray-500" /> },
 ];
@@ -107,7 +107,7 @@ export default function HelpSupportModal({ open, onClose }: { open: boolean; onC
               </p>
               <button
                 onClick={resetAndClose}
-                className="mt-2 px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                className="mt-2 px-5 py-2 text-sm font-medium text-white bg-arc-gold-600 rounded-lg hover:bg-arc-gold-700 transition-colors"
               >
                 Done
               </button>
@@ -124,7 +124,7 @@ export default function HelpSupportModal({ open, onClose }: { open: boolean; onC
                       key={c.value}
                       onClick={() => setCategory(c.value)}
                       className={`flex flex-col items-center text-center gap-1 rounded-sm border-2 px-2 py-4 transition-colors ${
-                        category === c.value ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:bg-gray-50"
+                        category === c.value ? "border-arc-gold-500 bg-arc-gold-50" : "border-gray-200 hover:bg-gray-50"
                       }`}
                     >
                       <span className="w-7 h-7 rounded-sm bg-white shadow-sm flex items-center justify-center">
@@ -147,7 +147,7 @@ export default function HelpSupportModal({ open, onClose }: { open: boolean; onC
                   onChange={(e) => setSubject(e.target.value)}
                   placeholder="e.g. Payout stuck in pending"
                   maxLength={200}
-                  className="w-full border border-gray-200 rounded-sm px-3 py-2 text-sm outline-none focus:border-blue-400"
+                  className="w-full border border-gray-200 rounded-sm px-3 py-2 text-sm outline-none focus:border-arc-gold-400"
                 />
               </div>
 
@@ -161,7 +161,7 @@ export default function HelpSupportModal({ open, onClose }: { open: boolean; onC
                   placeholder="Steps to reproduce, what you expected, what happened…"
                   maxLength={5000}
                   rows={4}
-                  className="w-full border border-gray-200 rounded-sm px-3 py-2 text-sm outline-none focus:border-blue-400 resize-y"
+                  className="w-full border border-gray-200 rounded-sm px-3 py-2 text-sm outline-none focus:border-arc-gold-400 resize-y"
                 />
               </div>
 
@@ -183,13 +183,13 @@ export default function HelpSupportModal({ open, onClose }: { open: boolean; onC
                 >
                   {file ? (
                     <>
-                      <FileText size={22} className="text-blue-600" />
+                      <FileText size={22} className="text-arc-gold-600" />
                       <span className="text-sm font-medium text-gray-900 px-4 truncate max-w-full">{file.name}</span>
                       <span className="text-xs text-gray-400">Click to replace</span>
                     </>
                   ) : (
                     <>
-                      <Upload size={22} className="text-blue-600" />
+                      <Upload size={22} className="text-arc-gold-600" />
                       <span className="text-sm font-semibold text-gray-900">Click to upload</span>
                       <span className="text-xs text-gray-400">PNG, JPG, MP4 or MOV — up to 25 MB</span>
                     </>
@@ -208,7 +208,7 @@ export default function HelpSupportModal({ open, onClose }: { open: boolean; onC
             <button
               onClick={handleSubmit}
               disabled={submitting || !subject.trim() || !description.trim()}
-              className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-sm py-2 font-semibold transition-colors"
+              className="w-full flex items-center justify-center gap-2 bg-arc-gold-600 hover:bg-arc-gold-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-sm py-2 font-semibold transition-colors"
             >
               <Send size={16} />
               {submitting ? "Sending…" : "Send to support team"}

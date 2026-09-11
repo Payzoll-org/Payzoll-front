@@ -29,6 +29,7 @@ import {
   submitReconciliation,
   type ReconciliationPreview,
 } from "../services/reconcileApi";
+import ctaCoin from "../assets/coin-gold.webp";
 
 const inputClass =
   "px-3 py-2.5 focus:outline-none focus:ring-0 border border-gray-300 rounded-sm focus:border-black transition text-sm bg-white";
@@ -140,7 +141,7 @@ function Combobox({
               onCreateNew();
               setOpen(false);
             }}
-            className="w-full flex items-center gap-2 px-4 py-3 text-blue-600 font-semibold text-sm hover:bg-blue-50"
+            className="w-full flex items-center gap-2 px-4 py-3 text-arc-gold-600 font-semibold text-sm hover:bg-arc-gold-50"
           >
             {createLabel}
             <ArrowUpFromLine size={15} />
@@ -159,7 +160,7 @@ function Combobox({
                     setOpen(false);
                   }}
                   className={`w-full flex items-center justify-between gap-2 px-4 py-3 text-sm text-left hover:bg-gray-50 ${
-                    o.id === value ? "bg-blue-50 text-blue-700" : "text-gray-700"
+                    o.id === value ? "bg-arc-gold-50 text-arc-gold-700" : "text-gray-700"
                   }`}
                 >
                   {o.label}
@@ -877,11 +878,11 @@ function InvoicePreviewPanel({
   if (!receivable) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-center px-8">
-        <div className="w-16 h-16 rounded-2xl bg-white border border-indigo-100 flex items-center justify-center mb-4 shadow-sm">
-          <ClipboardList size={26} className="text-indigo-300" />
+        <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center mb-4">
+          <ClipboardList size={26} className="text-arc-gold-200" />
         </div>
-        <p className="text-base font-semibold text-gray-900">No invoice selected</p>
-        <p className="text-sm text-gray-500 mt-1">Select an invoice to see details here</p>
+        <p className="text-base font-semibold text-white">No invoice selected</p>
+        <p className="text-sm text-white/60 mt-1">Select an invoice to see details here</p>
       </div>
     );
   }
@@ -918,22 +919,28 @@ function InvoicePreviewPanel({
   return (
     <div className="flex-1 px-6 py-6 flex flex-col gap-4 overflow-y-auto">
       {/* Receivable + Partner */}
-      <div className="bg-white border border-indigo-100 rounded-2xl p-5">
+      <div className="bg-white/10 border border-white/15 backdrop-blur-sm rounded-2xl p-5">
         <div className="flex items-start gap-3">
-          <div className="w-11 h-11 rounded-xl border border-indigo-100 flex items-center justify-center shrink-0">
-            <FileText size={18} className="text-gray-500" />
+          <div className="w-11 h-11 rounded-xl border border-white/20 flex items-center justify-center shrink-0">
+            <FileText size={18} className="text-white/70" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-gray-500">Receivable</span>
+              <span className="text-white/60">Receivable</span>
               {due && (
                 <>
-                  <span className="text-gray-300">|</span>
-                  <span className={`font-medium ${due.className}`}>{due.label}</span>
+                  <span className="text-white/30">|</span>
+                  <span
+                    className={`font-medium ${
+                      due.className === "text-red-600" ? "text-red-300" : "text-amber-300"
+                    }`}
+                  >
+                    {due.label}
+                  </span>
                 </>
               )}
             </div>
-            <p className="text-lg font-semibold text-gray-900 mt-0.5">
+            <p className="text-lg font-semibold text-white mt-0.5">
               {receivable.invoice.referenceNumber || receivable._id}
             </p>
           </div>
@@ -941,14 +948,14 @@ function InvoicePreviewPanel({
 
         {partner && (
           <>
-            <div className="border-t border-gray-100 my-4" />
+            <div className="border-t border-white/10 my-4" />
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl border border-indigo-100 flex items-center justify-center shrink-0">
-                <User size={18} className="text-gray-500" />
+              <div className="w-11 h-11 rounded-xl border border-white/20 flex items-center justify-center shrink-0">
+                <User size={18} className="text-white/70" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Partner</p>
-                <p className="text-base font-semibold text-gray-900">{partner.nickname}</p>
+                <p className="text-sm text-white/60">Partner</p>
+                <p className="text-base font-semibold text-white">{partner.nickname}</p>
               </div>
             </div>
           </>
@@ -956,49 +963,49 @@ function InvoicePreviewPanel({
       </div>
 
       {/* Amount + indicative rate */}
-      <div className="bg-white border border-indigo-100 rounded-2xl p-5 flex flex-col gap-3">
+      <div className="bg-white/10 border border-white/15 backdrop-blur-sm rounded-2xl p-5 flex flex-col gap-3">
         <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-600">Gross Amount</span>
-          <span className="font-semibold text-gray-900">
+          <span className="text-white/60">Gross Amount</span>
+          <span className="font-semibold text-white">
             {receivable.currency} {grossAmountNum.toFixed(2)}
           </span>
         </div>
         <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-600">Payout Fee</span>
-          <span className="font-semibold text-red-600">
+          <span className="text-white/60">Payout Fee</span>
+          <span className="font-semibold text-red-300">
             {feeRuleLoading ? "..." : payoutFee !== null ? `-${receivable.currency} ${payoutFee.toFixed(2)}` : "-"}
           </span>
         </div>
 
-        <div className="border-t border-dashed border-gray-200 my-1" />
+        <div className="border-t border-dashed border-white/20 my-1" />
 
         <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-600">Net Amount</span>
-          <span className="font-semibold text-gray-900">
+          <span className="text-white/60">Net Amount</span>
+          <span className="font-semibold text-white">
             {feeRuleLoading ? "..." : netAmount !== null ? `${receivable.currency} ${netAmount.toFixed(2)}` : "-"}
           </span>
         </div>
         <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-600">Transaction Rate</span>
-          <span className="font-medium text-gray-900 flex items-center gap-1">
+          <span className="text-white/60">Transaction Rate</span>
+          <span className="font-medium text-white flex items-center gap-1">
             To be booked in 60 mins
-            <ChevronDown size={14} className="text-gray-400" />
+            <ChevronDown size={14} className="text-white/50" />
           </span>
         </div>
 
-        <div className="border-t border-gray-200 my-1" />
+        <div className="border-t border-white/15 my-1" />
 
         <button onClick={toggleIndicative} className="flex items-center justify-between">
-          <span className="text-sm font-semibold text-gray-900">Gross Payout Amount</span>
-          <span className="text-sm font-medium text-blue-600">
+          <span className="text-sm font-semibold text-white">Gross Payout Amount</span>
+          <span className="text-sm font-medium text-arc-gold-200">
             {showIndicative ? "Hide indicative" : "View indicative"}
           </span>
         </button>
 
         {showIndicative && (
-          <div className="bg-blue-50 rounded-xl p-4 flex items-start gap-2">
-            <Info size={15} className="text-blue-500 shrink-0 mt-0.5" />
-            <p className="text-sm text-blue-800">
+          <div className="bg-white/10 border border-white/10 rounded-xl p-4 flex items-start gap-2">
+            <Info size={15} className="text-arc-gold-200 shrink-0 mt-0.5" />
+            <p className="text-sm text-white/80">
               {liveRateLoading
                 ? "Fetching live indicative rate..."
                 : liveRateError
@@ -1013,17 +1020,17 @@ function InvoicePreviewPanel({
 
       {/* Payout destination */}
       {bankAccount && preview && (
-        <div className="bg-white border border-indigo-100 rounded-2xl p-5 flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl border border-indigo-100 flex items-center justify-center shrink-0">
-            <FileText size={18} className="text-gray-500" />
+        <div className="bg-white/10 border border-white/15 backdrop-blur-sm rounded-2xl p-5 flex items-center gap-3">
+          <div className="w-11 h-11 rounded-xl border border-white/20 flex items-center justify-center shrink-0">
+            <FileText size={18} className="text-white/70" />
           </div>
           <div className="text-sm">
-            <p className="text-gray-900">
-              <span className="text-gray-500">Payout to:</span>{" "}
+            <p className="text-white">
+              <span className="text-white/60">Payout to:</span>{" "}
               <span className="font-semibold">**** {bankLast4 || "----"}</span>
             </p>
-            <p className="text-gray-900 mt-0.5">
-              <span className="text-gray-500">Payout on:</span>{" "}
+            <p className="text-white mt-0.5">
+              <span className="text-white/60">Payout on:</span>{" "}
               <span className="font-semibold underline decoration-dotted underline-offset-2">
                 {preview.payout_settlement_date} ({preview.timezone})
               </span>
@@ -1167,18 +1174,6 @@ export default function ReconcilePage() {
 
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-3 bg-indigo-50 border-b border-indigo-100 shrink-0">
-        <h1 className="text-md font-semibold text-gray-800">Reconcile USD Funds</h1>
-        <button
-          onClick={() => navigate("/dashboard")}
-          className="text-gray-500 hover:text-gray-800 p-1"
-          aria-label="Close"
-        >
-          <X size={20} />
-        </button>
-      </div>
-
       {dataLoading ? (
         <div className="flex-1 flex items-center justify-center">
           <div className="w-6 h-6 border-2 border-gray-300 border-t-black rounded-full animate-spin" />
@@ -1186,14 +1181,14 @@ export default function ReconcilePage() {
       ) : (
         <div className="flex-1 flex min-h-0">
           {/* Left: form */}
-          <div className="w-1/2 min-w-0 overflow-y-auto px-8 py-8">
+          <div className="w-1/2 min-w-0 overflow-y-auto px-8 py-4">
             {submitError && (
               <div className="mb-6 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
                 {submitError}
               </div>
             )}
 
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3">
               {/* 1. Partner */}
               <div>
                 <SectionLabel step={1} title="Partner" subtitle="Select a partner to reconcile with" />
@@ -1419,7 +1414,7 @@ export default function ReconcilePage() {
                       ? "Amount exceeds your common balance"
                       : undefined
                   }
-                  className="px-8 h-12 flex items-center justify-center gap-3 bg-black rounded-full
+                  className="px-8 h-12 flex items-center justify-center gap-3 bg-arc-gold-600 hover:bg-arc-gold-700 rounded-full
                             hover:scale-105 transition-transform shadow-lg hover:shadow-xl
                             disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
@@ -1437,14 +1432,32 @@ export default function ReconcilePage() {
           </div>
 
           {/* Right: invoice preview */}
-          <div className="w-1/2 min-w-0 overflow-y-auto bg-indigo-50/60 border-l border-indigo-100 flex flex-col">
-            <InvoicePreviewPanel
-              receivable={selectedReceivable}
-              partner={selectedPartner}
-              amount={amount}
-              bankAccount={bankAccounts.find((a) => a._id === bankAccountId)}
-              preview={preview}
+          <div
+            className="w-1/2 min-w-0 relative overflow-hidden flex flex-col"
+            style={{ backgroundImage: "linear-gradient(rgb(56,37,15) 0%, rgb(158,107,42) 100%)" }}
+          >
+            <button
+              onClick={() => navigate("/dashboard")}
+              aria-label="Close"
+              className="absolute top-4 right-4 z-20 w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+            >
+              <X size={18} />
+            </button>
+            <img
+              src={ctaCoin}
+              alt=""
+              aria-hidden="true"
+              className="pointer-events-none absolute -right-[10%] -bottom-[10%] w-[45%] max-w-[260px] object-contain opacity-90 z-0"
             />
+            <div className="relative z-10 flex-1 min-h-0 flex flex-col">
+              <InvoicePreviewPanel
+                receivable={selectedReceivable}
+                partner={selectedPartner}
+                amount={amount}
+                bankAccount={bankAccounts.find((a) => a._id === bankAccountId)}
+                preview={preview}
+              />
+            </div>
           </div>
         </div>
       )}

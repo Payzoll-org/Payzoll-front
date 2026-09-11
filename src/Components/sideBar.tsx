@@ -15,7 +15,7 @@ import { getCalApi } from '@calcom/embed-react';
 
 
 import toast from "react-hot-toast";
-import logo from "../assets/payzoll.png";
+import logo from "../assets/cta-coin.webp";
 import { useAuthStore } from "../Zustand/userStore";
 import { logoutUser } from "../services/authApi";
 import HelpSupportModal from "./HelpSupportModal";
@@ -64,7 +64,7 @@ const sideBAr: React.FC = () => {
       const cal = await getCalApi({ namespace: "payzoll-booking" });
       cal("ui", {
         theme: "light",
-        styles: { branding: { brandColor: "#2563eb" } },
+        styles: { branding: { brandColor: "#ab823f" } },
         hideEventTypeDetails: false,
         layout: "month_view",
       });
@@ -180,8 +180,8 @@ const sideBAr: React.FC = () => {
         <div className=" pt-4 ">
           <div className="flex justify-between items-center space-x-3  mb-4">
             <div className='flex items-center  gap-2'>
-              <div className='size-10 flex justify-center items-center rounded-md bg-gray-200 dark:bg-gray-700 overflow-hidden'>
-                <img src={logo} alt="Payzoll logo" className='w-full h-full object-contain p-1.5' />
+              <div className='size-9 flex justify-center items-center overflow-hidden'>
+                <img src={logo} alt="Payzoll logo" className='w-full h-full object-contain' />
               </div>
               <div className='text-black dark:text-white'>
                 <h4 className="text-black dark:text-white">{user?.name || "Loading..."}</h4>
@@ -205,14 +205,14 @@ const sideBAr: React.FC = () => {
                 className={`w-full flex items-center gap-3  py-1.5 rounded-sm pl-3 pr-3 text-left transition-all duration-200 group ${item.disabled
                   ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
                   : activeItem === item.id && !item.isFolder
-                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                    ? 'bg-arc-gold-50 dark:bg-arc-gold-900/20 text-arc-gold-600 dark:text-arc-gold-400'
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                   }`}
               >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   {item.isFolder ? (
                     expandedFolders[item.id] ? (
-                      <FolderOpen className="text-blue-500" size={16} />
+                      <FolderOpen className="text-arc-gold-500" size={16} />
                     ) : (
                       <Folder size={15} />
                     )
@@ -242,7 +242,7 @@ const sideBAr: React.FC = () => {
                       key={child.id}
                       onClick={() => setLocalActiveItem(child.id)}
                       className={`w-full flex items-center gap-3 px-3 py-1 pl-10 rounded-sm text-left transition-all duration-200 ${activeItem === child.id
-                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                        ? 'bg-arc-gold-50 dark:bg-arc-gold-900/20 text-arc-gold-600 dark:text-arc-gold-400'
                         : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300'
                         }`}
                     >

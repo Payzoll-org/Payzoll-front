@@ -44,9 +44,9 @@ export default function StablecoinBanner() {
 
   if (underReview) {
     return (
-      <div className="w-full bg-indigo-50 border-b border-indigo-200 px-4 py-2.5 flex items-center gap-2 shrink-0">
-        <Clock size={18} className="shrink-0 text-indigo-600" />
-        <span className="text-sm font-medium text-indigo-800">
+      <div className="w-full bg-arc-gold-50 border-b border-arc-gold-200 px-4 py-2.5 flex items-center gap-2 shrink-0">
+        <Clock size={18} className="shrink-0 text-arc-gold-600" />
+        <span className="text-sm font-medium text-arc-gold-800">
           Your stablecoin payments request is under review. This can take a little while - no action needed.
         </span>
       </div>
@@ -55,8 +55,8 @@ export default function StablecoinBanner() {
 
   return (
     <>
-      <div className="w-full bg-indigo-50 border-b border-indigo-200 px-4 py-2.5 flex items-center justify-between gap-4 shrink-0">
-        <div className="flex items-center gap-2 text-indigo-800">
+      <div className="w-full bg-arc-gold-50 border-b border-arc-gold-200 px-4 py-2.5 flex items-center justify-between gap-4 shrink-0">
+        <div className="flex items-center gap-2 text-arc-gold-800">
           <Coins size={18} className="shrink-0" />
           <span className="text-sm font-medium">
             Accept USDC and USDT payments by enabling stablecoin payments.

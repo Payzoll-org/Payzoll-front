@@ -99,7 +99,7 @@ function PaymentsReceivedTable() {
               key={f}
               onClick={() => setFilter(f)}
               className={`px-4 py-1 rounded-sm text-sm font-medium transition-colors ${
-                filter === f ? "bg-blue-600 text-white" : "text-gray-600 hover:text-gray-900"
+                filter === f ? "bg-arc-gold-600 text-white" : "text-gray-600 hover:text-gray-900"
               }`}
             >
               {f === "all" ? "All" : f}

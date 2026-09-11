@@ -46,9 +46,9 @@ export default function KycBanner() {
 
   if (underReview) {
     return (
-      <div className="w-full bg-blue-50 border-b border-blue-200 px-4 py-2 flex items-center gap-2 shrink-0">
-        <Clock size={18} className="shrink-0 text-blue-600" />
-        <span className="text-sm font-medium text-blue-800">
+      <div className="w-full bg-arc-gold-50 border-b border-arc-gold-200 px-4 py-2 flex items-center gap-2 shrink-0">
+        <Clock size={18} className="shrink-0 text-arc-gold-600" />
+        <span className="text-sm font-medium text-arc-gold-800">
           Your KYC has been submitted to Payzoll for review. This usually takes 1-2 business days.
         </span>
       </div>

@@ -365,34 +365,36 @@ export default function AuthPage() {
   return (
     <div className="h-screen w-screen flex flex-col lg:flex-row p-3 bg-gray-100 font-body">
       {/* Left Side - AI Agents Showcase */}
-      <div className=" lg:h-full w-full lg:w-[50%] bg-gradient-to-tl from-gray-400 via-blue-900 to-black rounded-lg lg:rounded-3xl p-6 lg:p-12 flex flex-col justify-between overflow-hidden relative mb-4 lg:mb-0">
+      <div className=" lg:h-full w-full lg:w-[50%] bg-gradient-to-tl from-gray-400 via-arc-gold-900 to-black rounded-lg lg:rounded-3xl p-6 lg:p-12 flex flex-col justify-between overflow-hidden relative mb-4 lg:mb-0">
         <div>
           <div className="flex gap-2">
-            <img src={Logo} alt="Payzoll Logo" className="h-8 " />
-            <h4 className="text-white font-heading font-medium text-lg lg:text-xl mb-2">
+            <div className="h-8 w-8 rounded-full bg-white flex items-center justify-center overflow-hidden shrink-0">
+              <img src={Logo} alt="Payzoll Logo" className="h-full w-full object-contain p-0.5" />
+            </div>
+            <h4 className="text-white font-medium text-lg lg:text-xl mb-2">
               Payzoll
             </h4>
           </div>
 
-          <h1 className="text-sm lg:text-lg mt-15 font-heading font-medium text-blue-300 mb-2">
+          <h1 className="mt-15 text-[12px] font-semibold uppercase leading-[15px] tracking-[2px] text-arc-gold-300 mb-2">
             Compliant Stablecoin Payments for India
           </h1>
 
           <div className="flex flex-col gap-1 lg:gap-2 mt-15">
             <div className="flex gap-5  items-baseline">
-                <div className="text-white font-body font-bold text-5xl lg:text-8xl">
+                <div className="text-white font-heading font-semibold text-5xl lg:text-8xl">
                   USDC
                 </div>
-                <div className="text-white font-body font-bold text-xl lg:text-8xl">
+                <div className="text-white font-heading font-semibold text-xl lg:text-8xl">
                   IN 
                 </div>
             </div>
 
             <div className="flex gap-5 items-baseline">
-                <div className="text-white font-body font-bold text-5xl lg:text-8xl">
+                <div className="text-white font-heading font-semibold text-5xl lg:text-8xl">
                   INR
                 </div>
-                <div className="text-white font-body font-bold text-xl lg:text-8xl">
+                <div className="text-white font-heading font-semibold text-xl lg:text-8xl">
                   OUT
                 </div>
             </div>
@@ -406,7 +408,7 @@ export default function AuthPage() {
   
  
   <div className="flex items-center gap-4">
-     <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-xs bg-[#132a4e] border border-blue-500/30 text-blue-400">
+     <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-xs bg-arc-gold-900 border border-arc-gold-500/30 text-arc-gold-400">
       <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
       </svg>
@@ -419,7 +421,7 @@ export default function AuthPage() {
 
 
   <div className="flex  items-center gap-4">
-   <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-xs bg-[#132a4e] border border-blue-500/30 text-blue-400">
+   <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-xs bg-arc-gold-900 border border-arc-gold-500/30 text-arc-gold-400">
       <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
       </svg>
@@ -429,7 +431,7 @@ export default function AuthPage() {
   
  
   <div className="flex items-center  gap-4">
-   <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-xs bg-[#132a4e] border border-blue-500/30 text-blue-400">
+   <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-xs bg-arc-gold-900 border border-arc-gold-500/30 text-arc-gold-400">
       <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
       </svg>
@@ -617,7 +619,7 @@ export default function AuthPage() {
                   <button
                     onClick={handleOnboardingSubmit}
                     disabled={onboardingLoading}
-                    className="px-8 h-12 flex items-center justify-center gap-3 bg-[#0944A5] rounded-full
+                    className="px-8 h-12 flex items-center justify-center gap-3 bg-arc-gold-600 rounded-full
                               hover:scale-105 transition-transform shadow-lg hover:shadow-xl
                               disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                   >
@@ -645,7 +647,7 @@ export default function AuthPage() {
                   {forgotStep === "reset" && (
                     <>
                       Enter the 6-digit code sent to{" "}
-                      <span className="text-[#0944A5] font-medium">{forgotEmail}</span>
+                      <span className="text-arc-gold-600 font-medium">{forgotEmail}</span>
                     </>
                   )}
                   {forgotStep === "done" && "Your password has been updated"}
@@ -666,7 +668,7 @@ export default function AuthPage() {
                   <button
                     onClick={handleSendResetCode}
                     disabled={forgotLoading}
-                    className="w-full py-3 bg-[#0944A5] text-white rounded-xl text-lg font-medium
+                    className="w-full py-3 bg-arc-gold-600 text-white rounded-xl text-lg font-medium
                                shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
                   >
                     {forgotLoading ? "Sending..." : "Send Reset Code"}
@@ -707,7 +709,7 @@ export default function AuthPage() {
                   <button
                     onClick={handleConfirmReset}
                     disabled={forgotLoading || forgotOtp.length !== 6 || !forgotNewPassword}
-                    className="w-full py-3 bg-[#0944A5] text-white rounded-xl text-lg font-medium
+                    className="w-full py-3 bg-arc-gold-600 text-white rounded-xl text-lg font-medium
                                shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {forgotLoading ? "Updating..." : "Reset Password"}
@@ -725,7 +727,7 @@ export default function AuthPage() {
               {forgotStep === "done" && (
                 <button
                   onClick={() => setShowForgotPassword(false)}
-                  className="w-56 py-3 bg-[#0944A5] text-white rounded-xl text-lg font-medium
+                  className="w-56 py-3 bg-arc-gold-600 text-white rounded-xl text-lg font-medium
                              shadow-lg hover:shadow-xl transition-all"
                 >
                   Back to Log In
@@ -756,7 +758,7 @@ export default function AuthPage() {
                 Verify Your Email
               </h2>
               <p className="text-gray-500 text-sm">Enter the 6-digit code sent to</p>
-              <p className="text-[#0944A5] font-medium text-lg mt-1">{userEmail}</p>
+              <p className="text-arc-gold-600 font-medium text-lg mt-1">{userEmail}</p>
             </div>
           
             {/* OTP Inputs */}
@@ -768,8 +770,8 @@ export default function AuthPage() {
                   maxLength={1}
                   value={otp[i]}
                   className="w-14 h-16 text-center border border-gray-300 rounded-lg
-                            text-2xl font-heading font-semibold bg-white text-black
-                            focus:outline-none focus:border-1 focus:border-[#0944A5] 
+                            text-2xl font-semibold bg-white text-black
+                            focus:outline-none focus:border-1 focus:border-arc-gold-500 
                             focus:border-black transition-all"
                   onChange={(e) => handleOtpInput(e, i)}
                   onKeyDown={(e) => handleOtpKeyDown(e, i)}
@@ -782,7 +784,7 @@ export default function AuthPage() {
             <button
               onClick={handleVerifyOtp}
               disabled={loading || otp.join("").length !== 6}
-              className="w-56 py-3 bg-[#0944A5] text-white rounded-xl text-lg font-medium
+              className="w-56 py-3 bg-arc-gold-600 text-white rounded-xl text-lg font-medium
                          shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all
                          disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
@@ -825,7 +827,7 @@ export default function AuthPage() {
                   }}
                   className={`w-1/2 py-3 rounded-lg text-lg font-medium transition-all ${
                     !isSignup
-                      ? "bg-[#0944A5] text-white"
+                      ? "bg-arc-gold-600 text-white"
                       : "text-black hover:text-gray-900"
                   }`}
                 >
@@ -838,7 +840,7 @@ export default function AuthPage() {
                   }}
                   className={`w-1/2 py-3 rounded-lg text-lg font-medium transition-all ${
                     isSignup
-                      ? "bg-[#0944A5] text-white shadow-md"
+                      ? "bg-arc-gold-600 text-white shadow-md"
                       : "text-black hover:text-gray-900"
                   }`}
                 >
@@ -949,7 +951,7 @@ export default function AuthPage() {
                   <button
                     onClick={handleSubmit}
                     disabled={isLoading}
-                    className="px-8 h-12 flex items-center justify-center gap-3 bg-[#0944A5] rounded-full 
+                    className="px-8 h-12 flex items-center justify-center gap-3 bg-arc-gold-600 rounded-full 
                               hover:scale-105 transition-transform shadow-lg hover:shadow-xl 
                               disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                   >

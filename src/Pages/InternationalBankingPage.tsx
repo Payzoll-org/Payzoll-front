@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
 import AppShell from "../Components/AppShell";
 import { getBankAccounts, type BankAccount } from "../services/bankAccountApi";
+import usdCoin from "../assets/coin-gold.webp";
 
 // ---------------------------------------------------------------------------
 // Filter bar - Client's Country / Currency / Payment Method
@@ -46,7 +47,7 @@ function FilterField<T extends string>({
                     onChange(opt);
                     setOpen(false);
                   }}
-                  className={`w-full flex items-center gap-2 text-left px-4 py-2 text-sm font-medium hover:bg-gray-50 transition-colors ${opt === value ? "text-blue-600" : "text-gray-700"
+                  className={`w-full flex items-center gap-2 text-left px-4 py-2 text-sm font-medium hover:bg-gray-50 transition-colors ${opt === value ? "text-arc-gold-600" : "text-gray-700"
                     }`}
                 >
                   {renderValue(opt)}
@@ -60,10 +61,33 @@ function FilterField<T extends string>({
   );
 }
 
+// A plain emoji flag renders as a small flat rectangle depending on platform/
+// font - drawing the US flag as a circular SVG badge instead keeps it
+// consistent everywhere and matches the rest of the app's circular coin/logo
+// badges.
+function CircleFlagUS({ className = "w-6 h-6" }: { className?: string }) {
+  const stripeHeight = 24 / 13;
+  const whiteStripeIndexes = [1, 3, 5, 7, 9, 11];
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <clipPath id="circle-flag-us-clip">
+        <circle cx="12" cy="12" r="12" />
+      </clipPath>
+      <g clipPath="url(#circle-flag-us-clip)">
+        <rect width="24" height="24" fill="#B31942" />
+        {whiteStripeIndexes.map((i) => (
+          <rect key={i} y={i * stripeHeight} width="24" height={stripeHeight} fill="#FFFFFF" />
+        ))}
+        <rect width="10" height={7 * stripeHeight} fill="#0A3161" />
+      </g>
+    </svg>
+  );
+}
+
 const COUNTRY_OPTIONS = ["US"] as const;
 type CountryOption = (typeof COUNTRY_OPTIONS)[number];
-const COUNTRY_LABELS: Record<CountryOption, { flag: string; label: string }> = {
-  US: { flag: "🇺🇸", label: "United States of America" },
+const COUNTRY_LABELS: Record<CountryOption, { flag: ReactNode; label: string }> = {
+  US: { flag: <CircleFlagUS />, label: "United States of America" },
 };
 
 const CURRENCY_OPTIONS = ["USD"] as const;
@@ -194,7 +218,7 @@ function InternationalBankingContent() {
           onChange={setCountry}
           renderValue={(c) => (
             <>
-              <span className="text-xl">{COUNTRY_LABELS[c].flag}</span>
+              {COUNTRY_LABELS[c].flag}
               {COUNTRY_LABELS[c].label}
             </>
           )}
@@ -206,9 +230,7 @@ function InternationalBankingContent() {
           onChange={handleCurrencyChange}
           renderValue={(c) => (
             <>
-              <span className="text-xs font-bold text-blue-600 bg-blue-50 rounded-md px-2 py-1 shrink-0">
-                {CURRENCY_LABELS[c].badge}
-              </span>
+              <img src={usdCoin} alt={CURRENCY_LABELS[c].badge} className="w-6 h-6 object-contain shrink-0" />
               {CURRENCY_LABELS[c].label}
             </>
           )}

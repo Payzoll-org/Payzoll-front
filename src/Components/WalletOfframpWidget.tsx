@@ -12,6 +12,7 @@ import { getLiveRate, getRateHistory, type LiveRate, type RateHistoryPoint } fro
 import { getPayoutFeeRule, type PayoutFeeRule } from "../services/feePlanApi";
 import { useAuthStore } from "../Zustand/userStore";
 import KycRequiredModal from "./KycRequiredModal";
+import ctaCoin from "../assets/coin-gold.webp";
 
 // Shared gate for Withdraw/Deposit/Reconcile - same user.kycVerified field
 // KycBanner already polls and shows a persistent banner for. Rather than
@@ -61,48 +62,60 @@ function WalletBalanceCard({
   const [showBalance, setShowBalance] = useState(true);
 
   return (
-    <div className="bg-[#010631] text-white rounded-lg p-6 flex flex-col gap-6 h-full min-w-0 overflow-hidden">
-      {/* Header: title + network/currency selectors */}
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-md">Total Balance</h2>
+    <div
+      className="relative text-white rounded-lg p-6 h-full min-w-0 overflow-hidden"
+      style={{ backgroundImage: "linear-gradient(rgb(56,37,15) 0%, rgb(158,107,42) 100%)" }}
+    >
+      <img
+        src={ctaCoin}
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-[12%] -bottom-[12%] w-[55%] max-w-[220px] object-contain opacity-90"
+      />
 
-      </div>
+      <div className="relative z-10 flex flex-col gap-6 h-full">
+        {/* Header: title + network/currency selectors */}
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-md">Total Balance</h2>
 
-      {/* Balance figure - real balance for the selected currency */}
-      <div>
-        <div className="flex items-baseline gap-2">
-          <span className="text-4xl font-normal">{showBalance ? amount : "****"}</span>
-          <span className="text-gray-400 text-lg">{currency}</span>
+        </div>
+
+        {/* Balance figure - real balance for the selected currency */}
+        <div>
+          <div className="flex items-baseline gap-2">
+            <span className="font-heading text-4xl font-semibold">{showBalance ? amount : "****"}</span>
+            <span className="text-gray-400 text-lg">{currency}</span>
+            <button
+              onClick={() => setShowBalance(!showBalance)}
+              className="text-white/60 ml-1 hover:text-white transition-colors cursor-pointer"
+              aria-label={showBalance ? "Hide balance" : "Show balance"}
+            >
+              {showBalance ? <Eye size={16} /> : <EyeOff size={16} />}
+            </button>
+          </div>
+        </div>
+
+        {/* Convert / Deposit */}
+        <div className="flex items-center gap-3">
           <button
-            onClick={() => setShowBalance(!showBalance)}
-            className="text-white/60 ml-1 hover:text-white transition-colors cursor-pointer"
-            aria-label={showBalance ? "Hide balance" : "Show balance"}
+            onClick={() => requireKyc(user?.kycVerified, onRequireKyc, () => navigate("/reconcile"))}
+            className="flex-1 flex items-center justify-center gap-2 bg-white text-gray-900 rounded-sm py-2 font-medium hover:bg-gray-100 transition-colors"
           >
-            {showBalance ? <Eye size={16} /> : <EyeOff size={16} />}
+            <ArrowUpRight size={16} />
+            Withdraw
+          </button>
+          <button
+            onClick={() => requireKyc(user?.kycVerified, onRequireKyc, onDeposit)}
+            className="flex-1 flex items-center justify-center gap-2 bg-white/10 rounded-sm py-2 font-medium hover:bg-white/15 transition-colors"
+          >
+            <ArrowDownLeft size={16} />
+            Deposit
           </button>
         </div>
+        <p className="text-xs text-gray-400">
+          <strong className="text-gray-300 font-semibold">Note:</strong> Deposits may take a few hours to reflect in your USD VBAN balance.
+        </p>
       </div>
-
-      {/* Convert / Deposit */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => requireKyc(user?.kycVerified, onRequireKyc, () => navigate("/reconcile"))}
-          className="flex-1 flex items-center justify-center gap-2 bg-white text-gray-900 rounded-sm py-2 font-medium hover:bg-gray-100 transition-colors"
-        >
-          <ArrowUpRight size={16} />
-          Withdraw
-        </button>
-        <button
-          onClick={() => requireKyc(user?.kycVerified, onRequireKyc, onDeposit)}
-          className="flex-1 flex items-center justify-center gap-2 bg-white/10 rounded-sm py-2 font-medium hover:bg-white/15 transition-colors"
-        >
-          <ArrowDownLeft size={16} />
-          Deposit
-        </button>
-      </div>
-      <p className="text-xs text-gray-400">
-        <strong className="text-gray-300 font-semibold">Note:</strong> Deposits may take a few hours to reflect in your USD VBAN balance.
-      </p>
     </div>
   );
 }
@@ -131,16 +144,16 @@ function RateChart({ points }: { points: number[] }) {
 
   return (
     <svg viewBox={`0 0 ${width} ${height}`} className="w-full mt-5 h-50">
-      <polygon points={areaPoints} fill="#3b82f6" opacity={0.08} />
+      <polygon points={areaPoints} fill="#ab823f" opacity={0.12} />
       <polyline
         points={linePoints}
         fill="none"
-        stroke="#3b82f6"
+        stroke="#ab823f"
         strokeWidth="2"
         strokeLinejoin="round"
         strokeLinecap="round"
       />
-      {last && <circle cx={last.x} cy={last.y} r="4" fill="#3b82f6" />}
+      {last && <circle cx={last.x} cy={last.y} r="4" fill="#ab823f" />}
     </svg>
   );
 }
@@ -327,7 +340,7 @@ function OfframpCalculatorCard({ onRequireKyc }: { onRequireKyc: () => void }) {
 
           <button
             onClick={() => requireKyc(user?.kycVerified, onRequireKyc, () => navigate("/reconcile"))}
-            className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-sm text-white rounded-sm py-1.5 font-medium  transition-colors"
+            className="flex items-center justify-center gap-2 bg-arc-gold-600 hover:bg-arc-gold-700 text-sm text-white rounded-sm py-1.5 font-medium  transition-colors"
           >
             <ArrowUpRight size={15} />
             Withdraw in INR
