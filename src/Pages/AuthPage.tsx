@@ -364,8 +364,8 @@ export default function AuthPage() {
 
   return (
     <div className="h-screen w-screen flex flex-col lg:flex-row p-3 bg-gray-100 font-body">
-      {/* Left Side - AI Agents Showcase */}
-      <div className=" lg:h-full w-full lg:w-[50%] bg-gradient-to-tl from-gray-400 via-arc-gold-900 to-black rounded-lg lg:rounded-3xl p-6 lg:p-12 flex flex-col justify-between overflow-hidden relative mb-4 lg:mb-0">
+      {/* Left Side - AI Agents Showcase (desktop only - mobile shows just the form) */}
+      <div className="hidden lg:flex lg:h-full lg:w-[50%] bg-gradient-to-tl from-gray-400 via-arc-gold-900 to-black lg:rounded-3xl lg:p-12 flex-col justify-between overflow-hidden relative">
         <div>
           <div className="flex gap-2">
             <div className="h-8 w-8 rounded-full bg-white flex items-center justify-center overflow-hidden shrink-0">
@@ -447,7 +447,7 @@ export default function AuthPage() {
       </div>
 
       {/* Right Side - Auth Form or Verification */}
-      <div className="flex-1 min-h-0 flex justify-center pt-23 w-full lg:flex-none lg:w-[50%] overflow-y-auto">
+      <div className="flex-1 min-h-0 flex justify-center pt-8 lg:pt-23 w-full lg:flex-none lg:w-[50%] overflow-y-auto">
         <div className="w-full max-w-2xl px-4 lg:px-8">
           {showOnboarding ? (
             // Onboarding Screen
