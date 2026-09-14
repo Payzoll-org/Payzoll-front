@@ -377,7 +377,7 @@ export default function AuthPage() {
           src={goldCoin}
           alt=""
           aria-hidden="true"
-          className="pointer-events-none absolute -left-[6%] -bottom-[8%] w-[38%] max-w-[300px] object-contain z-0 drop-shadow-[0_20px_40px_rgba(193,155,88,0.45)]"
+          className="pointer-events-none absolute -left-[5%] -bottom-[6%] w-[26%] max-w-[210px] object-contain z-0 drop-shadow-[0_20px_40px_rgba(193,155,88,0.45)]"
         />
         <div className="relative z-10">
           <div className="flex gap-2">
@@ -389,41 +389,41 @@ export default function AuthPage() {
             </h4>
           </div>
 
-          <div className="mt-15 flex items-center gap-3">
+          <div className="mt-10 flex items-center gap-3">
             <div className="flex -space-x-2">
-              <img src={goldCoin} alt="" aria-hidden="true" className="h-7 w-7 object-contain [filter:sepia(1)_saturate(2)_hue-rotate(-25deg)_brightness(0.75)]" />
-              <img src={goldCoin} alt="" aria-hidden="true" className="h-7 w-7 object-contain [filter:grayscale(1)_brightness(1.15)]" />
-              <img src={goldCoin} alt="" aria-hidden="true" className="h-7 w-7 object-contain" />
+              <img src={goldCoin} alt="" aria-hidden="true" className="h-6 w-6 object-contain [filter:sepia(1)_saturate(2)_hue-rotate(-25deg)_brightness(0.75)]" />
+              <img src={goldCoin} alt="" aria-hidden="true" className="h-6 w-6 object-contain [filter:grayscale(1)_brightness(1.15)]" />
+              <img src={goldCoin} alt="" aria-hidden="true" className="h-6 w-6 object-contain" />
             </div>
-            <span className="text-[13px] font-semibold uppercase tracking-[3px] text-arc-gold-100">
+            <span className="text-[11px] font-semibold uppercase tracking-[3px] text-arc-gold-100">
               Introducing
             </span>
           </div>
 
-          <h1 className="mt-6 text-white font-heading font-semibold text-5xl xl:text-7xl leading-[1.05]">
+          <h1 className="mt-4 text-white font-heading font-semibold text-4xl xl:text-5xl leading-[1.1]">
             Payzoll. Pay Anyone.
             <br />
             Pay Anywhere.
           </h1>
 
-          <p className="mt-6 max-w-xl text-white/85 text-base xl:text-lg leading-relaxed">
+          <p className="mt-4 max-w-md text-white/85 text-sm xl:text-base leading-relaxed">
             Move money globally using stablecoins and local banking rails. Get paid by clients
             worldwide or pay contractors, teams, and vendors in 80+ countries.
           </p>
 
-          <p className="mt-6 text-sm text-arc-gold-100">
+          <p className="mt-4 text-xs text-arc-gold-100">
             Zero FX Markup &bull; No Hidden Fees &bull; Built-in Compliance
           </p>
 
-          <div className="mt-10 grid max-w-xl grid-cols-3 divide-x divide-white/20">
+          <div className="mt-8 grid max-w-md grid-cols-3 divide-x divide-white/20">
             {[
               { value: "~50+", label: "Currencies Support" },
               { value: "<24h", label: "Settlements" },
               { value: "~80+", label: "Countries" },
             ].map((stat) => (
               <div key={stat.label} className="flex flex-col items-center px-2 text-center">
-                <span className="text-white font-heading text-3xl xl:text-4xl">{stat.value}</span>
-                <span className="mt-1 text-xs xl:text-sm text-white/75">{stat.label}</span>
+                <span className="text-white font-heading text-2xl xl:text-3xl">{stat.value}</span>
+                <span className="mt-1 text-[11px] xl:text-xs text-white/75">{stat.label}</span>
               </div>
             ))}
           </div>
