@@ -3,6 +3,7 @@ import { Eye, EyeOff } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuthStore } from "../Zustand/userStore";
 import Logo from "../assets/logo.png";
+import goldCoin from "../assets/coin-gold.webp";
 import { useNavigate } from "react-router-dom";
 import {
   loginUser,
@@ -365,8 +366,20 @@ export default function AuthPage() {
   return (
     <div className="h-screen w-screen flex flex-col lg:flex-row p-3 bg-gray-100 font-body">
       {/* Left Side - AI Agents Showcase (desktop only - mobile shows just the form) */}
-      <div className="hidden lg:flex lg:h-full lg:w-[50%] bg-gradient-to-tl from-gray-400 via-arc-gold-900 to-black lg:rounded-3xl lg:p-12 flex-col justify-between overflow-hidden relative">
-        <div>
+      <div
+        className="hidden lg:flex lg:h-full lg:w-[50%] lg:rounded-3xl lg:p-12 flex-col justify-between overflow-hidden relative"
+        style={{
+          background:
+            "radial-gradient(650px circle at 8% 100%, rgba(234,213,171,0.6) 0%, rgba(211,176,115,0.35) 30%, transparent 70%), radial-gradient(700px circle at 100% 0%, rgba(224,195,140,0.35) 0%, transparent 65%), linear-gradient(to top right, #c19b58 0%, #96702f 35%, #7f5b26 65%, #6e4f20 100%)",
+        }}
+      >
+        <img
+          src={goldCoin}
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute -left-[6%] -bottom-[8%] w-[38%] max-w-[300px] object-contain z-0 drop-shadow-[0_20px_40px_rgba(193,155,88,0.45)]"
+        />
+        <div className="relative z-10">
           <div className="flex gap-2">
             <div className="h-8 w-8 rounded-full bg-white flex items-center justify-center overflow-hidden shrink-0">
               <img src={Logo} alt="Payzoll Logo" className="h-full w-full object-contain p-0.5" />
@@ -376,72 +389,43 @@ export default function AuthPage() {
             </h4>
           </div>
 
-          <h1 className="mt-15 text-[12px] font-semibold uppercase leading-[15px] tracking-[2px] text-arc-gold-300 mb-2">
-            Compliant Stablecoin Payments for India
+          <div className="mt-15 flex items-center gap-3">
+            <div className="flex -space-x-2">
+              <img src={goldCoin} alt="" aria-hidden="true" className="h-7 w-7 object-contain [filter:sepia(1)_saturate(2)_hue-rotate(-25deg)_brightness(0.75)]" />
+              <img src={goldCoin} alt="" aria-hidden="true" className="h-7 w-7 object-contain [filter:grayscale(1)_brightness(1.15)]" />
+              <img src={goldCoin} alt="" aria-hidden="true" className="h-7 w-7 object-contain" />
+            </div>
+            <span className="text-[13px] font-semibold uppercase tracking-[3px] text-arc-gold-100">
+              Introducing
+            </span>
+          </div>
+
+          <h1 className="mt-6 text-white font-heading font-semibold text-5xl xl:text-7xl leading-[1.05]">
+            Payzoll. Pay Anyone.
+            <br />
+            Pay Anywhere.
           </h1>
 
-          <div className="flex flex-col gap-1 lg:gap-2 mt-15">
-            <div className="flex gap-5  items-baseline">
-                <div className="text-white font-heading font-semibold text-5xl lg:text-8xl">
-                  USDC
-                </div>
-                <div className="text-white font-heading font-semibold text-xl lg:text-8xl">
-                  IN 
-                </div>
-            </div>
+          <p className="mt-6 max-w-xl text-white/85 text-base xl:text-lg leading-relaxed">
+            Move money globally using stablecoins and local banking rails. Get paid by clients
+            worldwide or pay contractors, teams, and vendors in 80+ countries.
+          </p>
 
-            <div className="flex gap-5 items-baseline">
-                <div className="text-white font-heading font-semibold text-5xl lg:text-8xl">
-                  INR
-                </div>
-                <div className="text-white font-heading font-semibold text-xl lg:text-8xl">
-                  OUT
-                </div>
-            </div>
+          <p className="mt-6 text-sm text-arc-gold-100">
+            Zero FX Markup &bull; No Hidden Fees &bull; Built-in Compliance
+          </p>
 
-            <h3 className="text-white mt-10 font-body text-sm w-60 lg:w-110 lg:text-lg">
-              Receive, convert and withdraw stablecoins directly into your bank account.
-            </h3>
-
-
-            <div className="mt-5 space-y-1 text-slate-100">
-  
- 
-  <div className="flex items-center gap-4">
-     <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-xs bg-arc-gold-900 border border-arc-gold-500/30 text-arc-gold-400">
-      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-      </svg>
-    </div>
-    <span className="text-sm font-medium tracking-wide">Multi-chain Wallets</span>
-  </div>
-
-
-  
-
-
-  <div className="flex  items-center gap-4">
-   <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-xs bg-arc-gold-900 border border-arc-gold-500/30 text-arc-gold-400">
-      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-      </svg>
-    </div>
-    <span className="text-sm font-medium tracking-wide">Instant USDT Offramp</span>
-  </div>
-  
- 
-  <div className="flex items-center  gap-4">
-   <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-xs bg-arc-gold-900 border border-arc-gold-500/30 text-arc-gold-400">
-      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-      </svg>
-    </div>
-    <span className="text-sm font-medium tracking-wide">Enterprise Security</span>
-  </div>
-
-  
-
-</div>
+          <div className="mt-10 grid max-w-xl grid-cols-3 divide-x divide-white/20">
+            {[
+              { value: "~50+", label: "Currencies Support" },
+              { value: "<24h", label: "Settlements" },
+              { value: "~80+", label: "Countries" },
+            ].map((stat) => (
+              <div key={stat.label} className="flex flex-col items-center px-2 text-center">
+                <span className="text-white font-heading text-3xl xl:text-4xl">{stat.value}</span>
+                <span className="mt-1 text-xs xl:text-sm text-white/75">{stat.label}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
