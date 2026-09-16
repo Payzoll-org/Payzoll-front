@@ -78,7 +78,7 @@ const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   individual: "Individual",
 };
 
-function LocalBankDetails({ account }: { account: BankAccount }) {
+export function LocalBankDetails({ account }: { account: BankAccount }) {
   const [rail, setRail] = useState<"local" | "swift">("local");
   const bank = account.bankAccount;
   const user = useAuthStore((s) => s.user);
@@ -141,7 +141,7 @@ function LocalBankDetails({ account }: { account: BankAccount }) {
   );
 }
 
-function StablecoinDetails({ bankAccounts }: { bankAccounts: BankAccount[] }) {
+export function StablecoinDetails({ bankAccounts }: { bankAccounts: BankAccount[] }) {
   const [filter, setFilter] = useState<"all" | "USDC" | "USDT">("all");
 
   const accountFor = (slot: (typeof STABLECOIN_SLOTS)[number]) =>
@@ -227,9 +227,9 @@ export default function WaysToReceiveModal({
           </button>
         </div>
 
-        <div className="flex flex-1 min-h-0">
+        <div className="flex flex-col sm:flex-row flex-1 min-h-0 overflow-y-auto sm:overflow-hidden">
           {/* Left panel */}
-          <div className="w-64 shrink-0 border-r border-gray-100 flex flex-col overflow-y-auto p-4">
+          <div className="w-full sm:w-64 sm:shrink-0 border-b sm:border-b-0 sm:border-r border-gray-100 flex flex-col sm:overflow-y-auto p-4">
             <span className="text-xs text-gray-500">Currency & Senders Country</span>
             <p className="text-sm font-medium text-gray-900 mt-1 mb-5">USD from United States of America</p>
 
@@ -272,7 +272,7 @@ export default function WaysToReceiveModal({
           </div>
 
           {/* Right panel */}
-          <div className="flex-1 min-w-0 overflow-y-auto p-6">
+          <div className="flex-1 min-w-0 sm:overflow-y-auto p-4 sm:p-6">
             <h3 className="text-base font-semibold text-gray-900 mb-4">
               {category === "local" ? "Bank Transfers" : "Stablecoin Payments"}
             </h3>

@@ -6,6 +6,7 @@ import {
   ArrowUpRight,
   ArrowDownLeft,
   Info,
+  Calculator,
 } from "lucide-react";
 import type { Balance, BalanceEntry } from "../services/accountActivationApi";
 import { getLiveRate, getRateHistory, type LiveRate, type RateHistoryPoint } from "../services/fxRateApi";
@@ -95,8 +96,12 @@ function WalletBalanceCard({
           </div>
         </div>
 
-        {/* Convert / Deposit */}
-        <div className="flex items-center gap-3">
+        {/* Convert / Deposit - hidden until lg (matching this widget's own
+            grid-cols-1 lg:grid-cols-2 below), not just md: at md the sidebar
+            has already eaten 320px, leaving this card too narrow for these
+            buttons plus the coin graphic - the roomier mobile button row
+            (see WalletOfframpWidget below) covers that whole range instead. */}
+        <div className="hidden lg:flex items-center gap-3">
           <button
             onClick={() => requireKyc(user?.kycVerified, onRequireKyc, () => navigate("/reconcile"))}
             className="flex-1 flex items-center justify-center gap-2 bg-white text-gray-900 rounded-sm py-2 font-medium hover:bg-gray-100 transition-colors"
@@ -169,7 +174,7 @@ function RateChart({ points }: { points: number[] }) {
  * Services/reconcile.service.js), so "You Pay" is fixed to USD rather than
  * offering a USDT/USDC toggle that wouldn't actually change anything.
  */
-function OfframpCalculatorCard({ onRequireKyc }: { onRequireKyc: () => void }) {
+export function OfframpCalculatorCard({ onRequireKyc }: { onRequireKyc: () => void }) {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const [payAmount, setPayAmount] = useState("1000");
@@ -363,12 +368,47 @@ export default function WalletOfframpWidget({
   onDeposit: () => void;
 }) {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [kycModalOpen, setKycModalOpen] = useState(false);
+  const onRequireKyc = () => setKycModalOpen(true);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 rounded-xl bg-gray-100 p-4 items-stretch">
-      <WalletBalanceCard balance={balance} onDeposit={onDeposit} onRequireKyc={() => setKycModalOpen(true)} />
-      <OfframpCalculatorCard onRequireKyc={() => setKycModalOpen(true)} />
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:rounded-xl lg:bg-gray-100 lg:p-4 items-stretch">
+      <WalletBalanceCard balance={balance} onDeposit={onDeposit} onRequireKyc={onRequireKyc} />
+
+      {/* Shown until lg (matching the grid/button breakpoints above) - the
+          full calculator doesn't fit alongside Withdraw/Deposit until
+          there's a real 2-column desktop layout, so it lives at
+          /payout-calculator instead below that; this button row is the
+          entry point to it. */}
+      <div className="grid grid-cols-3 gap-3 lg:hidden">
+        <button
+          onClick={() => requireKyc(user?.kycVerified, onRequireKyc, () => navigate("/reconcile"))}
+          className="flex flex-col items-center justify-center gap-1.5 bg-white border border-gray-200 rounded-sm py-4 text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors"
+        >
+          <ArrowUpRight size={18} />
+          Withdraw
+        </button>
+        <button
+          onClick={() => requireKyc(user?.kycVerified, onRequireKyc, () => navigate("/deposit-details"))}
+          className="flex flex-col items-center justify-center gap-1.5 bg-white border border-gray-200 rounded-sm py-4 text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors"
+        >
+          <ArrowDownLeft size={18} />
+          Deposit
+        </button>
+        <button
+          onClick={() => navigate("/payout-calculator")}
+          className="flex flex-col items-center justify-center gap-1.5 bg-white border border-gray-200 rounded-sm py-4 text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors"
+        >
+          <Calculator size={18} />
+          Calculator
+        </button>
+      </div>
+
+      <div className="hidden lg:flex">
+        <OfframpCalculatorCard onRequireKyc={onRequireKyc} />
+      </div>
+
       <KycRequiredModal
         open={kycModalOpen}
         onCancel={() => setKycModalOpen(false)}

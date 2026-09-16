@@ -118,7 +118,7 @@ export default function HelpSupportModal({ open, onClose }: { open: boolean; onC
                 <p className="text-sm font-semibold text-gray-500 tracking-wide  mb-3">
                   What can we help with?
                 </p>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {CATEGORIES.map((c) => (
                     <button
                       key={c.value}

@@ -53,6 +53,34 @@ function PayoutRow({ payout }: { payout: Payout }) {
   );
 }
 
+function PayoutCard({ payout }: { payout: Payout }) {
+  return (
+    <div className="p-4 border-b border-gray-100 last:border-0">
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <Link
+          to={`/transactionhistory/${payout.id}`}
+          className="text-arc-gold-600 hover:text-arc-gold-700 font-medium text-sm truncate"
+        >
+          {payout.id}
+        </Link>
+        <StatusPill status={payout.status} />
+      </div>
+      <div className="flex items-center justify-between text-sm text-gray-700">
+        <span className="text-gray-500">Gross</span>
+        <span>{payout.grossAmount ? `${payout.grossCurrency} ${payout.grossAmount}` : "-"}</span>
+      </div>
+      <div className="flex items-center justify-between text-sm text-gray-700 mt-1">
+        <span className="text-gray-500">Settled</span>
+        <span>{payout.settledAmount ? `${payout.settledCurrency} ${payout.settledAmount}` : "-"}</span>
+      </div>
+      <div className="flex items-center justify-between text-xs text-gray-500 mt-2">
+        <span>{formatDate(payout.created)}</span>
+        <span>{formatEta(payout.arrivalDate)}</span>
+      </div>
+    </div>
+  );
+}
+
 export default function TransactionHistory() {
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,12 +121,12 @@ export default function TransactionHistory() {
   }, [payouts, sortDesc]);
 
   return (
-    <div className="p-6 lg:p-8 flex flex-col gap-6 overflow-y-auto h-full">
-      <div className="flex items-center justify-between">
+    <div className="p-4 sm:p-6 lg:p-8 flex flex-col gap-6 overflow-y-auto h-full">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h2 className="text-xl text-gray-900">Transaction History</h2>
         <button
           onClick={() => setSortDesc((v) => !v)}
-          className="flex items-center gap-2 text-sm font-medium text-gray-700 border border-gray-200 rounded-sm px-4 py-2 hover:bg-gray-50"
+          className="flex items-center gap-2 text-sm font-medium text-gray-700 border border-gray-200 rounded-sm px-4 py-2 hover:bg-gray-50 self-start sm:self-auto"
         >
           <ArrowUpDown size={14} />
           Sort: Expected On ({sortDesc ? "Newest-Oldest" : "Oldest-Newest"})
@@ -116,8 +144,13 @@ export default function TransactionHistory() {
           No payouts yet. Reconciled funds dispatched to your bank account will show up here.
         </div>
       ) : (
-        <div className="border border-gray-200 rounded-sm overflow-x-auto">
-          <table className="w-full min-w-[820px]">
+        <div className="border border-gray-200 rounded-sm overflow-hidden md:overflow-x-auto">
+          <div className="md:hidden divide-y divide-gray-100">
+            {sorted.map((p) => (
+              <PayoutCard key={p.id} payout={p} />
+            ))}
+          </div>
+          <table className="hidden md:table w-full min-w-[820px]">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50">
                 <th className="text-left text-xs font-medium text-gray-500 py-3 px-4">Initiated On</th>

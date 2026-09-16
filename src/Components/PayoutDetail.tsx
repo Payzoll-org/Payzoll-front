@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Copy, Check, Download, FileText } from "lucide-react";
 import toast from "react-hot-toast";
-import { getPayoutDetail, downloadPaymentAdvice, type PayoutDetail as PayoutDetailType } from "../services/payoutApi";
+import { getPayoutDetail, downloadPaymentAdvice, type PayoutDetail as PayoutDetailType, type PayoutReceivableBreakdown } from "../services/payoutApi";
 
 const STATUS_STYLES: Record<string, string> = {
   settled: "bg-green-100 text-green-800",
@@ -55,6 +55,23 @@ function formatEventTime(iso: string) {
   return new Date(iso).toLocaleString(undefined, { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 }
 
+function ReceivableCard({ receivable }: { receivable: PayoutReceivableBreakdown }) {
+  return (
+    <div className="p-3 border-b border-gray-100 last:border-0">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm text-arc-gold-600">{receivable.invoiceNumber || "-"}</span>
+        <span className="text-sm text-gray-900 font-medium whitespace-nowrap">
+          {receivable.amount ? `${receivable.currency} ${receivable.amount}` : "-"}
+        </span>
+      </div>
+      <p className="text-xs text-gray-700 mt-0.5">{receivable.invoiceDescription || "-"}</p>
+      <p className="text-xs text-gray-400 mt-0.5">
+        {receivable.reconcileDate ? formatTimestamp(receivable.reconcileDate) : "-"}
+      </p>
+    </div>
+  );
+}
+
 export default function PayoutDetail() {
   const { payoutId } = useParams<{ payoutId: string }>();
   const navigate = useNavigate();
@@ -90,7 +107,7 @@ export default function PayoutDetail() {
   const firstReceivable = payout.receivables[0];
 
   return (
-    <div className="p-6 lg:p-8 flex flex-col gap-6 overflow-y-auto h-full">
+    <div className="p-4 sm:p-6 lg:p-8 flex flex-col gap-6 overflow-y-auto h-full">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="text-gray-500 hover:text-gray-900" aria-label="Back">
@@ -210,8 +227,13 @@ export default function PayoutDetail() {
           {payout.receivables.length > 0 && (
             <div className="border border-gray-200 rounded-sm p-6">
               <h3 className="text-sm font-semibold text-gray-900 mb-3">Payout Break-up By Receivables</h3>
-              <div className="border border-gray-200 rounded-sm overflow-hidden overflow-x-auto">
-                <table className="w-full min-w-[480px]">
+              <div className="border border-gray-200 rounded-sm overflow-hidden md:overflow-x-auto">
+                <div className="md:hidden divide-y divide-gray-100">
+                  {payout.receivables.map((r) => (
+                    <ReceivableCard key={r.receivableId} receivable={r} />
+                  ))}
+                </div>
+                <table className="hidden md:table w-full min-w-[480px]">
                   <thead>
                     <tr className="border-b border-gray-200 bg-gray-50">
                       <th className="text-left text-xs font-medium text-gray-500 py-2 px-3">Reconcile Date</th>

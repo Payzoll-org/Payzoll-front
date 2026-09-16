@@ -746,16 +746,16 @@ export default function AuthPage() {
             </div>
           
             {/* OTP Inputs */}
-            <div className="flex justify-center gap-4 mb-10">
+            <div className="flex justify-center gap-2 sm:gap-4 mb-10">
               {[...Array(6)].map((_, i) => (
                 <input
                   key={i}
                   type="text"
                   maxLength={1}
                   value={otp[i]}
-                  className="w-14 h-16 text-center border border-gray-300 rounded-lg
-                            text-2xl font-semibold bg-white text-black
-                            focus:outline-none focus:border-1 focus:border-arc-gold-500 
+                  className="w-10 h-12 sm:w-14 sm:h-16 text-center border border-gray-300 rounded-lg
+                            text-lg sm:text-2xl font-semibold bg-white text-black
+                            focus:outline-none focus:border-1 focus:border-arc-gold-500
                             focus:border-black transition-all"
                   onChange={(e) => handleOtpInput(e, i)}
                   onKeyDown={(e) => handleOtpKeyDown(e, i)}
@@ -801,7 +801,7 @@ export default function AuthPage() {
 
           ) : (
             // Auth Form
-            <div className="rounded-md overflow-hidden p-6 lg:p-8">
+            <div className="rounded-md overflow-hidden p-4 sm:p-6 lg:p-8">
               {/* Toggle */}
               <div className="flex justify-between bg-white rounded-lg overflow-hidden mb-8">
                 <button

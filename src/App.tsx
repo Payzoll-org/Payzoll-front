@@ -14,6 +14,8 @@ import PayoutDetailPage from './Pages/PayoutDetailPage';
 import StablecoinCallbackPage from './Pages/StablecoinCallbackPage';
 import SettingsPage from './Pages/SettingsPage';
 import InternationalBankingPage from './Pages/InternationalBankingPage';
+import PayoutCalculatorPage from './Pages/PayoutCalculatorPage';
+import DepositDetailsPage from './Pages/DepositDetailsPage';
 import ProtectedRoute from './Components/ProtectedRoute';
 import { useAuthBootstrap } from './hooks/useAuthBootstrap';
 
@@ -81,6 +83,28 @@ const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <SettingsPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    // Mobile-only: reached from the dashboard's "Calculator" button
+    // (WalletOfframpWidget) below the md breakpoint.
+    path: "/payout-calculator",
+    element: (
+      <ProtectedRoute>
+        <PayoutCalculatorPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    // Mobile-only: reached from the dashboard's Deposit button
+    // (WalletOfframpWidget) below the md breakpoint - desktop still opens
+    // WaysToReceiveModal instead. requiresKyc since the button-level gate
+    // that leads here can otherwise be bypassed by navigating here directly.
+    path: "/deposit-details",
+    element: (
+      <ProtectedRoute requiresKyc>
+        <DepositDetailsPage />
       </ProtectedRoute>
     ),
   },

@@ -7,6 +7,7 @@ import {
   Check,
   ChevronsUpDown,
   ArrowUpFromLine,
+  ArrowLeft,
   FileText,
   User,
   Info,
@@ -850,12 +851,18 @@ function InvoicePreviewPanel({
   amount,
   bankAccount,
   preview,
+  variant = "dark",
 }: {
   receivable: Receivable | undefined;
   partner: Partner | undefined;
   amount: string;
   bankAccount: BankAccount | undefined;
   preview: ReconciliationPreview | null;
+  // "dark" is the gold-gradient right panel shown at lg+; "light" is the
+  // same content inlined into step 5 (Payout Information) on mobile, where
+  // that panel doesn't have room to sit beside the form and is dropped
+  // entirely instead - see ReconcilePage below.
+  variant?: "dark" | "light";
 }) {
   const [showIndicative, setShowIndicative] = useState(false);
   const [liveRate, setLiveRate] = useState<LiveRate | null>(null);
@@ -875,14 +882,38 @@ function InvoicePreviewPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [receivable?.currency]);
 
+  const isDark = variant === "dark";
+  const cardClass = isDark
+    ? "bg-white/10 border border-white/15 backdrop-blur-sm rounded-2xl"
+    : "bg-gray-50 border border-gray-200 rounded-2xl";
+  const textPrimary = isDark ? "text-white" : "text-gray-900";
+  const textSecondary = isDark ? "text-white/60" : "text-gray-500";
+  const iconBoxClass = isDark
+    ? "border border-white/20"
+    : "border border-gray-200 bg-white";
+  const iconColor = isDark ? "text-white/70" : "text-gray-500";
+  const dividerFaint = isDark ? "border-white/10" : "border-gray-200";
+  const dividerSoft = isDark ? "border-white/15" : "border-gray-200";
+  const dividerDashed = isDark ? "border-white/20" : "border-gray-300";
+  const feeColor = isDark ? "text-red-300" : "text-red-600";
+  const accentColor = isDark ? "text-arc-gold-200" : "text-arc-gold-600";
+  const infoBoxClass = isDark
+    ? "bg-white/10 border border-white/10 rounded-xl"
+    : "bg-white border border-gray-200 rounded-xl";
+  const infoTextClass = isDark ? "text-white/80" : "text-gray-600";
+
   if (!receivable) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-center px-8">
-        <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center mb-4">
-          <ClipboardList size={26} className="text-arc-gold-200" />
+        <div
+          className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-4 ${
+            isDark ? "bg-white/10 border border-white/20" : "bg-gray-100 border border-gray-200"
+          }`}
+        >
+          <ClipboardList size={26} className={accentColor} />
         </div>
-        <p className="text-base font-semibold text-white">No invoice selected</p>
-        <p className="text-sm text-white/60 mt-1">Select an invoice to see details here</p>
+        <p className={`text-base font-semibold ${textPrimary}`}>No invoice selected</p>
+        <p className={`text-sm mt-1 ${textSecondary}`}>Select an invoice to see details here</p>
       </div>
     );
   }
@@ -917,22 +948,26 @@ function InvoicePreviewPanel({
     liveRate && grossAmount ? (Number(grossAmount) * Number(liveRate.userRate)).toFixed(2) : null;
 
   return (
-    <div className="flex-1 px-6 py-6 flex flex-col gap-4 overflow-y-auto">
+    <div className={isDark ? "flex-1 px-6 py-6 flex flex-col gap-4 overflow-y-auto" : "flex flex-col gap-4"}>
       {/* Receivable + Partner */}
-      <div className="bg-white/10 border border-white/15 backdrop-blur-sm rounded-2xl p-5">
+      <div className={`${cardClass} p-5`}>
         <div className="flex items-start gap-3">
-          <div className="w-11 h-11 rounded-xl border border-white/20 flex items-center justify-center shrink-0">
-            <FileText size={18} className="text-white/70" />
+          <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${iconBoxClass}`}>
+            <FileText size={18} className={iconColor} />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-white/60">Receivable</span>
+              <span className={textSecondary}>Receivable</span>
               {due && (
                 <>
-                  <span className="text-white/30">|</span>
+                  <span className={isDark ? "text-white/30" : "text-gray-300"}>|</span>
                   <span
                     className={`font-medium ${
-                      due.className === "text-red-600" ? "text-red-300" : "text-amber-300"
+                      isDark
+                        ? due.className === "text-red-600"
+                          ? "text-red-300"
+                          : "text-amber-300"
+                        : due.className
                     }`}
                   >
                     {due.label}
@@ -940,7 +975,7 @@ function InvoicePreviewPanel({
                 </>
               )}
             </div>
-            <p className="text-lg font-semibold text-white mt-0.5">
+            <p className={`text-lg font-semibold mt-0.5 ${textPrimary}`}>
               {receivable.invoice.referenceNumber || receivable._id}
             </p>
           </div>
@@ -948,14 +983,14 @@ function InvoicePreviewPanel({
 
         {partner && (
           <>
-            <div className="border-t border-white/10 my-4" />
+            <div className={`border-t my-4 ${dividerFaint}`} />
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl border border-white/20 flex items-center justify-center shrink-0">
-                <User size={18} className="text-white/70" />
+              <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${iconBoxClass}`}>
+                <User size={18} className={iconColor} />
               </div>
               <div>
-                <p className="text-sm text-white/60">Partner</p>
-                <p className="text-base font-semibold text-white">{partner.nickname}</p>
+                <p className={`text-sm ${textSecondary}`}>Partner</p>
+                <p className={`text-base font-semibold ${textPrimary}`}>{partner.nickname}</p>
               </div>
             </div>
           </>
@@ -963,49 +998,49 @@ function InvoicePreviewPanel({
       </div>
 
       {/* Amount + indicative rate */}
-      <div className="bg-white/10 border border-white/15 backdrop-blur-sm rounded-2xl p-5 flex flex-col gap-3">
+      <div className={`${cardClass} p-5 flex flex-col gap-3`}>
         <div className="flex items-center justify-between text-sm">
-          <span className="text-white/60">Gross Amount</span>
-          <span className="font-semibold text-white">
+          <span className={textSecondary}>Gross Amount</span>
+          <span className={`font-semibold ${textPrimary}`}>
             {receivable.currency} {grossAmountNum.toFixed(2)}
           </span>
         </div>
         <div className="flex items-center justify-between text-sm">
-          <span className="text-white/60">Payout Fee</span>
-          <span className="font-semibold text-red-300">
+          <span className={textSecondary}>Payout Fee</span>
+          <span className={`font-semibold ${feeColor}`}>
             {feeRuleLoading ? "..." : payoutFee !== null ? `-${receivable.currency} ${payoutFee.toFixed(2)}` : "-"}
           </span>
         </div>
 
-        <div className="border-t border-dashed border-white/20 my-1" />
+        <div className={`border-t border-dashed my-1 ${dividerDashed}`} />
 
         <div className="flex items-center justify-between text-sm">
-          <span className="text-white/60">Net Amount</span>
-          <span className="font-semibold text-white">
+          <span className={textSecondary}>Net Amount</span>
+          <span className={`font-semibold ${textPrimary}`}>
             {feeRuleLoading ? "..." : netAmount !== null ? `${receivable.currency} ${netAmount.toFixed(2)}` : "-"}
           </span>
         </div>
         <div className="flex items-center justify-between text-sm">
-          <span className="text-white/60">Transaction Rate</span>
-          <span className="font-medium text-white flex items-center gap-1">
+          <span className={textSecondary}>Transaction Rate</span>
+          <span className={`font-medium flex items-center gap-1 ${textPrimary}`}>
             To be booked in 60 mins
-            <ChevronDown size={14} className="text-white/50" />
+            <ChevronDown size={14} className={isDark ? "text-white/50" : "text-gray-400"} />
           </span>
         </div>
 
-        <div className="border-t border-white/15 my-1" />
+        <div className={`border-t my-1 ${dividerSoft}`} />
 
         <button onClick={toggleIndicative} className="flex items-center justify-between">
-          <span className="text-sm font-semibold text-white">Gross Payout Amount</span>
-          <span className="text-sm font-medium text-arc-gold-200">
+          <span className={`text-sm font-semibold ${textPrimary}`}>Gross Payout Amount</span>
+          <span className={`text-sm font-medium ${accentColor}`}>
             {showIndicative ? "Hide indicative" : "View indicative"}
           </span>
         </button>
 
         {showIndicative && (
-          <div className="bg-white/10 border border-white/10 rounded-xl p-4 flex items-start gap-2">
-            <Info size={15} className="text-arc-gold-200 shrink-0 mt-0.5" />
-            <p className="text-sm text-white/80">
+          <div className={`${infoBoxClass} p-4 flex items-start gap-2`}>
+            <Info size={15} className={`${accentColor} shrink-0 mt-0.5`} />
+            <p className={`text-sm ${infoTextClass}`}>
               {liveRateLoading
                 ? "Fetching live indicative rate..."
                 : liveRateError
@@ -1020,17 +1055,17 @@ function InvoicePreviewPanel({
 
       {/* Payout destination */}
       {bankAccount && preview && (
-        <div className="bg-white/10 border border-white/15 backdrop-blur-sm rounded-2xl p-5 flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl border border-white/20 flex items-center justify-center shrink-0">
-            <FileText size={18} className="text-white/70" />
+        <div className={`${cardClass} p-5 flex items-center gap-3`}>
+          <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${iconBoxClass}`}>
+            <FileText size={18} className={iconColor} />
           </div>
           <div className="text-sm">
-            <p className="text-white">
-              <span className="text-white/60">Payout to:</span>{" "}
+            <p className={textPrimary}>
+              <span className={textSecondary}>Payout to:</span>{" "}
               <span className="font-semibold">**** {bankLast4 || "----"}</span>
             </p>
-            <p className="text-white mt-0.5">
-              <span className="text-white/60">Payout on:</span>{" "}
+            <p className={`mt-0.5 ${textPrimary}`}>
+              <span className={textSecondary}>Payout on:</span>{" "}
               <span className="font-semibold underline decoration-dotted underline-offset-2">
                 {preview.payout_settlement_date} ({preview.timezone})
               </span>
@@ -1174,14 +1209,31 @@ export default function ReconcilePage() {
 
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col">
+      {/* Shown until lg - matches the lg breakpoint the two-column split
+          below switches at. The desktop close button lives on the
+          invoice-preview panel, which only appears at lg+ (always visible
+          there since both columns sit side by side); below that, the panel
+          is either dropped (mobile step-5 merge) or stacked far down the
+          page, so there's otherwise no way back without scrolling. */}
+      <div className="flex lg:hidden items-center gap-3 px-4 py-3 border-b border-gray-200 shrink-0">
+        <button
+          onClick={() => navigate("/dashboard")}
+          aria-label="Back to dashboard"
+          className="text-gray-500 hover:text-gray-900"
+        >
+          <ArrowLeft size={20} />
+        </button>
+        <h1 className="text-base font-semibold text-gray-900">Reconcile</h1>
+      </div>
+
       {dataLoading ? (
         <div className="flex-1 flex items-center justify-center">
           <div className="w-6 h-6 border-2 border-gray-300 border-t-black rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="flex-1 flex min-h-0">
+        <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-y-auto lg:overflow-visible">
           {/* Left: form */}
-          <div className="w-1/2 min-w-0 overflow-y-auto px-8 py-4">
+          <div className="w-full lg:w-1/2 min-w-0 lg:overflow-y-auto px-4 sm:px-8 py-4">
             {submitError && (
               <div className="mb-6 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
                 {submitError}
@@ -1363,6 +1415,21 @@ export default function ReconcilePage() {
               <div>
                 <h3 className="text-base font-semibold text-gray-900 mb-3">5. Payout Information</h3>
 
+                {/* Below lg there's no room for the invoice-preview panel
+                    beside the form, so its content (receivable/partner,
+                    amount breakdown, payout destination) is shown here
+                    instead of being dropped. */}
+                <div className="lg:hidden mb-4">
+                  <InvoicePreviewPanel
+                    receivable={selectedReceivable}
+                    partner={selectedPartner}
+                    amount={amount}
+                    bankAccount={bankAccounts.find((a) => a._id === bankAccountId)}
+                    preview={preview}
+                    variant="light"
+                  />
+                </div>
+
                 {previewLoading && (
                   <div className="border border-gray-200 rounded-sm px-5 py-3 flex items-center gap-3">
                     <div className="w-4 h-4 border-2 border-gray-300 border-t-black rounded-full animate-spin" />
@@ -1431,9 +1498,10 @@ export default function ReconcilePage() {
             </div>
           </div>
 
-          {/* Right: invoice preview */}
+          {/* Right: invoice preview - lg+ only, see the light-variant
+              InvoicePreviewPanel inlined into step 5 above for mobile/tablet. */}
           <div
-            className="w-1/2 min-w-0 relative overflow-hidden flex flex-col"
+            className="hidden lg:flex lg:w-1/2 min-w-0 relative overflow-hidden flex-col"
             style={{ backgroundImage: "linear-gradient(rgb(56,37,15) 0%, rgb(158,107,42) 100%)" }}
           >
             <button

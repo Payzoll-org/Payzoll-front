@@ -208,7 +208,7 @@ function SettingsContent() {
 
   return (
     <div className="bg-gray-50 h-full overflow-y-auto">
-      <div className="max-w-xl mx-auto px-6 lg:px-8 py-10 flex flex-col gap-8">
+      <div className="max-w-xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 flex flex-col gap-8">
         <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
 
         <section>

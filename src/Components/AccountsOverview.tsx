@@ -64,6 +64,33 @@ function DepositRow({ deposit }: { deposit: Deposit }) {
   );
 }
 
+function DepositCard({ deposit }: { deposit: Deposit }) {
+  const fee = (parseFloat(deposit.amount) - parseFloat(deposit.net_amount || deposit.amount)).toFixed(2);
+  const hasFee = parseFloat(fee) > 0;
+
+  return (
+    <div className="p-4 border-b border-gray-100 last:border-0">
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <span className="text-sm font-medium text-gray-900 underline decoration-dotted underline-offset-2">
+          {deposit.currency} {deposit.amount}
+        </span>
+        <StatusBadge status={deposit.status} />
+      </div>
+      <div className="flex items-center justify-between gap-2 text-sm text-gray-500">
+        <span>{(deposit.payment_method && PAYMENT_METHOD_LABELS[deposit.payment_method]) || "NA"}</span>
+        <span>
+          {new Date(deposit.created * 1000).toLocaleDateString(undefined, {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          })}
+        </span>
+      </div>
+      {hasFee && <div className="text-xs text-gray-400 mt-1">Fee: {deposit.currency} {fee}</div>}
+    </div>
+  );
+}
+
 /**
  * Backed by XflowPay's Deposit object (api-reference.md "Deposits") -
  * "Inferred Sender" is always NA since that field doesn't exist on it, not
@@ -88,7 +115,7 @@ function PaymentsReceivedTable() {
 
   return (
     <section className="mb-100" id="payments-received">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-medium text-gray-900">Payments Received from Partners</h2>
           <Info size={15} className="text-gray-400" />
@@ -117,8 +144,13 @@ function PaymentsReceivedTable() {
           No payments received yet. Incoming deposits will show up here.
         </div>
       ) : (
-        <div className="border border-gray-200 rounded-sm overflow-x-auto">
-          <table className="w-full min-w-[720px]">
+        <div className="border border-gray-200 rounded-sm overflow-hidden md:overflow-x-auto">
+          <div className="md:hidden divide-y divide-gray-100">
+            {filtered.map((d) => (
+              <DepositCard key={d.id} deposit={d} />
+            ))}
+          </div>
+          <table className="hidden md:table w-full min-w-[720px]">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50">
                 <th className="text-left text-xs font-medium text-gray-500 py-3 px-4">Received on</th>
@@ -172,7 +204,7 @@ export default function AccountsOverview() {
   }
 
   return (
-    <div className="p-6 lg:p-8 flex flex-col gap-8 overflow-y-auto h-full">
+    <div className="p-4 sm:p-6 lg:p-8 flex flex-col gap-8 overflow-y-auto h-full">
       {/* Wallet + Offramp Calculator */}
       <WalletOfframpWidget balance={balance} onDeposit={() => setModalSelection("local")} />
 
