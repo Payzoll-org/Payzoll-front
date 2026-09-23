@@ -460,6 +460,10 @@ export default function AuthPage() {
                               focus:border-black transition text-sm lg:text-base"
                     disabled={onboardingLoading}
                   />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Enter your name exactly as it appears on your PAN card - it's used for KYC
+                    later and won't be asked again.
+                  </p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-5">

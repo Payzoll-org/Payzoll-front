@@ -8,7 +8,6 @@ export interface BusinessIdentifiersPayload {
   state: string;
   zipcode: string;
   panNumber: string;
-  nameOnPan: string;
   // Sole-proprietorship only - the frontend sends this only for that
   // onboarding type.
   gstin?: string;

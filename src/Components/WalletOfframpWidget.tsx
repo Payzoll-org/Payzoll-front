@@ -411,6 +411,7 @@ export default function WalletOfframpWidget({
 
       <KycRequiredModal
         open={kycModalOpen}
+        underReview={user?.accountStatus === "verifying"}
         onCancel={() => setKycModalOpen(false)}
         onProceed={() => {
           setKycModalOpen(false);

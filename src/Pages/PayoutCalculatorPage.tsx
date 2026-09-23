@@ -3,12 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { OfframpCalculatorCard } from "../Components/WalletOfframpWidget";
 import KycRequiredModal from "../Components/KycRequiredModal";
+import { useAuthStore } from "../Zustand/userStore";
 
 // Reached only from the dashboard's mobile-only "Calculator" button
 // (WalletOfframpWidget) - the full calculator card doesn't fit alongside
 // Withdraw/Deposit on a phone-width screen, so it lives on its own page there.
 export default function PayoutCalculatorPage() {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [kycModalOpen, setKycModalOpen] = useState(false);
 
   return (
@@ -30,6 +32,7 @@ export default function PayoutCalculatorPage() {
 
       <KycRequiredModal
         open={kycModalOpen}
+        underReview={user?.accountStatus === "verifying"}
         onCancel={() => setKycModalOpen(false)}
         onProceed={() => {
           setKycModalOpen(false);

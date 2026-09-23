@@ -66,8 +66,6 @@ export interface AboutBusinessPayload {
   productDescription: string;
   dba: string;
   purposeCode: { code: string }[];
-  estimatedMonthlyVolume: string;
-  estimatedAnnualRevenue: string;
   // Sole-proprietorship (and other non-individual) accounts only - required
   // by XflowPay for stablecoin_exports_v1, not for "individual".
   businessIndustry?: string;

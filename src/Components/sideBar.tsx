@@ -293,6 +293,7 @@ const sideBAr: React.FC = () => {
       <HelpSupportModal open={helpModalOpen} onClose={() => setHelpModalOpen(false)} />
       <KycRequiredModal
         open={kycModalOpen}
+        underReview={user?.accountStatus === "verifying"}
         onCancel={() => setKycModalOpen(false)}
         onProceed={() => {
           setKycModalOpen(false);

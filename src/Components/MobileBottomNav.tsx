@@ -80,6 +80,7 @@ export default function MobileBottomNav() {
 
       <KycRequiredModal
         open={kycModalOpen}
+        underReview={user?.accountStatus === "verifying"}
         onCancel={() => setKycModalOpen(false)}
         onProceed={() => {
           setKycModalOpen(false);

@@ -449,23 +449,19 @@ function OnboardingSidebar({
               <div className="flex flex-col items-center">
                 <div
                   className={
-                    isDone
-                      ? "w-10 h-10 rounded-full bg-arc-gold-600 flex items-center justify-center shrink-0"
-                      : isActive
+                    isActive
                       ? "w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center shrink-0"
+                      : isDone
+                      ? "w-10 h-10 rounded-full bg-arc-gold-600 flex items-center justify-center shrink-0"
                       : "w-10 h-10 rounded-full border-2 border-gray-200 bg-white flex items-center justify-center shrink-0"
                   }
                 >
-                  {isDone ? (
+                  {isActive ? (
+                    <span className="w-2.5 h-2.5 rounded-full border-2 border-white" />
+                  ) : isDone ? (
                     <Check className="w-5 h-5 text-white" />
                   ) : (
-                    <span
-                      className={
-                        isActive
-                          ? "w-2.5 h-2.5 rounded-full border-2 border-white"
-                          : "w-2.5 h-2.5 rounded-full border-2 border-gray-300"
-                      }
-                    />
+                    <span className="w-2.5 h-2.5 rounded-full border-2 border-gray-300" />
                   )}
                 </div>
                 {!isLast && (
@@ -515,6 +511,35 @@ interface AboutBusinessSummary {
   businessIndustry?: string;
 }
 
+// Common product/business descriptions seen across KYC submissions - lets
+// most users pick one instead of writing it from scratch, while "Other"
+// keeps the free-text option for anyone it doesn't fit. label is the short
+// name shown in the closed dropdown list; description is the full text
+// that's actually shown back (full-text preview below) and submitted.
+const PRODUCT_DESCRIPTION_OPTIONS: { label: string; description: string }[] = [
+  {
+    label: "Web3 / Blockchain developer",
+    description:
+      "I provide software development services as a Blockchain/Web3 developer to overseas clients and companies. I focus on building and maintaining blockchain-based applications, including smart contract development and full-stack engineering (frontend and backend). I have worked with well-known organizations in the Web3 space",
+  },
+  {
+    label: "Full stack developer or software developer",
+    description:
+      "I provide software development and web development services to international clients. I work as an independent software developer, building professional software products, websites, and custom digital solutions for clients in other countries. We receive payments from overseas clients for software development services.",
+  },
+  {
+    label: "Security researcher",
+    description:
+      "I provide cybersecurity and security research services to international clients. I work as an independent contractor with different overseas employers, delivering security research and related services. I receive payments from global clients for these professional services.",
+  },
+  {
+    label: "Community leader",
+    description:
+      "I organizes hackathons, tech events, workshops, meetups, and networking programs for developers, students, freelancers, and tech enthusiasts. I also offer event marketing, digital marketing, social media promotion, creative services, and freelance technology solutions, collaborating with startups, brands, and industry professionals.",
+  },
+];
+const OTHER_DESCRIPTION = "__other__";
+
 function AboutBusinessStep({
   initial,
   onDone,
@@ -527,13 +552,13 @@ function AboutBusinessStep({
 
   const [website, setWebsite] = useState(initial?.website ?? "");
   const [productDescription, setProductDescription] = useState(initial?.productDescription ?? "");
+  const [descriptionChoice, setDescriptionChoice] = useState(() =>
+    initial?.productDescription &&
+    PRODUCT_DESCRIPTION_OPTIONS.some((opt) => opt.description === initial.productDescription)
+      ? initial.productDescription
+      : OTHER_DESCRIPTION
+  );
   const [dba, setDba] = useState(initial?.dba ?? "");
-  const [estimatedMonthlyVolume, setEstimatedMonthlyVolume] = useState(
-    initial?.estimatedMonthlyVolume ?? ""
-  );
-  const [estimatedAnnualRevenue, setEstimatedAnnualRevenue] = useState(
-    initial?.estimatedAnnualRevenue ?? ""
-  );
   const [selectedCodes, setSelectedCodes] = useState<string[]>(initial?.purposeCodes ?? []);
   const [businessIndustry, setBusinessIndustry] = useState(initial?.businessIndustry ?? "");
   const [industryOptions, setIndustryOptions] = useState<IndustryCodeOption[]>([]);
@@ -555,13 +580,7 @@ function AboutBusinessStep({
   const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
 
-    if (
-      !website.trim() ||
-      !productDescription.trim() ||
-      !dba.trim() ||
-      !estimatedMonthlyVolume.trim() ||
-      !estimatedAnnualRevenue.trim()
-    ) {
+    if (!website.trim() || !productDescription.trim() || !dba.trim()) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -584,13 +603,16 @@ function AboutBusinessStep({
     setLoading(true);
 
     try {
-      await submitAboutBusiness({
+      // estimatedMonthlyVolume/estimatedAnnualRevenue aren't collected here
+      // any more - the backend derives them from the volume bucket the user
+      // already picked during signup onboarding (Services/
+      // aboutBusiness.service.js), so read back whatever it actually used
+      // for the summary display below instead of asking again.
+      const account = await submitAboutBusiness({
         website: website.trim(),
         productDescription: productDescription.trim(),
         dba: dba.trim(),
         purposeCode: selectedCodes.map((code) => ({ code })),
-        estimatedMonthlyVolume: estimatedMonthlyVolume.trim(),
-        estimatedAnnualRevenue: estimatedAnnualRevenue.trim(),
         businessIndustry: isSoleProprietorship ? businessIndustry : undefined,
       });
 
@@ -598,8 +620,8 @@ function AboutBusinessStep({
         website: website.trim(),
         dba: dba.trim(),
         productDescription: productDescription.trim(),
-        estimatedMonthlyVolume: estimatedMonthlyVolume.trim(),
-        estimatedAnnualRevenue: estimatedAnnualRevenue.trim(),
+        estimatedMonthlyVolume: account?.businessDetails?.estimatedMonthlyVolume?.amount ?? "",
+        estimatedAnnualRevenue: account?.businessDetails?.estimatedAnnualRevenue?.amount ?? "",
         purposeCodes: selectedCodes,
         purposeLabels: selectedCodes.map(
           (code) => PURPOSE_CODE_OPTIONS.find((opt) => opt.code === code)?.label || code
@@ -659,49 +681,53 @@ function AboutBusinessStep({
             <label className="text-sm font-medium mb-1 text-gray-700">
               Product / business description *
             </label>
-            <textarea
-              value={productDescription}
-              onChange={(e) => setProductDescription(e.target.value)}
-              placeholder="Describe what your business does"
-              rows={2}
-              maxLength={400}
-              className={`${inputClass} resize-none`}
+            <select
+              value={descriptionChoice}
+              onChange={(e) => {
+                const choice = e.target.value;
+                setDescriptionChoice(choice);
+                setProductDescription(choice === OTHER_DESCRIPTION ? "" : choice);
+              }}
+              className={inputClass}
               disabled={loading}
-            />
-            <p className="text-xs text-gray-400 mt-1">{productDescription.length}/400 characters</p>
-          </div>
+            >
+              <option value="" disabled>
+                Select the option closest to your business
+              </option>
+              {PRODUCT_DESCRIPTION_OPTIONS.map((option) => (
+                <option key={option.label} value={option.description}>
+                  {option.label}
+                </option>
+              ))}
+              <option value={OTHER_DESCRIPTION}>Other (type your own)</option>
+            </select>
 
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex flex-col w-full sm:w-1/2">
-              <label className="text-sm font-medium mb-1 text-gray-700">
-                Est. monthly volume (USD) *
-              </label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={estimatedMonthlyVolume}
-                onChange={(e) => setEstimatedMonthlyVolume(e.target.value)}
-                placeholder="5000"
-                className={inputClass}
-                disabled={loading}
-              />
-            </div>
-            <div className="flex flex-col w-full sm:w-1/2">
-              <label className="text-sm font-medium mb-1 text-gray-700">
-                Est. annual revenue (USD) *
-              </label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={estimatedAnnualRevenue}
-                onChange={(e) => setEstimatedAnnualRevenue(e.target.value)}
-                placeholder="60000"
-                className={inputClass}
-                disabled={loading}
-              />
-            </div>
+            {descriptionChoice !== OTHER_DESCRIPTION && descriptionChoice !== "" && (
+              // Native <select> always truncates its closed-state text to
+              // one line regardless of content length, so the full wording
+              // is shown here instead - this is what actually gets
+              // submitted, worth confirming in full before continuing.
+              <p className="text-sm text-gray-600 mt-2 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2">
+                {descriptionChoice}
+              </p>
+            )}
+
+            {descriptionChoice === OTHER_DESCRIPTION && (
+              <>
+                <textarea
+                  value={productDescription}
+                  onChange={(e) => setProductDescription(e.target.value)}
+                  placeholder="Describe what your business does"
+                  rows={2}
+                  maxLength={400}
+                  className={`${inputClass} resize-none mt-2`}
+                  disabled={loading}
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  {productDescription.length}/400 characters
+                </p>
+              </>
+            )}
           </div>
 
           {isSoleProprietorship && (
@@ -745,6 +771,12 @@ function AboutBusinessStep({
   );
 }
 
+// Mirrors Payzoll-back/Middleware/validation.Middleware.js's panRegex/
+// gstinRegex exactly, so a malformed value is caught here instead of
+// round-tripping to the server just to find out.
+const PAN_REGEX = /^[A-Za-z]{5}\d{4}[A-Za-z]$/;
+const GSTIN_REGEX = /^[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}[1-9A-Za-z]{1}Z[0-9A-Za-z]{1}$/;
+
 interface BusinessIdentifiersSummary {
   addressLine1: string;
   addressLine2?: string;
@@ -777,7 +809,6 @@ function BusinessIdentifiersStep({
   const [state, setState] = useState(initial?.state ?? "");
   const [zipcode, setZipcode] = useState(initial?.zipcode ?? "");
   const [panNumber, setPanNumber] = useState(initial?.panNumber ?? "");
-  const [nameOnPan, setNameOnPan] = useState(initial?.nameOnPan ?? "");
   const [gstin, setGstin] = useState(initial?.gstin ?? "");
   const [panFile, setPanFile] = useState<File | null>(null);
   const [gstFile, setGstFile] = useState<File | null>(null);
@@ -792,15 +823,24 @@ function BusinessIdentifiersStep({
       !city.trim() ||
       !state.trim() ||
       !zipcode.trim() ||
-      !panNumber.trim() ||
-      !nameOnPan.trim()
+      !panNumber.trim()
     ) {
       toast.error("Please fill in all required fields");
       return;
     }
 
+    if (!PAN_REGEX.test(panNumber.trim())) {
+      toast.error("Valid PAN number is required (e.g. ABCDE1234F)");
+      return;
+    }
+
     if (isSoleProprietorship && !gstin.trim()) {
       toast.error("Please enter your GST number");
+      return;
+    }
+
+    if (isSoleProprietorship && !GSTIN_REGEX.test(gstin.trim().toUpperCase())) {
+      toast.error("Valid GSTIN is required (e.g. 22AAAAA0000A1Z5)");
       return;
     }
 
@@ -822,28 +862,51 @@ function BusinessIdentifiersStep({
     setLoading(true);
 
     try {
-      await submitBusinessIdentifiers({
+      // "Name on PAN" isn't collected here - it's the onboarding form's
+      // legal name (Payzoll-back/Services/businessIdentifiers.service.js
+      // intentionally never overwrites it), so read back whatever's
+      // actually on the account for the summary below instead of asking
+      // again.
+      const account = await submitBusinessIdentifiers({
         addressLine1: addressLine1.trim(),
         addressLine2: addressLine2.trim() || undefined,
         city: city.trim(),
         state: state.trim(),
         zipcode: zipcode.trim(),
         panNumber: panNumber.trim(),
-        nameOnPan: nameOnPan.trim(),
         gstin: isSoleProprietorship ? gstin.trim().toUpperCase() : undefined,
       });
 
       // Only re-upload documents the user actually picked again - file
       // inputs can't be pre-filled from a previous session, but the
-      // originally uploaded files are still on record server-side.
+      // originally uploaded files are still on record server-side. Track
+      // what actually happened so we can say so explicitly below instead
+      // of submitting silently - a returning user who doesn't re-pick a
+      // file has no other way to tell a "kept as-is" resubmit apart from
+      // one that actually replaced the document.
+      const uploadedDocs: string[] = [];
+
       if (panFile) {
         await uploadPanCard(panFile);
+        uploadedDocs.push("PAN card");
       }
       if (isSoleProprietorship && gstFile) {
         await uploadAddressDocument(gstFile, "gstin");
+        uploadedDocs.push("GST document");
       }
       if (sourceOfIncomeFile) {
         await uploadSourceOfIncome(sourceOfIncomeFile);
+        uploadedDocs.push("source of income document");
+      }
+
+      if (initial) {
+        // Only worth announcing on a resubmit - a first-time submit has no
+        // "kept vs. replaced" ambiguity to clear up.
+        toast.success(
+          uploadedDocs.length > 0
+            ? `Saved. Replaced: ${uploadedDocs.join(", ")}. Everything else kept as on file.`
+            : "Saved. No new documents were selected, so your existing PAN/GST/source of income files are unchanged."
+        );
       }
 
       onDone({
@@ -853,7 +916,7 @@ function BusinessIdentifiersStep({
         state: state.trim(),
         zipcode: zipcode.trim(),
         panNumber: panNumber.trim(),
-        nameOnPan: nameOnPan.trim(),
+        nameOnPan: account?.businessDetails?.legalName ?? initial?.nameOnPan ?? "",
         gstin: isSoleProprietorship ? gstin.trim().toUpperCase() : undefined,
         panFileName: panFile?.name ?? initial?.panFileName ?? "",
         gstFileName: isSoleProprietorship ? gstFile?.name ?? initial?.gstFileName : undefined,
@@ -953,17 +1016,6 @@ function BusinessIdentifiersStep({
                   disabled={loading}
                 />
               </div>
-              <div className="flex flex-col w-full sm:w-1/2">
-                <label className="text-sm font-medium mb-1 text-gray-700">Name on PAN *</label>
-                <input
-                  type="text"
-                  value={nameOnPan}
-                  onChange={(e) => setNameOnPan(e.target.value)}
-                  placeholder="Name as it appears on the PAN card"
-                  className={inputClass}
-                  disabled={loading}
-                />
-              </div>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 sm:items-end">
@@ -980,10 +1032,17 @@ function BusinessIdentifiersStep({
                             file:bg-black file:text-white hover:file:bg-gray-800 file:cursor-pointer"
                   disabled={loading}
                 />
-                {initial?.panFileName && (
-                  <p className="text-xs text-gray-400 mt-1">
-                    On file: {initial.panFileName} — pick a new file to replace it
+                {panFile ? (
+                  <p className="text-xs text-green-600 mt-1 font-medium">
+                    New file selected: {panFile.name} — will replace the one on file
                   </p>
+                ) : (
+                  initial?.panFileName && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      Current file on record: {initial.panFileName}. Not changing it — pick a new
+                      file above only if you want to replace it.
+                    </p>
+                  )
                 )}
               </div>
               {isSoleProprietorship && (
@@ -1020,10 +1079,17 @@ function BusinessIdentifiersStep({
                             file:bg-black file:text-white hover:file:bg-gray-800 file:cursor-pointer"
                   disabled={loading}
                 />
-                {initial?.gstFileName && (
-                  <p className="text-xs text-gray-400 mt-1">
-                    On file: {initial.gstFileName} — pick a new file to replace it
+                {gstFile ? (
+                  <p className="text-xs text-green-600 mt-1 font-medium">
+                    New file selected: {gstFile.name} — will replace the one on file
                   </p>
+                ) : (
+                  initial?.gstFileName && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      Current file on record: {initial.gstFileName}. Not changing it — pick a new
+                      file above only if you want to replace it.
+                    </p>
+                  )
                 )}
               </div>
             )}
@@ -1042,12 +1108,20 @@ function BusinessIdentifiersStep({
                 disabled={loading}
               />
               <p className="text-xs text-gray-400 mt-1">
-                e.g. salary slip, bank statement, or ITR. JPEG, PNG or PDF, up to 10MB
+                e.g. contract/agreement with employer, or offer letter from the company. JPEG,
+                PNG or PDF, up to 10MB
               </p>
-              {initial?.sourceOfIncomeFileName && (
-                <p className="text-xs text-gray-400 mt-1">
-                  On file: {initial.sourceOfIncomeFileName} — pick a new file to replace it
+              {sourceOfIncomeFile ? (
+                <p className="text-xs text-green-600 mt-1 font-medium">
+                  New file selected: {sourceOfIncomeFile.name} — will replace the one on file
                 </p>
+              ) : (
+                initial?.sourceOfIncomeFileName && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    Current file on record: {initial.sourceOfIncomeFileName}. Not changing it —
+                    pick a new file above only if you want to replace it.
+                  </p>
+                )
               )}
             </div>
           </div>
@@ -1102,39 +1176,33 @@ interface BankDetailsSummary {
 
 function BankDetailsStep({
   initial,
+  address,
+  accountHolderName,
   onDone,
   onBack,
 }: {
   initial?: BankDetailsSummary | null;
+  // The physical address and the owner's name are each collected once, on
+  // the business identifiers step, and reused here rather than asked
+  // again - see the KYC simplification note above BankDetailsSummary.
+  address: { line1: string; city: string; state: string; postalCode: string };
+  accountHolderName: string;
   onDone: (data: BankDetailsSummary) => void;
   onBack: () => void;
 }) {
   const [currency, setCurrency] = useState<Currency>(initial?.currency ?? "INR");
-  const [accountHolderName, setAccountHolderName] = useState(initial?.accountHolderName ?? "");
   const [ifsc, setIfsc] = useState(initial?.currency === "INR" ? initial.routingCode : "");
   const [globalWire, setGlobalWire] = useState(
     initial?.currency === "USD" ? initial.routingCode : ""
   );
   const [accountNumber, setAccountNumber] = useState(initial?.accountNumber ?? "");
-  const [city, setCity] = useState(initial?.city ?? "");
-  const [line1, setLine1] = useState(initial?.line1 ?? "");
-  const [postalCode, setPostalCode] = useState(initial?.postalCode ?? "");
-  const [state, setState] = useState(initial?.state ?? "");
   const [bankStatement, setBankStatement] = useState<File | null>(null);
   const [bankLoading, setBankLoading] = useState(false);
 
   const handleContinue = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
 
-    if (
-      !accountHolderName.trim() ||
-      !accountNumber.trim() ||
-      !city.trim() ||
-      !line1.trim() ||
-      !postalCode.trim() ||
-      !state.trim() ||
-      (currency === "INR" ? !ifsc.trim() : !globalWire.trim())
-    ) {
+    if (!accountNumber.trim() || (currency === "INR" ? !ifsc.trim() : !globalWire.trim())) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -1151,12 +1219,12 @@ function BankDetailsStep({
 
     try {
       const basePayload = {
-        accountHolderName: accountHolderName.trim(),
+        accountHolderName,
         accountNumber: accountNumber.trim(),
-        city: city.trim(),
-        line1: line1.trim(),
-        postalCode: postalCode.trim(),
-        state: state.trim(),
+        city: address.city,
+        line1: address.line1,
+        postalCode: address.postalCode,
+        state: address.state,
       };
 
       if (currency === "INR") {
@@ -1170,13 +1238,13 @@ function BankDetailsStep({
 
       onDone({
         currency,
-        accountHolderName: accountHolderName.trim(),
+        accountHolderName,
         accountNumber: accountNumber.trim(),
         routingCode: currency === "INR" ? ifsc.trim() : globalWire.trim(),
-        line1: line1.trim(),
-        city: city.trim(),
-        state: state.trim(),
-        postalCode: postalCode.trim(),
+        line1: address.line1,
+        city: address.city,
+        state: address.state,
+        postalCode: address.postalCode,
         bankStatementFileName: bankStatement?.name ?? initial?.bankStatementFileName,
       });
     } catch (error: any) {
@@ -1215,14 +1283,12 @@ function BankDetailsStep({
 
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex flex-col w-full sm:w-1/2">
-              <label className="text-sm font-medium mb-1 text-gray-700">
-                Account holder name *
-              </label>
+              <label className="text-sm font-medium mb-1 text-gray-700">Account number *</label>
               <input
                 type="text"
-                value={accountHolderName}
-                onChange={(e) => setAccountHolderName(e.target.value)}
-                placeholder="Name as per bank records"
+                value={accountNumber}
+                onChange={(e) => setAccountNumber(e.target.value)}
+                placeholder="Bank account number"
                 className={inputClass}
                 disabled={bankLoading}
               />
@@ -1246,67 +1312,19 @@ function BankDetailsStep({
             </div>
           </div>
 
-          <div className="flex flex-col mt-5 sm:flex-row gap-4">
-            <div className="flex flex-col w-full sm:w-1/2">
-              <label className="text-sm font-medium mb-1 text-gray-700">Account number *</label>
-              <input
-                type="text"
-                value={accountNumber}
-                onChange={(e) => setAccountNumber(e.target.value)}
-                placeholder="Bank account number"
-                className={inputClass}
-                disabled={bankLoading}
-              />
-            </div>
-            <div className="flex flex-col w-full sm:w-1/2">
-              <label className="text-sm font-medium mb-1 text-gray-700">Line 1 *</label>
-              <input
-                type="text"
-                value={line1}
-                onChange={(e) => setLine1(e.target.value)}
-                placeholder="Enter Address line 1"
-                className={inputClass}
-                disabled={bankLoading}
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-col mt-5  sm:flex-row gap-4">
-            <div className="flex flex-col w-full sm:w-1/3">
-              <label className="text-sm font-medium mb-1 text-gray-700">City *</label>
-              <input
-                type="text"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="Enter City"
-                className={inputClass}
-                disabled={bankLoading}
-              />
-            </div>
-            <div className="flex flex-col w-full sm:w-1/3">
-              <label className="text-sm font-medium mb-1 text-gray-700">
-                State *
-              </label>
-              <input
-                type="text"
-                value={state}
-                onChange={(e) => setState(e.target.value)}
-                placeholder="Enter State"
-                className={inputClass}
-                disabled={bankLoading}
-              />
-            </div>
-            <div className="flex flex-col w-full sm:w-1/3">
-              <label className="text-sm font-medium mb-1 text-gray-700">Postal code *</label>
-              <input
-                type="text"
-                value={postalCode}
-                onChange={(e) => setPostalCode(e.target.value)}
-                placeholder="Enter Postal code"
-                className={inputClass}
-                disabled={bankLoading}
-              />
-            </div>
+          <div className="mt-5 rounded-lg bg-gray-50 border border-gray-100 px-4 py-3">
+            <p className="text-sm font-medium text-gray-700">Account holder</p>
+            <p className="text-sm text-gray-500 mt-0.5">{accountHolderName}</p>
+            <p className="text-sm font-medium text-gray-700 mt-3">Billing address</p>
+            <p className="text-sm text-gray-500 mt-0.5">
+              {[address.line1, address.city, address.state, address.postalCode]
+                .filter(Boolean)
+                .join(", ")}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              Same as the name on PAN and business address from the previous step. Go back to
+              change either.
+            </p>
           </div>
 
           {currency === "USD" && (
@@ -1503,17 +1521,10 @@ function SummaryStep({
 
           <SummarySection title="Bank details" onEdit={() => onEditStep(3)}>
             <SummaryRow label="Currency" value={bankDetails.currency} />
-            <SummaryRow label="Account holder" value={bankDetails.accountHolderName} />
             <SummaryRow label="Account number" value={bankDetails.accountNumber} />
             <SummaryRow
               label={bankDetails.currency === "INR" ? "IFSC code" : "SWIFT/BIC code"}
               value={bankDetails.routingCode}
-            />
-            <SummaryRow
-              label="Address"
-              value={[bankDetails.line1, bankDetails.city, bankDetails.state, bankDetails.postalCode]
-                .filter(Boolean)
-                .join(", ")}
             />
             <SummaryRow label="Bank statement" value={bankDetails.bankStatementFileName} />
           </SummarySection>
@@ -1645,7 +1656,21 @@ export default function KycPage() {
             bankStatementFileName: bd.hasBankStatementFile ? "Previously uploaded" : undefined,
           });
           if (resumeStep === 3) {
-            resumeStep = 4;
+            // Same out-of-sync check as the live step 2 -> 3 handoff below -
+            // a user who left mid-mismatch (e.g. closed the tab right after
+            // being told to reconfirm, before actually resubmitting step 3)
+            // would otherwise resume straight into a stale summary instead
+            // of back at the reconfirm step.
+            const bi = progress.businessIdentifiers;
+            const bankAccountOutOfSync =
+              bi != null &&
+              (bi.addressLine1 !== bd.line1 ||
+                bi.city !== bd.city ||
+                bi.state !== bd.state ||
+                bi.zipcode !== bd.postalCode ||
+                bi.nameOnPan !== bd.accountHolderName);
+
+            resumeStep = bankAccountOutOfSync ? 3 : 4;
             setReachedSummary(true);
           }
         }
@@ -1694,14 +1719,53 @@ export default function KycPage() {
                 initial={businessIdentifiers}
                 onDone={(data) => {
                   setBusinessIdentifiers(data);
+
+                  // Compare against what's actually on file for the bank
+                  // account (bankDetails - the last data a step 3 submit
+                  // actually sent to XflowPay), not just "did this edit
+                  // change something" - a diff against the previous
+                  // businessIdentifiers snapshot would stop firing the
+                  // moment the user bounces back from step 3 without
+                  // resubmitting, since at that point the snapshot has
+                  // already been updated to match and a second, no-op
+                  // pass through step 2 would show zero diff. Comparing
+                  // against bankDetails instead means the mismatch keeps
+                  // getting caught on every attempt to reach the summary
+                  // until step 3 is actually resubmitted - XflowPay has no
+                  // in-place way to fix a stale address otherwise
+                  // (docs/xflow/openapi.json - UpdateAddress only accepts
+                  // metadata).
+                  const bankAccountOutOfSync =
+                    bankDetails != null &&
+                    (data.addressLine1 !== bankDetails.line1 ||
+                      data.city !== bankDetails.city ||
+                      data.state !== bankDetails.state ||
+                      data.zipcode !== bankDetails.postalCode ||
+                      data.nameOnPan !== bankDetails.accountHolderName);
+
+                  if (reachedSummary && bankAccountOutOfSync) {
+                    toast.error(
+                      "Your name or business address changed - please reconfirm your payout bank account."
+                    );
+                    setStep(3);
+                    return;
+                  }
+
                   setStep(reachedSummary ? 4 : 3);
                 }}
                 onBack={() => setStep(1)}
               />
             )}
-            {step === 3 && (
+            {step === 3 && businessIdentifiers && (
               <BankDetailsStep
                 initial={bankDetails}
+                address={{
+                  line1: businessIdentifiers.addressLine1,
+                  city: businessIdentifiers.city,
+                  state: businessIdentifiers.state,
+                  postalCode: businessIdentifiers.zipcode,
+                }}
+                accountHolderName={businessIdentifiers.nameOnPan}
                 onBack={() => setStep(2)}
                 onDone={(data) => {
                   setBankDetails(data);
