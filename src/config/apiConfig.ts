@@ -30,6 +30,8 @@ export const API_ROUTES = {
     revokeSession: (sessionId: string) => `/api/auth/sessions/${sessionId}`,
     forgotPassword: "/api/auth/forgot-password",
     resetPassword: "/api/auth/reset-password",
+    loginRecoverySend: "/api/auth/login-recovery/send",
+    loginRecoveryVerify: "/api/auth/login-recovery/verify",
   },
   onboarding: {
     submit: "/api/onboarding",

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuthStore } from "../Zustand/userStore";
@@ -13,6 +13,8 @@ import {
   verifyOtp as verifyOtpRequest,
   requestPasswordReset,
   resetPassword,
+  requestLoginRecovery,
+  verifyLoginRecovery,
 } from "../services/authApi";
 import {
   submitOnboarding,
@@ -53,13 +55,28 @@ export default function AuthPage() {
   const [showVerification, setShowVerification] = useState<boolean>(false);
   const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
   const [showForgotPassword, setShowForgotPassword] = useState<boolean>(false);
-  const [forgotStep, setForgotStep] = useState<"request" | "reset" | "done">("request");
+  const [forgotStep, setForgotStep] = useState<"request" | "reset">("request");
   const [forgotEmail, setForgotEmail] = useState<string>("");
   const [forgotOtp, setForgotOtp] = useState<string>("");
   const [forgotNewPassword, setForgotNewPassword] = useState<string>("");
   const [showForgotNewPassword, setShowForgotNewPassword] = useState<boolean>(false);
   const [forgotError, setForgotError] = useState<string | null>(null);
   const [forgotLoading, setForgotLoading] = useState<boolean>(false);
+  // Separate from the forgot-password state above on purpose - this never
+  // touches or asks for a password, just an email OTP that logs the user
+  // straight in (Services/auth.service.js's needsPasswordRecovery accounts).
+  const [showLoginRecovery, setShowLoginRecovery] = useState<boolean>(false);
+  const [loginRecoveryEmail, setLoginRecoveryEmail] = useState<string>("");
+  const [loginRecoveryOtp, setLoginRecoveryOtp] = useState<string[]>(["", "", "", "", "", ""]);
+  const [loginRecoveryLoading, setLoginRecoveryLoading] = useState<boolean>(false);
+  const [loginRecoveryResendLoading, setLoginRecoveryResendLoading] = useState<boolean>(false);
+  // Emails already auto-sent a code for in this page visit - the send
+  // endpoint shares the password-reset rate limit (3/hour), and login
+  // itself allows 5 attempts/15min, so auto-sending on every single
+  // failed login would burn through that budget before the user even
+  // gets a real chance to use a code. One auto-send per email per visit;
+  // the on-screen Resend Code button covers everything after that.
+  const loginRecoveryAutoSentFor = useRef<Set<string>>(new Set());
   const [onboardingForm, setOnboardingForm] = useState<OnboardingPayload>(emptyOnboardingForm);
   const [onboardingLoading, setOnboardingLoading] = useState<boolean>(false);
   // True once submitOnboarding has actually succeeded (or the backend says
@@ -295,7 +312,34 @@ export default function AuthPage() {
       console.error("Error:", error);
       const errorMessage = error.message || "Something went wrong!";
 
-      if (
+      if (errorMessage.includes("RECOVERY_REQUIRED")) {
+        // Not a real wrong-password case - this account's password is
+        // unknown (see Services/auth.service.js's needsPasswordRecovery).
+        // Drop straight into the dedicated email-OTP screen instead of a
+        // dead-end "invalid credentials" error - deliberately not the
+        // forgot-password flow, since this never asks for or changes a
+        // password, just verifies identity.
+        const cleanEmail = form.email.toLowerCase().trim();
+        setLoginRecoveryEmail(form.email);
+        setLoginRecoveryOtp(["", "", "", "", "", ""]);
+        setShowLoginRecovery(true);
+
+        const alreadySent = loginRecoveryAutoSentFor.current.has(cleanEmail);
+        if (alreadySent) {
+          // Only auto-send once per visit (see the ref's comment above) -
+          // still a calm, normal-sounding message either way, never
+          // implying a retry failed or anything went wrong.
+          toast("Enter the code we already sent you, or tap Resend Code below.", { icon: "📧" });
+        } else {
+          toast("For your security, we've emailed you a code to continue.", { icon: "🔐" });
+          try {
+            await requestLoginRecovery(form.email);
+            loginRecoveryAutoSentFor.current.add(cleanEmail);
+          } catch (sendError: any) {
+            toast.error(sendError.message || "Couldn't send the code - tap Resend Code below to try again.");
+          }
+        }
+      } else if (
         errorMessage.toLowerCase().includes("verify") ||
         errorMessage.toLowerCase().includes("verification")
       ) {
@@ -352,14 +396,76 @@ export default function AuthPage() {
     setForgotError(null);
     setForgotLoading(true);
     try {
+      // Sets the session as a side effect (same as loginUser) - closing
+      // the modal here is enough, the useEffect above reacts to `user`
+      // changing and takes it from here (dashboard or onboarding), same
+      // as a normal login.
       await resetPassword({ email: forgotEmail, otp: forgotOtp, newPassword: forgotNewPassword });
-      setForgotStep("done");
+      toast.success("Password updated - you're logged in.");
+      setShowForgotPassword(false);
     } catch (error: any) {
       const message = error.message || "Failed to reset password";
       setForgotError(message);
       toast.error(message);
     } finally {
       setForgotLoading(false);
+    }
+  };
+
+  const handleLoginRecoveryOtpInput = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+    const value = e.target.value;
+    if (!/^[0-9]?$/.test(value)) return;
+
+    const next = [...loginRecoveryOtp];
+    next[index] = value;
+    setLoginRecoveryOtp(next);
+
+    if (value && index < 5) {
+      const nextInput = e.target.nextElementSibling as HTMLInputElement;
+      nextInput?.focus();
+    }
+  };
+
+  const handleLoginRecoveryOtpKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
+    if (e.key === "Backspace" && !loginRecoveryOtp[index] && index > 0) {
+      const prevInput = e.currentTarget.previousElementSibling as HTMLInputElement;
+      prevInput?.focus();
+    }
+  };
+
+  const handleVerifyLoginRecovery = async () => {
+    const code = loginRecoveryOtp.join("");
+    if (code.length !== 6) {
+      toast.error("Please enter all 6 digits");
+      return;
+    }
+
+    setLoginRecoveryLoading(true);
+    try {
+      // Sets the session as a side effect (same as loginUser) - no
+      // password involved anywhere in this flow. The useEffect above
+      // reacts to `user` changing and takes it from here.
+      await verifyLoginRecovery(loginRecoveryEmail, code);
+      setShowLoginRecovery(false);
+    } catch (error: any) {
+      toast.error(error.message || "Invalid code");
+      setLoginRecoveryOtp(["", "", "", "", "", ""]);
+    } finally {
+      setLoginRecoveryLoading(false);
+    }
+  };
+
+  const handleResendLoginRecovery = async () => {
+    setLoginRecoveryResendLoading(true);
+    try {
+      await requestLoginRecovery(loginRecoveryEmail);
+      loginRecoveryAutoSentFor.current.add(loginRecoveryEmail.toLowerCase().trim());
+      toast.success("Code resent - check your email.");
+      setLoginRecoveryOtp(["", "", "", "", "", ""]);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to resend code");
+    } finally {
+      setLoginRecoveryResendLoading(false);
     }
   };
 
@@ -638,7 +744,6 @@ export default function AuthPage() {
                       <span className="text-arc-gold-600 font-medium">{forgotEmail}</span>
                     </>
                   )}
-                  {forgotStep === "done" && "Your password has been updated"}
                 </p>
               </div>
 
@@ -712,24 +817,77 @@ export default function AuthPage() {
                 </div>
               )}
 
-              {forgotStep === "done" && (
-                <button
-                  onClick={() => setShowForgotPassword(false)}
-                  className="w-56 py-3 bg-arc-gold-600 text-white rounded-xl text-lg font-medium
-                             shadow-lg hover:shadow-xl transition-all"
-                >
-                  Back to Log In
-                </button>
-              )}
+              <button
+                onClick={() => setShowForgotPassword(false)}
+                className="text-sm text-gray-500 hover:text-gray-700 mt-8"
+              >
+                ← Back to Log In
+              </button>
+            </div>
+          ) : showLoginRecovery ? (
+            // Login recovery: pure email-OTP check, no password involved
+            <div className="flex flex-col items-center justify-center pt-20 px-6">
+              <div className="text-center mb-12">
+                <h2 className="text-5xl font-heading font-normal tracking-tight text-black mb-3">
+                  Confirm It's You
+                </h2>
+                <p className="text-gray-500 text-sm">Enter the 6-digit code sent to</p>
+                <p className="text-arc-gold-600 font-medium text-lg mt-1">{loginRecoveryEmail}</p>
+              </div>
 
-              {forgotStep !== "done" && (
+              <div className="flex justify-center gap-2 sm:gap-4 mb-10">
+                {[...Array(6)].map((_, i) => (
+                  <input
+                    key={i}
+                    type="text"
+                    maxLength={1}
+                    value={loginRecoveryOtp[i]}
+                    className="w-10 h-12 sm:w-14 sm:h-16 text-center border border-gray-300 rounded-lg
+                              text-lg sm:text-2xl font-semibold bg-white text-black
+                              focus:outline-none focus:border-1 focus:border-arc-gold-500
+                              focus:border-black transition-all"
+                    onChange={(e) => handleLoginRecoveryOtpInput(e, i)}
+                    onKeyDown={(e) => handleLoginRecoveryOtpKeyDown(e, i)}
+                    disabled={loginRecoveryLoading}
+                  />
+                ))}
+              </div>
+
+              <button
+                onClick={handleVerifyLoginRecovery}
+                disabled={loginRecoveryLoading || loginRecoveryOtp.join("").length !== 6}
+                className="w-56 py-3 bg-arc-gold-600 text-white rounded-xl text-lg font-medium
+                           shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all
+                           disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              >
+                {loginRecoveryLoading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Verifying...</span>
+                  </div>
+                ) : (
+                  "Verify & Log In"
+                )}
+              </button>
+
+              <div className="text-center mt-8">
+                <p className="text-sm text-gray-500 mb-2">Didn't receive the code?</p>
                 <button
-                  onClick={() => setShowForgotPassword(false)}
-                  className="text-sm text-gray-500 hover:text-gray-700 mt-8"
+                  onClick={handleResendLoginRecovery}
+                  disabled={loginRecoveryResendLoading}
+                  className="text-sm text-black font-medium hover:opacity-70 underline
+                            disabled:opacity-30 disabled:cursor-not-allowed"
                 >
-                  ← Back to Log In
+                  {loginRecoveryResendLoading ? "Sending..." : "Resend Code"}
                 </button>
-              )}
+              </div>
+
+              <button
+                onClick={() => setShowLoginRecovery(false)}
+                className="text-sm text-gray-500 hover:text-gray-700 mt-8"
+              >
+                ← Back to Log In
+              </button>
             </div>
           ) : showVerification ? (
             // OTP Verification Screen

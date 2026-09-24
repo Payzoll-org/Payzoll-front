@@ -139,6 +139,58 @@ export async function resetPassword(payload: ResetPasswordPayload) {
 
   const data = await response.json();
   assertData(response, data);
+
+  // Backend now logs the user straight in on their new password (same
+  // shape as loginUser's response) - set the session here too so a
+  // successful reset lands the caller in the app immediately instead of
+  // back at a login form they'd just have to fill in again.
+  const { setSession } = useAuthStore.getState();
+  const user: User = data?.data?.user;
+  const accessToken: string = data?.data?.accessToken;
+
+  if (user && accessToken) {
+    setSession({ user, accessToken });
+  }
+
+  return data;
+}
+
+/**
+ * Sends a login-verification OTP - only for accounts the backend has
+ * flagged needsPasswordRecovery (an unknown/randomly-generated password
+ * from a restore). Never changes the password, unlike
+ * requestPasswordReset/resetPassword above.
+ */
+export async function requestLoginRecovery(email: string) {
+  const response = await http(ROUTES.loginRecoverySend, {
+    method: "POST",
+    auth: false,
+    body: JSON.stringify({ email }),
+  });
+
+  const data = await response.json();
+  assertData(response, data);
+  return data;
+}
+
+export async function verifyLoginRecovery(email: string, otp: string) {
+  const response = await http(ROUTES.loginRecoveryVerify, {
+    method: "POST",
+    auth: false,
+    body: JSON.stringify({ email, otp }),
+  });
+
+  const data = await response.json();
+  assertData(response, data);
+
+  const { setSession } = useAuthStore.getState();
+  const user: User = data?.data?.user;
+  const accessToken: string = data?.data?.accessToken;
+
+  if (user && accessToken) {
+    setSession({ user, accessToken });
+  }
+
   return data;
 }
 
