@@ -194,6 +194,28 @@ export async function verifyLoginRecovery(email: string, otp: string) {
   return data;
 }
 
+/**
+ * Toggle Two-Factor Authentication (Settings' "Two-Factor Authentication"
+ * row) - authenticated, doesn't touch the password.
+ */
+export async function updateTwoFactor(enabled: boolean) {
+  const response = await http(ROUTES.twoFactor, {
+    method: "PATCH",
+    body: JSON.stringify({ enabled }),
+  });
+
+  const data = await response.json();
+  assertData(response, data);
+
+  const { updateUser } = useAuthStore.getState();
+  const user: User = data?.data?.user;
+  if (user) {
+    updateUser(user);
+  }
+
+  return data;
+}
+
 // Clearing the local session must never depend on the server call
 // succeeding - if the request itself fails (network loss, endpoint
 // unavailable), the old code exited before clearSession() ran at all,

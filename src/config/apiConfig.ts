@@ -32,6 +32,7 @@ export const API_ROUTES = {
     resetPassword: "/api/auth/reset-password",
     loginRecoverySend: "/api/auth/login-recovery/send",
     loginRecoveryVerify: "/api/auth/login-recovery/verify",
+    twoFactor: "/api/auth/two-factor",
   },
   onboarding: {
     submit: "/api/onboarding",

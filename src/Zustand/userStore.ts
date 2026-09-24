@@ -9,6 +9,9 @@ export interface User {
   role: string;
   verified: boolean;
   kycVerified: boolean;
+  // Defaults true server-side for every account (Model/user.Model.js) -
+  // Settings' "Two-Factor Authentication" toggle.
+  twoFactorEnabled?: boolean;
   userType: TypeOfUser | null;
   accountStatus?: string | null;
   stablecoinEnabled?: boolean;

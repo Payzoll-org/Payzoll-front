@@ -312,11 +312,15 @@ export default function AuthPage() {
       console.error("Error:", error);
       const errorMessage = error.message || "Something went wrong!";
 
-      if (errorMessage.includes("RECOVERY_REQUIRED")) {
-        // Not a real wrong-password case - this account's password is
-        // unknown (see Services/auth.service.js's needsPasswordRecovery).
-        // Drop straight into the dedicated email-OTP screen instead of a
-        // dead-end "invalid credentials" error - deliberately not the
+      if (errorMessage.includes("RECOVERY_REQUIRED") || errorMessage.includes("TWO_FACTOR_REQUIRED")) {
+        // Same screen, two reasons to land here: either the password
+        // typed was actually correct but Two-Factor Authentication (on
+        // by default - Settings) still requires a second check, or this
+        // account's real password is unknown (a restore rebuilt it -
+        // Services/auth.service.js's needsPasswordRecovery) so no
+        // password typed here will ever match. Either way, drop straight
+        // into the dedicated email-OTP screen instead of a dead-end
+        // "invalid credentials" error - deliberately not the
         // forgot-password flow, since this never asks for or changes a
         // password, just verifies identity.
         const cleanEmail = form.email.toLowerCase().trim();

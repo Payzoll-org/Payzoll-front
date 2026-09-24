@@ -4,7 +4,7 @@ import { LogOut, Check, ShieldAlert, Eye, EyeOff } from "lucide-react";
 import toast from "react-hot-toast";
 import AppShell from "../Components/AppShell";
 import { useAuthStore } from "../Zustand/userStore";
-import { logoutUser, requestPasswordReset, resetPassword } from "../services/authApi";
+import { logoutUser, requestPasswordReset, resetPassword, updateTwoFactor } from "../services/authApi";
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
@@ -40,10 +40,15 @@ function Toggle({
   checked,
   onChange,
   disabled,
+  disabledTitle = "Coming soon",
 }: {
   checked: boolean;
   onChange?: (v: boolean) => void;
   disabled?: boolean;
+  // Overridable for a toggle that's only briefly disabled mid-request
+  // (e.g. saving), not a permanent "not built yet" placeholder like most
+  // of this page's other toggles.
+  disabledTitle?: string;
 }) {
   return (
     <button
@@ -51,7 +56,7 @@ function Toggle({
       role="switch"
       aria-checked={checked}
       disabled={disabled}
-      title={disabled ? "Coming soon" : undefined}
+      title={disabled ? disabledTitle : undefined}
       onClick={() => onChange?.(!checked)}
       className={`w-9 h-5 rounded-full flex items-center px-0.5 transition-colors ${
         checked ? "bg-emerald-500 justify-end" : "bg-gray-200 justify-start"
@@ -195,6 +200,7 @@ function ChangePasswordRow({ email }: { email: string }) {
 function SettingsContent() {
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
+  const [twoFactorLoading, setTwoFactorLoading] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -203,6 +209,22 @@ function SettingsContent() {
       toast.error("Logged out here, but couldn't reach the server to end the session remotely.");
     } finally {
       navigate("/auth");
+    }
+  };
+
+  const handleToggleTwoFactor = async (next: boolean) => {
+    setTwoFactorLoading(true);
+    try {
+      await updateTwoFactor(next);
+      toast.success(
+        next
+          ? "Two-factor authentication turned on. You'll be asked for an email code on your next login."
+          : "Two-factor authentication turned off."
+      );
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update two-factor authentication");
+    } finally {
+      setTwoFactorLoading(false);
     }
   };
 
@@ -243,7 +265,14 @@ function SettingsContent() {
             <SettingsRow
               title="Two-Factor Authentication"
               description="Protect your account with 2FA"
-              action={<Toggle checked={false} disabled />}
+              action={
+                <Toggle
+                  checked={user?.twoFactorEnabled ?? true}
+                  disabled={twoFactorLoading}
+                  disabledTitle="Saving..."
+                  onChange={handleToggleTwoFactor}
+                />
+              }
             />
             <SettingsRow
               title="Login Notifications"
