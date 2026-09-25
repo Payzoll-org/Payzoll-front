@@ -4,7 +4,7 @@ import toast from "react-hot-toast";
 import { useAuthStore } from "../Zustand/userStore";
 import Logo from "../assets/logo.png";
 import goldCoin from "../assets/coin-gold.webp";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   loginUser,
   registerUser,
@@ -49,7 +49,11 @@ export default function AuthPage() {
     password: "" 
   });
   const { user, hasHydrated } = useAuthStore();
-  const [isSignup, setIsSignup] = useState<boolean>(false);
+  // A shared referral link lands here with ?signup=1 - purely a UI hint so
+  // the visitor starts on the sign-up tab. It carries no referral data (that
+  // lives in an HttpOnly cookie the backend sets).
+  const [searchParams] = useSearchParams();
+  const [isSignup, setIsSignup] = useState<boolean>(searchParams.get("signup") === "1");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [showVerification, setShowVerification] = useState<boolean>(false);
