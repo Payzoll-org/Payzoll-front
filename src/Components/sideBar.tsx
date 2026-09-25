@@ -137,6 +137,7 @@ const sideBAr: React.FC = () => {
       icon: BarChart3,
       isFolder: false,
       route: '/refer',
+      requiresKyc: true,
     },
 
 

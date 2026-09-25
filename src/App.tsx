@@ -91,7 +91,7 @@ const router = createBrowserRouter([
   {
     path: "/refer",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute requiresKyc>
         <ReferPage />
       </ProtectedRoute>
     ),
