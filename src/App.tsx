@@ -13,6 +13,8 @@ import TransactionHistoryPage from './Pages/TransactionHistoryPage';
 import PayoutDetailPage from './Pages/PayoutDetailPage';
 import StablecoinCallbackPage from './Pages/StablecoinCallbackPage';
 import SettingsPage from './Pages/SettingsPage';
+import ReferPage from './Pages/ReferPage';
+import ReferralLandingPage from './Pages/ReferralLandingPage';
 import InternationalBankingPage from './Pages/InternationalBankingPage';
 import PayoutCalculatorPage from './Pages/PayoutCalculatorPage';
 import DepositDetailsPage from './Pages/DepositDetailsPage';
@@ -85,6 +87,20 @@ const router = createBrowserRouter([
         <SettingsPage />
       </ProtectedRoute>
     ),
+  },
+  {
+    path: "/refer",
+    element: (
+      <ProtectedRoute>
+        <ReferPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    // Public: a shared referral link (https://app.payzoll.finance/ref/<code>)
+    // is opened by someone who isn't signed up yet, so no ProtectedRoute.
+    path: "/ref/:code",
+    element: <ReferralLandingPage />,
   },
   {
     // Mobile-only: reached from the dashboard's "Calculator" button

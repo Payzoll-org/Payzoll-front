@@ -136,8 +136,7 @@ const sideBAr: React.FC = () => {
       label: 'Refer & Earn',
       icon: BarChart3,
       isFolder: false,
-      disabled: true,
-      disabledReason: 'Coming soon',
+      route: '/refer',
     },
 
 

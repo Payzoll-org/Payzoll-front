@@ -100,6 +100,12 @@ export const API_ROUTES = {
     preview: "/api/reconcile/preview",
     submit: "/api/reconcile",
   },
+  referral: {
+    me: "/api/referral/me",
+    // Public shared-link endpoint - only ever opened as a full-page
+    // navigation (Pages/ReferralLandingPage.tsx), never fetch()ed.
+    link: (code: string) => `/api/ref/${code}`,
+  },
   agentManagement: {
     agents: "/api/agent",
     agentById: (agentId: string) => `/api/agent/${agentId}`,
