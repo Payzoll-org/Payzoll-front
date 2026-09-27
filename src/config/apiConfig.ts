@@ -96,6 +96,12 @@ export const API_ROUTES = {
     create: "/api/support",
     list: "/api/support",
   },
+  invoice: {
+    list: "/api/invoice",
+    create: "/api/invoice",
+    detail: (id: string) => `/api/invoice/${id}`,
+    activate: (id: string) => `/api/invoice/${id}/activate`,
+  },
   reconcile: {
     preview: "/api/reconcile/preview",
     submit: "/api/reconcile",
