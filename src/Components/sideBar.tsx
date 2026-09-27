@@ -127,8 +127,7 @@ const sideBAr: React.FC = () => {
       label: 'Invoices',
       icon: Clock,
       isFolder: false,
-      disabled: true,
-      disabledReason: 'Coming soon',
+      route: '/invoices',
     },
 
     {
@@ -151,7 +150,9 @@ const sideBAr: React.FC = () => {
   ];
 
   const [localActiveItem, setLocalActiveItem] = useState<string>('');
-  const routedActiveId = navigationItems.find((item) => item.route === location.pathname)?.id;
+  const routedActiveId = navigationItems.find(
+    (item) => item.route && (location.pathname === item.route || location.pathname.startsWith(`${item.route}/`))
+  )?.id;
   const activeItem = routedActiveId ?? localActiveItem;
 
   const handleItemClick = (item: NavigationItem): void => {

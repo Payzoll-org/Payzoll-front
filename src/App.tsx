@@ -18,6 +18,8 @@ import ReferralLandingPage from './Pages/ReferralLandingPage';
 import InternationalBankingPage from './Pages/InternationalBankingPage';
 import PayoutCalculatorPage from './Pages/PayoutCalculatorPage';
 import DepositDetailsPage from './Pages/DepositDetailsPage';
+import InvoicePage from './Pages/InvoicePage';
+import InvoicesListPage from './Pages/InvoicesListPage';
 import ProtectedRoute from './Components/ProtectedRoute';
 import { useAuthBootstrap } from './hooks/useAuthBootstrap';
 
@@ -121,6 +123,32 @@ const router = createBrowserRouter([
     element: (
       <ProtectedRoute requiresKyc>
         <DepositDetailsPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    // Invoices belong to the signed-in user (the API scopes every query to
+    // them), so plain auth is enough - no KYC gate.
+    path: "/invoices",
+    element: (
+      <ProtectedRoute>
+        <InvoicesListPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/invoices/new",
+    element: (
+      <ProtectedRoute>
+        <InvoicePage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/invoices/:invoiceId",
+    element: (
+      <ProtectedRoute>
+        <InvoicePage />
       </ProtectedRoute>
     ),
   },
