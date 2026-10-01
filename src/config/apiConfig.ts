@@ -101,6 +101,8 @@ export const API_ROUTES = {
     create: "/api/invoice",
     detail: (id: string) => `/api/invoice/${id}`,
     activate: (id: string) => `/api/invoice/${id}/activate`,
+    nextNumber: "/api/invoice/next-number",
+    prefill: "/api/invoice/prefill",
   },
   reconcile: {
     preview: "/api/reconcile/preview",

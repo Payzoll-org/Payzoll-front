@@ -2,6 +2,7 @@ import { http } from "../lib/httpClient";
 import { API_ROUTES } from "../config/apiConfig";
 import { CURRENCIES, emptyInvoice, newItem, withDisabledMethodsCleared } from "../libs/invoice";
 import type { BankMode, Currency, InvoiceForm } from "../libs/invoice";
+import type { Partner } from "./partnerApi";
 
 export type InvoiceStatus = "draft" | "active";
 
@@ -174,10 +175,47 @@ export async function updateInvoice(id: string, form: InvoiceForm): Promise<Invo
 
 export async function activateInvoice(id: string): Promise<InvoiceRecord> {
   const response = await http(ROUTES.activate(encodeURIComponent(id)), { method: "POST" });
-  return (await parse<{ invoice: InvoiceRecord }>(response)).invoice;
+  const invoice = (await parse<{ invoice: InvoiceRecord }>(response)).invoice;
+  prefillCache = null; // the next invoice number just moved on
+  return invoice;
 }
 
 export async function deleteInvoice(id: string): Promise<void> {
   const response = await http(ROUTES.detail(encodeURIComponent(id)), { method: "DELETE" });
   await parse<unknown>(response);
+  prefillCache = null;
+}
+
+export async function getNextInvoiceNumber(): Promise<string> {
+  const response = await http(ROUTES.nextNumber, { method: "GET" });
+  return (await parse<{ invoiceNo: string }>(response)).invoiceNo;
+}
+
+// What the editor pre-fills, from one server call that only reads our own
+// database. Business/bank/email come from the user's KYC data; partners are
+// the saved "bill to" contacts; invoiceNo is the number the next invoice gets.
+export type PartnerLite = Pick<Partner, "_id" | "legalName" | "nickname" | "email" | "physicalAddress">;
+
+export interface InvoicePrefill {
+  from: { name: string; address: string; postal: string; email: string };
+  bank: { mode: BankMode; holder: string; account: string; ifsc: string; swift: string; bankName: string } | null;
+  invoiceNo: string;
+  partners: PartnerLite[];
+}
+
+// Kept for the lifetime of the page so re-opening the editor is instant; the
+// editor still refetches in the background and the cache is dropped whenever
+// an invoice is activated/deleted (the next number changes).
+let prefillCache: InvoicePrefill | null = null;
+
+export const peekPrefill = () => prefillCache;
+
+export async function getPrefill(): Promise<InvoicePrefill> {
+  const response = await http(ROUTES.prefill, { method: "GET" });
+  prefillCache = await parse<InvoicePrefill>(response);
+  return prefillCache;
+}
+
+export function addPartnerToPrefillCache(p: PartnerLite) {
+  if (prefillCache) prefillCache = { ...prefillCache, partners: [p, ...prefillCache.partners] };
 }

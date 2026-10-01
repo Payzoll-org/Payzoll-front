@@ -312,7 +312,6 @@ export function displayDate(iso: string): string {
 
 const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/;
 const PHONE_RE = /^\+?[0-9 ()-]{7,20}$/;
-const INVOICE_NO_RE = /^[A-Za-z0-9][A-Za-z0-9\-/]{0,19}$/;
 const HSN_RE = /^\d{4,8}$/;
 const PO_RE = /^[A-Za-z0-9][A-Za-z0-9\-/ ]{0,29}$/;
 /**
@@ -377,7 +376,7 @@ export function validateInvoice(f: InvoiceForm): Errors {
     if (!isRealDate(f.dueDate)) e.dueDate = "Enter a valid date";
     else if (isRealDate(f.date) && f.dueDate < f.date) e.dueDate = "Due date is before the invoice date";
   }
-  if (!INVOICE_NO_RE.test(f.invoiceNo.trim())) e.invoiceNo = "Letters, numbers, - or / only (max 20)";
+  // invoiceNo is auto-assigned at activation — no user input to validate.
   if (f.poNumber && !PO_RE.test(f.poNumber.trim())) e.poNumber = "Letters, numbers, spaces, - or /";
 
   if (!finalText(f.fromName)) e.fromName = "Required";
@@ -444,7 +443,7 @@ export function validateInvoice(f: InvoiceForm): Errors {
 /** Which accordion section each error key belongs to, so a failed save can
  *  open the sections that need attention. */
 export function sectionOfError(key: string): string {
-  if (["date", "dueDate", "invoiceNo", "poNumber"].includes(key)) return "details";
+  if (["date", "dueDate", "poNumber"].includes(key)) return "details";
   if (key.startsWith("from") || key === "logo") return "from";
   if (key.startsWith("to")) return "to";
   if (key.startsWith("item") || key === "taxRate" || key.startsWith("discount")) return "items";

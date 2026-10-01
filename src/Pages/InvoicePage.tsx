@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { memo, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, ChevronDown, Plus, Printer, Trash2, Upload, X } from "lucide-react";
@@ -8,13 +8,19 @@ import InvoiceSheet, { SHEET_HEIGHT, SHEET_WIDTH } from "../Components/InvoiceSh
 import {
   InvoiceApiError,
   activateInvoice,
+  addPartnerToPrefillCache,
   createDraft,
   getInvoice,
+  getPrefill,
+  peekPrefill,
   recordToForm,
   deleteInvoice,
   updateInvoice,
 } from "../services/invoiceApi";
-import type { InvoiceStatus } from "../services/invoiceApi";
+import type { InvoicePrefill, InvoiceStatus, PartnerLite } from "../services/invoiceApi";
+import { createPartner, PARTNER_TYPE_OPTIONS } from "../services/partnerApi";
+import { COUNTRY_OPTIONS as PARTNER_COUNTRY_OPTIONS } from "../libs/countries";
+import type { PartnerPayload } from "../services/partnerApi";
 import {
   COUNTRIES,
   CURRENCIES,
@@ -30,7 +36,6 @@ import {
   lineAmount,
   newItem,
   processLogo,
-  isValidGstin,
   processSignature,
   safeLogoSrc,
   sectionOfError,
@@ -40,6 +45,56 @@ import type { BankMode, Currency, DiscountType, Errors, InvoiceForm, LineItem } 
 
 const inputCls =
   "w-full rounded-sm border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-arc-gold-400 focus:border-arc-gold-400";
+
+// The preview/print sheet only re-renders when its (deferred) form changes.
+const Sheet = memo(InvoiceSheet);
+
+const todayISO = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+// A saved partner -> the "bill to" fields. Countries the invoice has no entry
+// for become "Other" (the invoice and server only accept their own list).
+// Phone and GSTIN belong to whichever client was there before, so they reset.
+function partnerFields(p: PartnerLite): Partial<InvoiceForm> {
+  const a = p.physicalAddress ?? {};
+  const code = (a.country ?? "").toUpperCase();
+  return {
+    toName: cleanText(p.legalName || p.nickname || "", LIMITS.name),
+    toEmail: cleanText(p.email || "", LIMITS.email),
+    toAddress: cleanText([a.line1, a.line2, a.city, a.state].filter(Boolean).join(", "), LIMITS.address),
+    toPostal: cleanText(a.postalCode || "", LIMITS.postal),
+    toCountry: code ? (COUNTRIES.some((c) => c.code === code) ? code : "OTHER") : "",
+    toPhone: "",
+    toTaxId: "",
+  };
+}
+
+// Pre-fill the "bill from" side and the default payout bank from what we
+// already know about the user. Only blank fields are filled, so applying it
+// again (cached copy first, then the fresh response) never overwrites typing.
+function withPrefill(f: InvoiceForm, pf: InvoicePrefill, applyBank: boolean): InvoiceForm {
+  const next = { ...f };
+  if (!next.fromName) next.fromName = cleanText(pf.from.name, LIMITS.name);
+  if (!next.fromAddress) next.fromAddress = cleanText(pf.from.address, LIMITS.address);
+  if (!next.fromPostal) next.fromPostal = cleanText(pf.from.postal, LIMITS.postal);
+  if (!next.fromEmail) next.fromEmail = cleanText(pf.from.email, LIMITS.email);
+  if (applyBank && pf.bank) {
+    next.bankEnabled = true;
+    next.bankMode = pf.bank.mode;
+    next.bankHolder = cleanText(pf.bank.holder, LIMITS.bankName);
+    next.bankName = cleanText(pf.bank.bankName, LIMITS.bankName);
+    if (pf.bank.mode === "domestic") {
+      next.bankAccount = cleanDigits(pf.bank.account, 18);
+      next.bankIfsc = cleanAlnumUpper(pf.bank.ifsc, LIMITS.ifsc);
+    } else {
+      next.bankAccount = cleanAlnumUpper(pf.bank.account, LIMITS.account);
+      next.bankSwift = cleanAlnumUpper(pf.bank.swift, LIMITS.swift);
+    }
+  }
+  return next;
+}
 
 // Collapsible form section. The body is unmounted while closed; all values
 // live in the page's form state, so nothing is lost by collapsing.
@@ -176,17 +231,99 @@ function ScaledSheet({ form }: { form: InvoiceForm }) {
     <div ref={boxRef} className="w-full">
       <div style={{ width: SHEET_WIDTH * scale, height: SHEET_HEIGHT * scale }} className="shadow-md border border-gray-200 bg-white overflow-hidden">
         <div style={{ transform: `scale(${scale})`, transformOrigin: "top left", width: SHEET_WIDTH }}>
-          <InvoiceSheet form={form} />
+          <Sheet form={form} />
         </div>
       </div>
     </div>
   );
 }
 
+function PartnerModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: (p: PartnerLite) => void }) {
+  const [payload, setPayload] = useState<PartnerPayload>({
+    legalName: "", nickname: "", country: "", email: "", partnerType: "",
+    addressLine1: "", addressLine2: "", city: "", state: "", zipcode: ""
+  });
+  const [saving, setSaving] = useState(false);
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const p = await createPartner(payload);
+      toast.success("Partner saved");
+      onSuccess(p);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to create partner");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 p-4">
+      <div className="bg-white rounded-sm w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-semibold">Create Partner</h2>
+          <button onClick={onClose}><X size={20} className="text-gray-500" /></button>
+        </div>
+        <form onSubmit={onSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+             <Field label="Legal Name" htmlFor="p-name">
+                <input id="p-name" required className={inputCls} value={payload.legalName} onChange={e => setPayload({...payload, legalName: e.target.value})} />
+             </Field>
+             <Field label="Nickname" htmlFor="p-nick">
+                <input id="p-nick" required className={inputCls} value={payload.nickname} onChange={e => setPayload({...payload, nickname: e.target.value})} />
+             </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+             <Field label="Email" htmlFor="p-email">
+                <input type="email" required id="p-email" className={inputCls} value={payload.email} onChange={e => setPayload({...payload, email: e.target.value})} />
+             </Field>
+             <Field label="Partner Type" htmlFor="p-type">
+                <select id="p-type" required className={inputCls} value={payload.partnerType} onChange={e => setPayload({...payload, partnerType: e.target.value})}>
+                  <option value="">Select</option>
+                  {PARTNER_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+             </Field>
+          </div>
+          <Field label="Country" htmlFor="p-country">
+            <select id="p-country" required className={inputCls} value={payload.country} onChange={e => setPayload({...payload, country: e.target.value})}>
+              <option value="">Select</option>
+              {PARTNER_COUNTRY_OPTIONS.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
+            </select>
+          </Field>
+          <Field label="Address Line 1" htmlFor="p-line1">
+            <input id="p-line1" required className={inputCls} value={payload.addressLine1} onChange={e => setPayload({...payload, addressLine1: e.target.value})} />
+          </Field>
+          <Field label="Address Line 2 (Optional)" htmlFor="p-line2">
+            <input id="p-line2" className={inputCls} value={payload.addressLine2} onChange={e => setPayload({...payload, addressLine2: e.target.value})} />
+          </Field>
+          <div className="grid grid-cols-3 gap-3">
+            <Field label="City" htmlFor="p-city">
+              <input id="p-city" required className={inputCls} value={payload.city} onChange={e => setPayload({...payload, city: e.target.value})} />
+            </Field>
+            <Field label="State" htmlFor="p-state">
+              <input id="p-state" required className={inputCls} value={payload.state} onChange={e => setPayload({...payload, state: e.target.value})} />
+            </Field>
+            <Field label="Zipcode" htmlFor="p-zip">
+              <input id="p-zip" required className={inputCls} value={payload.zipcode} onChange={e => setPayload({...payload, zipcode: e.target.value})} />
+            </Field>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-200 rounded-sm hover:bg-gray-50">Cancel</button>
+            <button type="submit" disabled={saving} className="px-4 py-2 bg-arc-gold-500 text-white rounded-sm hover:bg-arc-gold-600 disabled:opacity-60">{saving ? "Saving..." : "Save Partner"}</button>
+          </div>
+        </form>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 function InvoiceContent() {
   const navigate = useNavigate();
   const { invoiceId } = useParams<{ invoiceId: string }>();
-  const [form, setFormRaw] = useState<InvoiceForm>(() => emptyInvoice());
+  const [form, setFormRaw] = useState<InvoiceForm>(() => ({ ...emptyInvoice(), date: invoiceId ? "" : todayISO() }));
   const [id, setId] = useState<string | null>(null);
   const [status, setStatus] = useState<InvoiceStatus>("draft");
   const [loading, setLoading] = useState(!!invoiceId);
@@ -197,8 +334,12 @@ function InvoiceContent() {
   const [tab, setTab] = useState<"edit" | "preview">("edit");
   const fileRef = useRef<HTMLInputElement>(null);
   const logoRef = useRef<HTMLInputElement>(null);
-  const [open, setOpen] = useState<Record<string, boolean>>({ details: true, from: true });
+  const [open, setOpen] = useState<Record<string, boolean>>({ details: true, from: true, to: true });
   const isActive = status === "active";
+  const [partners, setPartners] = useState<PartnerLite[]>(() => peekPrefill()?.partners ?? []);
+  const [partnerId, setPartnerId] = useState("");
+  const [nextNo, setNextNo] = useState(() => peekPrefill()?.invoiceNo ?? "");
+  const [showPartnerModal, setShowPartnerModal] = useState(false);
 
   // Every edit goes through here: marks the form dirty and clears any
   // server-reported field error (it referred to the old value).
@@ -240,10 +381,30 @@ function InvoiceContent() {
   const set = <K extends keyof InvoiceForm>(key: K, value: InvoiceForm[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
-  // Load an existing invoice (draft to keep editing, or active to view).
+  // Load an existing invoice (draft to keep editing, or active to view), or
+  // pre-fill a new one. Everything comes from one cheap request
+  // (/invoice/prefill); a copy from an earlier visit is applied instantly and
+  // refreshed in the background.
+  const bankApplied = useRef(false);
   useEffect(() => {
-    if (!invoiceId) return;
     let cancelled = false;
+
+    const onPrefill = (pf: InvoicePrefill) => {
+      if (cancelled) return;
+      setPartners(pf.partners);
+      setNextNo(pf.invoiceNo);
+      if (invoiceId) return;
+      const applyBank = !bankApplied.current && !!pf.bank;
+      if (applyBank) bankApplied.current = true;
+      setFormRaw((f) => withPrefill(f, pf, applyBank));
+    };
+
+    const cached = peekPrefill();
+    if (cached) onPrefill(cached);
+    getPrefill().then(onPrefill).catch(() => {});
+
+    if (!invoiceId) return () => { cancelled = true; };
+
     getInvoice(invoiceId)
       .then((rec) => {
         if (cancelled) return;
@@ -260,10 +421,18 @@ function InvoiceContent() {
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
+
     return () => {
       cancelled = true;
     };
   }, [invoiceId, navigate]);
+
+  // Fill the "bill to" fields from a saved partner.
+  const choosePartner = (pid: string) => {
+    setPartnerId(pid);
+    const p = partners.find((x) => x._id === pid);
+    if (p) setForm((f) => ({ ...f, ...partnerFields(p) }));
+  };
 
   // Unsaved edits: warn on tab close/refresh.
   useEffect(() => {
@@ -400,14 +569,30 @@ function InvoiceContent() {
     };
   }, [printRoot]);
 
+  // The print copy only exists while printing, so typing doesn't render the
+  // sheet twice. The effect runs after it is in the DOM.
+  const [printing, setPrinting] = useState(false);
+  useEffect(() => {
+    if (!printing) return;
+    const done = () => setPrinting(false);
+    window.addEventListener("afterprint", done, { once: true });
+    window.print();
+    return () => window.removeEventListener("afterprint", done);
+  }, [printing]);
+
   const onPrint = () => {
     if (Object.keys(errors).length > 0) {
       revealErrors(errors);
       toast.error("Fix the highlighted fields before downloading");
       return;
     }
-    window.print();
+    setPrinting(true);
   };
+
+  // A draft shows the number it will receive; the preview stays responsive
+  // while typing because it renders from a deferred copy of the form.
+  const sheetForm = useMemo(() => (form.invoiceNo || !nextNo ? form : { ...form, invoiceNo: nextNo }), [form, nextNo]);
+  const previewForm = useDeferredValue(sheetForm);
 
   if (loading) {
     return <div className="p-6 text-sm text-gray-500">Loading invoice...</div>;
@@ -415,6 +600,18 @@ function InvoiceContent() {
 
   return (
     <div className="h-full flex flex-col">
+      {showPartnerModal && (
+        <PartnerModal 
+          onClose={() => setShowPartnerModal(false)}
+          onSuccess={(p) => {
+            addPartnerToPrefillCache(p);
+            setPartners((prev) => [p, ...prev]);
+            setPartnerId(p._id);
+            setForm((f) => ({ ...f, ...partnerFields(p) }));
+            setShowPartnerModal(false);
+          }}
+        />
+      )}
       <style>{`
         .invoice-print-root { display: none; }
         @media print {
@@ -487,9 +684,14 @@ function InvoiceContent() {
               <Field label="Due date (optional)" htmlFor="inv-due" error={err("dueDate", form.dueDate)}>
                 <input id="inv-due" type="date" className={inputCls} value={form.dueDate} onChange={(e) => set("dueDate", e.target.value.slice(0, 10))} />
               </Field>
-              <Field label="Invoice no." htmlFor="inv-no" error={err("invoiceNo", form.invoiceNo)}>
-                <input id="inv-no" className={inputCls} value={form.invoiceNo} onChange={text("invoiceNo", LIMITS.invoiceNo)} autoComplete="off" />
-              </Field>
+              {/* Never typed: numbered sequentially (001, 002...) by the server when the invoice is created. */}
+              <div className="min-w-0">
+                <span className="block text-xs font-medium text-gray-600 mb-1">Invoice no.</span>
+                <div className="text-sm text-gray-900 font-medium px-3 py-2 bg-gray-50 border border-gray-200 rounded-sm">
+                  {form.invoiceNo || nextNo || "..."}
+                </div>
+                {!form.invoiceNo && <p className="text-xs text-gray-500 mt-1">Assigned automatically when you create the invoice.</p>}
+              </div>
               <Field label="PO / reference no. (optional)" htmlFor="inv-po" error={err("poNumber", form.poNumber)}>
                 <input id="inv-po" className={inputCls} value={form.poNumber} onChange={text("poNumber", LIMITS.poNumber)} autoComplete="off" />
               </Field>
@@ -534,39 +736,68 @@ function InvoiceContent() {
           </Section>
 
           <Section id="to" title="Bill to" open={!!open.to} onToggle={() => toggle("to")} errorCount={errorCounts.to ?? 0}>
-            <Field label="Client name" htmlFor="to-name" error={err("toName", form.toName)}>
-              <input id="to-name" className={inputCls} value={form.toName} onChange={text("toName", LIMITS.name)} autoComplete="off" />
-            </Field>
-            <Field label="Client address" htmlFor="to-addr" error={err("toAddress", form.toAddress)}>
-              <textarea id="to-addr" rows={3} className={inputCls} value={form.toAddress} onChange={text("toAddress", LIMITS.address, true)} />
-            </Field>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label="Postal code" htmlFor="to-postal" error={err("toPostal", form.toPostal)}>
-                <input id="to-postal" className={inputCls} value={form.toPostal} onChange={text("toPostal", LIMITS.postal)} autoComplete="off" />
-              </Field>
-              <Field label="Phone number" htmlFor="to-phone" error={err("toPhone", form.toPhone)}>
-                <input id="to-phone" type="tel" className={inputCls} value={form.toPhone} onChange={text("toPhone", LIMITS.phone)} autoComplete="off" />
-              </Field>
-              <Field label="Client email (optional)" htmlFor="to-email" error={err("toEmail", form.toEmail)}>
-                <input id="to-email" type="email" className={inputCls} value={form.toEmail} onChange={text("toEmail", LIMITS.email)} autoComplete="off" />
-              </Field>
-              <Field label="Country" htmlFor="to-country" error={err("toCountry", form.toCountry)}>
-                <select id="to-country" className={inputCls} value={form.toCountry} onChange={(e) => set("toCountry", e.target.value)}>
-                  <option value="">Select country</option>
-                  {COUNTRIES.map((c) => (
-                    <option key={c.code} value={c.code}>{c.name}</option>
+            <div className="flex items-end justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <label htmlFor="partner-select" className="block text-xs font-medium text-gray-600 mb-1">Partner</label>
+                <select
+                  id="partner-select"
+                  className={inputCls}
+                  value={partnerId}
+                  onChange={(e) => choosePartner(e.target.value)}
+                >
+                  <option value="">Select a partner</option>
+                  {partners.map((p) => (
+                    <option key={p._id} value={p._id}>{p.legalName || p.nickname}</option>
                   ))}
                 </select>
-              </Field>
-              {(form.toCountry === "" || form.toCountry === "IN") && (
-                <Field label="GSTIN (optional)" htmlFor="to-tax" error={err("toTaxId", form.toTaxId)}>
-                  <input id="to-tax" className={inputCls} value={form.toTaxId} onChange={(e) => set("toTaxId", cleanAlnumUpper(e.target.value, LIMITS.gstin))} placeholder="e.g. 27AAJFI4498M1ZK" autoComplete="off" />
-                  {form.toTaxId.length === LIMITS.gstin && isValidGstin(form.toTaxId) && (
-                    <p className="text-xs text-green-700 mt-1">GSTIN format and checksum verified</p>
-                  )}
-                </Field>
-              )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPartnerModal(true)}
+                className="shrink-0 inline-flex items-center gap-1 rounded-sm border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              >
+                <Plus size={16} /> New partner
+              </button>
             </div>
+
+            {/* The client's details, filled from the partner. Editable so a missing or
+                invalid value (e.g. no address on file) can be fixed here. */}
+            {partnerId || form.toName || form.toAddress || errorCounts.to ? (
+              <>
+                <Field label="Name" htmlFor="to-name" error={err("toName", form.toName)}>
+                  <input id="to-name" className={inputCls} value={form.toName} onChange={text("toName", LIMITS.name)} autoComplete="off" />
+                </Field>
+                <Field label="Address" htmlFor="to-addr" error={err("toAddress", form.toAddress)}>
+                  <textarea id="to-addr" rows={3} className={inputCls} value={form.toAddress} onChange={text("toAddress", LIMITS.address, true)} />
+                </Field>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Field label="Country" htmlFor="to-country" error={err("toCountry", form.toCountry)}>
+                    <select id="to-country" className={inputCls} value={form.toCountry} onChange={(e) => set("toCountry", e.target.value)}>
+                      <option value="">Select country</option>
+                      {COUNTRIES.map((c) => (
+                        <option key={c.code} value={c.code}>{c.name}</option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label="Postal code" htmlFor="to-postal" error={err("toPostal", form.toPostal)}>
+                    <input id="to-postal" className={inputCls} value={form.toPostal} onChange={text("toPostal", LIMITS.postal)} autoComplete="off" />
+                  </Field>
+                  <Field label="Email" htmlFor="to-email" error={err("toEmail", form.toEmail)}>
+                    <input id="to-email" type="email" className={inputCls} value={form.toEmail} onChange={text("toEmail", LIMITS.email)} autoComplete="off" />
+                  </Field>
+                  <Field label="Phone (optional)" htmlFor="to-phone" error={err("toPhone", form.toPhone)}>
+                    <input id="to-phone" type="tel" className={inputCls} value={form.toPhone} onChange={text("toPhone", LIMITS.phone)} autoComplete="off" />
+                  </Field>
+                  {(!form.toCountry || form.toCountry === "IN") && (
+                    <Field label="GSTIN (optional)" htmlFor="to-gstin" error={err("toTaxId", form.toTaxId)}>
+                      <input id="to-gstin" className={inputCls} value={form.toTaxId} onChange={(e) => set("toTaxId", cleanAlnumUpper(e.target.value, LIMITS.gstin))} autoComplete="off" />
+                    </Field>
+                  )}
+                </div>
+              </>
+            ) : (
+              <p className="text-xs text-gray-500">Select a partner, or create a new one, to fill in the client details.</p>
+            )}
           </Section>
 
           <Section id="items" title="Items" open={!!open.items} onToggle={() => toggle("items")} errorCount={errorCounts.items ?? 0}>
@@ -825,11 +1056,11 @@ function InvoiceContent() {
 
         {/* RIGHT: live invoice */}
         <div className={`${tab === "preview" ? "block" : "hidden"} lg:block h-full overflow-y-auto p-4 bg-gray-100 border-l border-gray-100`}>
-          <ScaledSheet form={form} />
+          <ScaledSheet form={previewForm} />
         </div>
       </div>
 
-      {createPortal(<InvoiceSheet form={form} />, printRoot)}
+      {printing && createPortal(<InvoiceSheet form={sheetForm} />, printRoot)}
     </div>
   );
 }
