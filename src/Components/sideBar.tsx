@@ -12,7 +12,8 @@ import {
   Calendar,
   HelpCircle,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  FileText
 } from 'lucide-react';
 
 import { getCalApi } from '@calcom/embed-react';
@@ -138,6 +139,14 @@ const sideBAr: React.FC<SideBarProps> = ({ collapsed = false, onToggleCollapse }
       isFolder: false,
       route: '/invoices',
     },
+    {
+      id: 'edffilingportal',
+      label: 'EDF Filing Portal',
+      icon: FileText,
+      isFolder: false,
+      disabled: true,
+      disabledReason: 'Coming soon',
+    },
 
     {
       id: 'referandearn',
@@ -183,6 +192,18 @@ const sideBAr: React.FC<SideBarProps> = ({ collapsed = false, onToggleCollapse }
   };
 
 
+
+  // Shared Cal.com booking attributes for "Book a Call with CA" and "Book a Demo"
+  const calBookingProps = {
+    'data-cal-link': 'payzoll/30min',
+    'data-cal-namespace': 'payzoll-booking',
+    'data-cal-config': JSON.stringify({
+      layout: "month_view",
+      theme: "light",
+      ...(user?.name ? { name: user.name } : {}),
+      ...(user?.email ? { email: user.email } : {}),
+    }),
+  };
 
   return (
     <div className="relative h-full">
@@ -282,14 +303,16 @@ const sideBAr: React.FC<SideBarProps> = ({ collapsed = false, onToggleCollapse }
       {/* Bottom Section */}
       <div className={`absolute bottom-5 left-0 right-0 space-y-1 ${collapsed ? 'px-2' : 'px-3'}`}>
         <button
-          data-cal-link="payzoll/30min"
-          data-cal-namespace="payzoll-booking"
-          data-cal-config={JSON.stringify({
-            layout: "month_view",
-            theme: "light",
-            ...(user?.name ? { name: user.name } : {}),
-            ...(user?.email ? { email: user.email } : {}),
-          })}
+          {...calBookingProps}
+          title={collapsed ? 'Book a Call with CA' : undefined}
+          className={`w-full flex items-center py-1.5 rounded-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 ${collapsed ? 'justify-center px-0' : 'gap-3 px-3'}`}
+        >
+          <Calendar size={18} className="shrink-0" />
+          {!collapsed && <span className="font-medium text-sm">Book a Call with CA</span>}
+        </button>
+
+        <button
+          {...calBookingProps}
           title={collapsed ? 'Book a Demo' : undefined}
           className={`w-full flex items-center py-1.5 rounded-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 ${collapsed ? 'justify-center px-0' : 'gap-3 px-3'}`}
         >
