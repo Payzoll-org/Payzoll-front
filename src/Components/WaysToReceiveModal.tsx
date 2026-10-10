@@ -25,7 +25,12 @@ const LOCAL_RAILS: {
   { key: "fedwire", label: "Fedwire", routing: (bank) => bank.domestic_wire },
 ];
 
-type Category = "local" | "stablecoin";
+type Category = "local" | "stablecoin" | "domestic";
+
+// The user's own INR bank account (the one entered during KYC), shown so
+// domestic senders can pay it directly.
+export const findDomesticAccount = (bankAccounts: BankAccount[]) =>
+  bankAccounts.find((a) => a.category === "user_payout" && a.currency === "INR");
 
 function CopyIconButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
@@ -141,6 +146,21 @@ export function LocalBankDetails({ account }: { account: BankAccount }) {
   );
 }
 
+export function DomesticAccountDetails({ account }: { account: BankAccount }) {
+  const bank = account.bankAccount;
+  const ifsc = bank?.domestic_credit || bank?.domestic_wire || bank?.domestic_fast_credit || null;
+
+  return (
+    <DetailBlock title="Domestic bank transfer (IMPS / NEFT / RTGS / UPI)">
+      <DetailRow label="Beneficiary" value={account.name || "-"} />
+      <DetailRow label="Receiving Currency" value={account.currency} />
+      <DetailRow label="Account Number" value={bank?.number || "-"} copyable />
+      <DetailRow label="IFSC Code" value={ifsc || "-"} copyable />
+      {bank?.bank_name && <DetailRow label="Bank" value={bank.bank_name} />}
+    </DetailBlock>
+  );
+}
+
 export function StablecoinDetails({ bankAccounts }: { bankAccounts: BankAccount[] }) {
   const [filter, setFilter] = useState<"all" | "USDC" | "USDT">("all");
 
@@ -212,6 +232,7 @@ export default function WaysToReceiveModal({
   initialSelection?: Category;
 }) {
   const [category, setCategory] = useState<Category>(initialSelection);
+  const domesticAccount = findDomesticAccount(bankAccounts);
 
   if (!open) return null;
 
@@ -252,6 +273,22 @@ export default function WaysToReceiveModal({
                 </button>
               )}
 
+              {domesticAccount && (
+                <button
+                  onClick={() => setCategory("domestic")}
+                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-sm text-sm font-medium border ${
+                    category === "domestic"
+                      ? "bg-arc-gold-50 text-arc-gold-700 border-arc-gold-200"
+                      : "text-gray-700 hover:bg-gray-50 border-gray-200"
+                  }`}
+                >
+                  <span className="w-6 h-6 rounded-sm bg-gray-900 flex items-center justify-center text-white shrink-0">
+                    <Landmark size={13} />
+                  </span>
+                  <span className="flex-1 text-left">Domestic Account</span>
+                </button>
+              )}
+
               {stablecoinEnabled && (
                 <button
                   onClick={() => setCategory("stablecoin")}
@@ -274,10 +311,16 @@ export default function WaysToReceiveModal({
           {/* Right panel */}
           <div className="flex-1 min-w-0 sm:overflow-y-auto p-4 sm:p-6">
             <h3 className="text-base font-semibold text-gray-900 mb-4">
-              {category === "local" ? "Bank Transfers" : "Stablecoin Payments"}
+              {category === "local" ? "Bank Transfers" : category === "domestic" ? "Domestic Account" : "Stablecoin Payments"}
             </h3>
 
-            {category === "local" ? (
+            {category === "domestic" ? (
+              domesticAccount ? (
+                <DomesticAccountDetails account={domesticAccount} />
+              ) : (
+                <p className="text-sm text-gray-400">Your domestic bank account will appear here once it is added.</p>
+              )
+            ) : category === "local" ? (
               usReceivingAccount ? (
                 <LocalBankDetails account={usReceivingAccount} />
               ) : (

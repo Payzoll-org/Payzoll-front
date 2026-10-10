@@ -17,12 +17,14 @@ import {
   deleteInvoice,
   updateInvoice,
 } from "../services/invoiceApi";
-import type { InvoicePrefill, InvoiceStatus, PartnerLite } from "../services/invoiceApi";
+import type { InvoiceBank, InvoicePrefill, InvoiceStable, InvoiceStatus, PartnerLite } from "../services/invoiceApi";
 import { createPartner, PARTNER_TYPE_OPTIONS } from "../services/partnerApi";
 import { COUNTRY_OPTIONS as PARTNER_COUNTRY_OPTIONS } from "../libs/countries";
 import type { PartnerPayload } from "../services/partnerApi";
 import {
+  BANK_RAIL_LABEL,
   COUNTRIES,
+  STABLE_NETWORK_LABEL,
   CURRENCIES,
   LIMITS,
   MAX_ITEMS,
@@ -41,7 +43,7 @@ import {
   sectionOfError,
   validateInvoice,
 } from "../libs/invoice";
-import type { BankMode, Currency, DiscountType, Errors, InvoiceForm, LineItem } from "../libs/invoice";
+import type { Currency, DiscountType, Errors, InvoiceForm, LineItem } from "../libs/invoice";
 
 const inputCls =
   "w-full rounded-sm border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-arc-gold-400 focus:border-arc-gold-400";
@@ -80,21 +82,38 @@ function withPrefill(f: InvoiceForm, pf: InvoicePrefill, applyBank: boolean): In
   if (!next.fromAddress) next.fromAddress = cleanText(pf.from.address, LIMITS.address);
   if (!next.fromPostal) next.fromPostal = cleanText(pf.from.postal, LIMITS.postal);
   if (!next.fromEmail) next.fromEmail = cleanText(pf.from.email, LIMITS.email);
-  if (applyBank && pf.bank) {
-    next.bankEnabled = true;
-    next.bankMode = pf.bank.mode;
-    next.bankHolder = cleanText(pf.bank.holder, LIMITS.bankName);
-    next.bankName = cleanText(pf.bank.bankName, LIMITS.bankName);
-    if (pf.bank.mode === "domestic") {
-      next.bankAccount = cleanDigits(pf.bank.account, 18);
-      next.bankIfsc = cleanAlnumUpper(pf.bank.ifsc, LIMITS.ifsc);
-    } else {
-      next.bankAccount = cleanAlnumUpper(pf.bank.account, LIMITS.account);
-      next.bankSwift = cleanAlnumUpper(pf.bank.swift, LIMITS.swift);
-    }
-  }
+  if (!next.fromGstin && pf.from.gstinApplicable) next.fromGstin = cleanAlnumUpper(pf.from.gstin, LIMITS.gstin);
+  if (applyBank && pf.banks[0]) Object.assign(next, { bankEnabled: true }, bankFields(pf.banks[0]));
   return next;
 }
+
+// An account of the user's -> the invoice's bank fields (the invoice keeps its
+// own copy, so an old invoice never changes if the account does).
+function bankFields(b: InvoiceBank): Partial<InvoiceForm> {
+  return {
+    bankMode: b.mode,
+    bankHolder: cleanText(b.holder, LIMITS.bankName),
+    bankAccount: b.mode === "swift" ? cleanAlnumUpper(b.account, LIMITS.account) : cleanDigits(b.account, 18),
+    bankIfsc: b.mode === "domestic" ? cleanAlnumUpper(b.ifsc, LIMITS.ifsc) : "",
+    bankSwift: b.mode === "swift" ? cleanAlnumUpper(b.swift, LIMITS.swift) : "",
+    bankRouting: b.mode === "ach" || b.mode === "fedwire" ? cleanDigits(b.routing, LIMITS.routing) : "",
+    bankName: cleanText(b.bankName, LIMITS.bankName),
+    bankAddress: "",
+  };
+}
+
+const SAVED_BANK = "__saved"; // details already on the invoice that match none of the user's accounts
+
+const bankLabel = (b: InvoiceBank) =>
+  `${b.currency} - ${BANK_RAIL_LABEL[b.mode]} - ${b.bankName || b.holder || "Bank account"} - ****${b.account.slice(-4)}`;
+
+// A stablecoin receiving address of the user's -> the invoice's stablecoin fields.
+function stableFields(x: InvoiceStable): Partial<InvoiceForm> {
+  return { stableToken: x.token, stableNetwork: x.network, stableAddress: cleanText(x.address, LIMITS.stableAddress) };
+}
+
+const stableLabel = (x: InvoiceStable) =>
+  `${x.token} - ${STABLE_NETWORK_LABEL[x.network]} - ${x.address.slice(0, 6)}...${x.address.slice(-4)}`;
 
 // Collapsible form section. The body is unmounted while closed; all values
 // live in the page's form state, so nothing is lost by collapsing.
@@ -339,6 +358,10 @@ function InvoiceContent() {
   const [partners, setPartners] = useState<PartnerLite[]>(() => peekPrefill()?.partners ?? []);
   const [partnerId, setPartnerId] = useState("");
   const [nextNo, setNextNo] = useState(() => peekPrefill()?.invoiceNo ?? "");
+  const [banks, setBanks] = useState<InvoiceBank[]>(() => peekPrefill()?.banks ?? []);
+  // Sole proprietorship and above show a GSTIN under "Bill from"; individuals don't.
+  const [stables, setStables] = useState<InvoiceStable[]>(() => peekPrefill()?.stablecoins ?? []);
+  const [gstApplicable, setGstApplicable] = useState(() => !!peekPrefill()?.from.gstinApplicable);
   const [showPartnerModal, setShowPartnerModal] = useState(false);
 
   // Every edit goes through here: marks the form dirty and clears any
@@ -393,8 +416,11 @@ function InvoiceContent() {
       if (cancelled) return;
       setPartners(pf.partners);
       setNextNo(pf.invoiceNo);
+      setBanks(pf.banks);
+      setStables(pf.stablecoins);
+      setGstApplicable(pf.from.gstinApplicable);
       if (invoiceId) return;
-      const applyBank = !bankApplied.current && !!pf.bank;
+      const applyBank = !bankApplied.current && pf.banks.length > 0;
       if (applyBank) bankApplied.current = true;
       setFormRaw((f) => withPrefill(f, pf, applyBank));
     };
@@ -548,14 +574,61 @@ function InvoiceContent() {
     }
   };
 
+  // Which of the user's accounts the invoice currently shows.
+  const selectedBankId = useMemo(() => {
+    const hit = banks.find(
+      (b) =>
+        b.account === form.bankAccount &&
+        b.mode === form.bankMode &&
+        (b.mode === "domestic" ? b.ifsc === form.bankIfsc : b.mode === "swift" ? b.swift === form.bankSwift : b.routing === form.bankRouting)
+    );
+    return hit ? hit.id : form.bankAccount ? SAVED_BANK : "";
+  }, [banks, form.bankAccount, form.bankMode, form.bankIfsc, form.bankSwift, form.bankRouting]);
+
+  const chooseBank = (bid: string) => {
+    const b = banks.find((x) => x.id === bid);
+    if (b) setForm((f) => ({ ...f, ...bankFields(b) }));
+  };
+
+  // Picking the client's country switches to one of the user's accounts that
+  // suits it (INR/IFSC for India, otherwise the first ACH/Fedwire/SWIFT
+  // account), when they have one.
   const onCountry = (code: string) => {
+    setForm((f) => {
+      const next = { ...f, clientCountry: code };
+      const wantDomestic = code === "IN";
+      const match = code && (f.bankMode === "domestic") !== wantDomestic ? banks.find((b) => (b.mode === "domestic") === wantDomestic) : undefined;
+      return match ? { ...next, ...bankFields(match) } : next;
+    });
+  };
+
+  const selectedStableId = useMemo(() => {
+    const hit = stables.find((x) => x.token === form.stableToken && x.network === form.stableNetwork && x.address === form.stableAddress);
+    return hit ? hit.id : form.stableAddress ? SAVED_BANK : "";
+  }, [stables, form.stableToken, form.stableNetwork, form.stableAddress]);
+
+  const chooseStable = (sid: string) => {
+    const x = stables.find((y) => y.id === sid);
+    if (x) setForm((f) => ({ ...f, ...stableFields(x) }));
+  };
+
+  // An invoice shows one payment method: bank account OR stablecoin. Turning
+  // one on turns the other off, and picks the first account right away.
+  const toggleStable = (on: boolean) =>
     setForm((f) => ({
       ...f,
-      clientCountry: code,
-      // Suggest the matching transfer type; the user can still switch it.
-      bankMode: code === "" ? f.bankMode : code === "IN" ? "domestic" : "swift",
+      stableEnabled: on,
+      ...(on ? { bankEnabled: false } : {}),
+      ...(on && !f.stableAddress && stables[0] ? stableFields(stables[0]) : {}),
     }));
-  };
+
+  const toggleBank = (on: boolean) =>
+    setForm((f) => ({
+      ...f,
+      bankEnabled: on,
+      ...(on ? { stableEnabled: false } : {}),
+      ...(on && !f.bankAccount && banks[0] ? bankFields(banks[0]) : {}),
+    }));
 
   // Print target: a copy of the sheet portalled to <body>, hidden on screen
   // and the only thing shown by the @media print rules below - so the app
@@ -732,6 +805,11 @@ function InvoiceContent() {
               <Field label="Email" htmlFor="from-email" error={err("fromEmail", form.fromEmail)}>
                 <input id="from-email" type="email" className={inputCls} value={form.fromEmail} onChange={text("fromEmail", LIMITS.email)} autoComplete="off" />
               </Field>
+              {(gstApplicable || form.fromGstin) && (
+                <Field label="GSTIN" htmlFor="from-gstin" error={err("fromGstin", form.fromGstin)}>
+                  <input id="from-gstin" className={inputCls} value={form.fromGstin} onChange={(e) => set("fromGstin", cleanAlnumUpper(e.target.value, LIMITS.gstin))} autoComplete="off" />
+                </Field>
+              )}
             </div>
           </Section>
 
@@ -976,60 +1054,88 @@ function InvoiceContent() {
               </Field>
             </div>
 
-            <MethodCard title="Bank account" enabled={form.bankEnabled} onToggle={(v) => set("bankEnabled", v)}>
-              <div role="radiogroup" aria-label="Bank transfer type" className="space-y-2">
-                {([
-                  ["domestic", "Domestic bank account (IFSC)"],
-                  ["swift", "International SWIFT account"],
-                ] as [BankMode, string][]).map(([mode, optionLabel]) => (
-                  <label key={mode} className="flex items-center gap-2 text-sm text-gray-800 cursor-pointer">
-                    <input type="radio" name="bank-mode" checked={form.bankMode === mode} onChange={() => set("bankMode", mode)} className="accent-arc-gold-500" />
-                    {optionLabel}
-                  </label>
-                ))}
-              </div>
-              <Field label="Name on bank account" htmlFor="b-holder" error={err("bankHolder", form.bankHolder)}>
-                <input id="b-holder" className={inputCls} value={form.bankHolder} onChange={text("bankHolder", LIMITS.bankName)} autoComplete="off" />
-              </Field>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Field label={form.bankMode === "swift" ? "Account number / IBAN" : "Account number"} htmlFor="b-acc" error={err("bankAccount", form.bankAccount)}>
-                  <input
-                    id="b-acc"
-                    inputMode={form.bankMode === "swift" ? "text" : "numeric"}
-                    className={inputCls}
-                    value={form.bankAccount}
-                    onChange={(e) => set("bankAccount", form.bankMode === "swift" ? cleanAlnumUpper(e.target.value, LIMITS.account) : cleanDigits(e.target.value, 18))}
-                    autoComplete="off"
-                  />
-                </Field>
-                {form.bankMode === "domestic" ? (
-                  <Field label="IFSC code" htmlFor="b-ifsc" error={err("bankIfsc", form.bankIfsc)}>
-                    <input id="b-ifsc" className={inputCls} value={form.bankIfsc} onChange={(e) => set("bankIfsc", cleanAlnumUpper(e.target.value, LIMITS.ifsc))} autoComplete="off" />
+            <MethodCard title="Bank account" enabled={form.bankEnabled} onToggle={toggleBank}>
+              {banks.length === 0 && !form.bankAccount ? (
+                <p className="text-xs text-gray-500">No bank accounts on file yet. Once one is added to your account it can be shown here.</p>
+              ) : (
+                <>
+                  {/* Only the user's own accounts can be chosen - nothing is typed by hand. */}
+                  <Field
+                    label="Bank account"
+                    htmlFor="b-select"
+                    error={attempted ? errors.bankAccount || errors.bankIfsc || errors.bankSwift || errors.bankRouting || errors.bankHolder : undefined}
+                  >
+                    <select id="b-select" className={inputCls} value={selectedBankId} onChange={(e) => chooseBank(e.target.value)}>
+                      {selectedBankId === "" && <option value="">Select a bank account</option>}
+                      {selectedBankId === SAVED_BANK && <option value={SAVED_BANK}>Saved on this invoice</option>}
+                      {banks.map((b) => (
+                        <option key={b.id} value={b.id}>{bankLabel(b)}</option>
+                      ))}
+                    </select>
                   </Field>
-                ) : (
-                  <Field label="SWIFT / BIC code" htmlFor="b-swift" error={err("bankSwift", form.bankSwift)}>
-                    <input id="b-swift" className={inputCls} value={form.bankSwift} onChange={(e) => set("bankSwift", cleanAlnumUpper(e.target.value, LIMITS.swift))} autoComplete="off" />
-                  </Field>
-                )}
-              </div>
-              <Field label="Bank name (optional)" htmlFor="b-name">
-                <input id="b-name" className={inputCls} value={form.bankName} onChange={text("bankName", LIMITS.bankName)} autoComplete="off" />
-              </Field>
-              <Field label="Bank address (optional)" htmlFor="b-addr">
-                <textarea id="b-addr" rows={2} className={inputCls} value={form.bankAddress} onChange={text("bankAddress", LIMITS.bankAddress, true)} />
-              </Field>
+                  {form.bankAccount && (
+                    <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 rounded-sm bg-gray-50 px-3 py-3 text-sm">
+                      {([
+                        ["Transfer type", BANK_RAIL_LABEL[form.bankMode]],
+                        ["Name on account", form.bankHolder],
+                        [form.bankMode === "swift" ? "Account number / IBAN" : "Account number", form.bankAccount],
+                        form.bankMode === "swift"
+                          ? ["SWIFT / BIC", form.bankSwift]
+                          : form.bankMode === "domestic"
+                            ? ["IFSC", form.bankIfsc]
+                            : [`${BANK_RAIL_LABEL[form.bankMode]} routing number`, form.bankRouting],
+                        ["Bank", form.bankName],
+                      ] as [string, string][]).map(([k, v]) =>
+                        v ? (
+                          <div key={k} className="min-w-0">
+                            <dt className="text-xs text-gray-500">{k}</dt>
+                            <dd className="text-gray-900 font-medium break-all">{v}</dd>
+                          </div>
+                        ) : null
+                      )}
+                    </dl>
+                  )}
+                </>
+              )}
             </MethodCard>
 
-            <MethodCard title="Payment link" enabled={form.linkEnabled} onToggle={(v) => set("linkEnabled", v)}>
-              <Field label="Payment link (https://...)" htmlFor="pay-link" error={err("paymentLink", form.paymentLink)}>
-                <input id="pay-link" type="url" inputMode="url" className={inputCls} value={form.paymentLink} onChange={(e) => set("paymentLink", e.target.value.replace(/\s/g, "").slice(0, LIMITS.url))} placeholder="https://" autoComplete="off" />
-              </Field>
-            </MethodCard>
 
-            <MethodCard title="UPI" enabled={form.upiEnabled} onToggle={(v) => set("upiEnabled", v)}>
-              <Field label="UPI ID" htmlFor="upi-id" error={err("upiId", form.upiId)}>
-                <input id="upi-id" className={inputCls} value={form.upiId} onChange={(e) => set("upiId", e.target.value.replace(/\s/g, "").slice(0, LIMITS.upi))} placeholder="name@bank" autoComplete="off" />
-              </Field>
+            <MethodCard title="Stablecoin" enabled={form.stableEnabled} onToggle={toggleStable}>
+              {stables.length === 0 && !form.stableAddress ? (
+                <p className="text-xs text-gray-500">No stablecoin accounts on file yet. Once one is added to your account it can be shown here.</p>
+              ) : (
+                <>
+                  <Field
+                    label="Stablecoin account"
+                    htmlFor="s-select"
+                    error={attempted ? errors.stableToken || errors.stableNetwork || errors.stableAddress : undefined}
+                  >
+                    <select id="s-select" className={inputCls} value={selectedStableId} onChange={(e) => chooseStable(e.target.value)}>
+                      {selectedStableId === "" && <option value="">Select a stablecoin account</option>}
+                      {selectedStableId === SAVED_BANK && <option value={SAVED_BANK}>Saved on this invoice</option>}
+                      {stables.map((x) => (
+                        <option key={x.id} value={x.id}>{stableLabel(x)}</option>
+                      ))}
+                    </select>
+                  </Field>
+                  {form.stableAddress && (
+                    <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 rounded-sm bg-gray-50 px-3 py-3 text-sm">
+                      <div>
+                        <dt className="text-xs text-gray-500">Stablecoin</dt>
+                        <dd className="text-gray-900 font-medium">{form.stableToken}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-gray-500">Network</dt>
+                        <dd className="text-gray-900 font-medium">{form.stableNetwork ? STABLE_NETWORK_LABEL[form.stableNetwork] : ""}</dd>
+                      </div>
+                      <div className="sm:col-span-2 min-w-0">
+                        <dt className="text-xs text-gray-500">Receiving address</dt>
+                        <dd className="text-gray-900 font-medium break-all">{form.stableAddress}</dd>
+                      </div>
+                    </dl>
+                  )}
+                </>
+              )}
             </MethodCard>
           </Section>
 

@@ -1,7 +1,7 @@
 import { http } from "../lib/httpClient";
 import { API_ROUTES } from "../config/apiConfig";
 import { CURRENCIES, emptyInvoice, newItem, withDisabledMethodsCleared } from "../libs/invoice";
-import type { BankMode, Currency, InvoiceForm } from "../libs/invoice";
+import type { BankMode, Currency, InvoiceForm, StableNetwork, StableToken } from "../libs/invoice";
 import type { Partner } from "./partnerApi";
 
 export type InvoiceStatus = "draft" | "active";
@@ -76,7 +76,9 @@ async function parse<T>(response: Response): Promise<T> {
 /** Only what the server accepts - never id/status/totals (it ignores them anyway).
  *  Methods that are switched off are blanked, same as the server stores them. */
 function toPayload(form: InvoiceForm) {
-  const { items, ...rest } = withDisabledMethodsCleared(form);
+  // Bank account is the only payment method now; payment link and UPI are
+  // switched off (and so cleared) on every save.
+  const { items, ...rest } = withDisabledMethodsCleared({ ...form, linkEnabled: false, upiEnabled: false });
   return {
     ...rest,
     items: items.map(({ name, sacHsn, description, qty, unitPrice }) => ({ name, sacHsn, description, qty, unitPrice })),
@@ -93,7 +95,13 @@ export function recordToForm(r: InvoiceRecord): InvoiceForm {
   // Invoices saved before payment methods existed have bank fields but no
   // flag - treat "has bank details" as enabled.
   const legacyBank = ["bankHolder", "bankAccount", "bankIfsc"].some((k) => typeof rec[k] === "string" && rec[k]);
-  const bankMode: BankMode = rec.bankMode === "swift" ? "swift" : "domestic";
+  const bankMode: BankMode =
+    rec.bankMode === "swift" || rec.bankMode === "ach" || rec.bankMode === "fedwire" ? rec.bankMode : "domestic";
+  const stableToken: "" | StableToken = rec.stableToken === "USDC" || rec.stableToken === "USDT" ? rec.stableToken : "";
+  const stableNetwork: "" | StableNetwork =
+    rec.stableNetwork === "EVM" || rec.stableNetwork === "SOLANA" || rec.stableNetwork === "TRON" || rec.stableNetwork === "STELLAR"
+      ? rec.stableNetwork
+      : "";
 
   return {
     logo: str("logo"),
@@ -107,6 +115,7 @@ export function recordToForm(r: InvoiceRecord): InvoiceForm {
     fromPostal: str("fromPostal"),
     fromPhone: str("fromPhone"),
     fromEmail: str("fromEmail"),
+    fromGstin: str("fromGstin"),
     toName: str("toName"),
     toAddress: str("toAddress"),
     toPostal: str("toPostal"),
@@ -140,8 +149,13 @@ export function recordToForm(r: InvoiceRecord): InvoiceForm {
     bankAccount: str("bankAccount"),
     bankIfsc: str("bankIfsc"),
     bankSwift: str("bankSwift"),
+    bankRouting: str("bankRouting"),
     bankName: str("bankName"),
     bankAddress: str("bankAddress"),
+    stableEnabled: rec.stableEnabled === true,
+    stableToken,
+    stableNetwork,
+    stableAddress: str("stableAddress"),
     linkEnabled: rec.linkEnabled === true,
     paymentLink: str("paymentLink"),
     upiEnabled: rec.upiEnabled === true,
@@ -196,9 +210,31 @@ export async function getNextInvoiceNumber(): Promise<string> {
 // the saved "bill to" contacts; invoiceNo is the number the next invoice gets.
 export type PartnerLite = Pick<Partner, "_id" | "legalName" | "nickname" | "email" | "physicalAddress">;
 
+// One of the user's own bank accounts, ready to drop into the invoice's bank fields.
+export interface InvoiceBank {
+  id: string;
+  currency: string;
+  mode: BankMode;
+  holder: string;
+  account: string;
+  ifsc: string;
+  swift: string;
+  routing: string; // ACH / Fedwire routing number
+  bankName: string;
+}
+
+// One of the user's stablecoin receiving addresses.
+export interface InvoiceStable {
+  id: string;
+  token: StableToken;
+  network: StableNetwork;
+  address: string;
+}
+
 export interface InvoicePrefill {
-  from: { name: string; address: string; postal: string; email: string };
-  bank: { mode: BankMode; holder: string; account: string; ifsc: string; swift: string; bankName: string } | null;
+  from: { name: string; address: string; postal: string; email: string; gstin: string; gstinApplicable: boolean };
+  banks: InvoiceBank[];
+  stablecoins: InvoiceStable[];
   invoiceNo: string;
   partners: PartnerLite[];
 }
@@ -212,7 +248,15 @@ export const peekPrefill = () => prefillCache;
 
 export async function getPrefill(): Promise<InvoicePrefill> {
   const response = await http(ROUTES.prefill, { method: "GET" });
-  prefillCache = await parse<InvoicePrefill>(response);
+  const raw = await parse<Partial<InvoicePrefill>>(response);
+  // Lists are always arrays, even if the server is older than this client.
+  prefillCache = {
+    from: { name: "", address: "", postal: "", email: "", gstin: "", gstinApplicable: false, ...raw.from },
+    banks: raw.banks ?? [],
+    stablecoins: raw.stablecoins ?? [],
+    invoiceNo: raw.invoiceNo ?? "",
+    partners: raw.partners ?? [],
+  };
   return prefillCache;
 }
 

@@ -22,7 +22,15 @@ export const COUNTRIES = [
   { code: "OTHER", name: "Other" },
 ] as const;
 
-export type BankMode = "domestic" | "swift";
+// domestic = Indian account + IFSC; ach / fedwire = US account + 9-digit
+// routing number; swift = international account/IBAN + BIC.
+export type BankMode = "domestic" | "swift" | "ach" | "fedwire";
+export const BANK_RAIL_LABEL: Record<BankMode, string> = { domestic: "IFSC", ach: "ACH", fedwire: "Fedwire", swift: "SWIFT" };
+// Stablecoin receiving addresses: token + the network it is sent on.
+export type StableToken = "USDC" | "USDT";
+export type StableNetwork = "EVM" | "SOLANA" | "TRON" | "STELLAR";
+export const STABLE_NETWORK_LABEL: Record<StableNetwork, string> = { EVM: "EVM", SOLANA: "Solana", TRON: "Tron", STELLAR: "Stellar" };
+
 export type DiscountType = "" | "percent" | "amount";
 
 export const MAX_ITEMS = 20;
@@ -44,6 +52,8 @@ export const LIMITS = {
   account: 34,
   ifsc: 11,
   swift: 11,
+  routing: 9,
+  stableAddress: 100,
   bankName: 100,
   bankAddress: 200,
   url: 300,
@@ -110,6 +120,7 @@ export interface InvoiceForm {
   fromPostal: string;
   fromPhone: string;
   fromEmail: string;
+  fromGstin: string; // the business's own GSTIN (sole proprietorship and above)
   toName: string;
   toAddress: string;
   toPostal: string;
@@ -132,8 +143,13 @@ export interface InvoiceForm {
   bankAccount: string; // digits (domestic) or IBAN/account (swift)
   bankIfsc: string;
   bankSwift: string;
+  bankRouting: string; // 9-digit ACH / Fedwire routing number
   bankName: string;
   bankAddress: string;
+  stableEnabled: boolean;
+  stableToken: "" | StableToken;
+  stableNetwork: "" | StableNetwork;
+  stableAddress: string;
   linkEnabled: boolean;
   paymentLink: string;
   upiEnabled: boolean;
@@ -158,6 +174,7 @@ export function emptyInvoice(): InvoiceForm {
     fromPostal: "",
     fromPhone: "",
     fromEmail: "",
+    fromGstin: "",
     toName: "",
     toAddress: "",
     toPostal: "",
@@ -178,8 +195,13 @@ export function emptyInvoice(): InvoiceForm {
     bankAccount: "",
     bankIfsc: "",
     bankSwift: "",
+    bankRouting: "",
     bankName: "",
     bankAddress: "",
+    stableEnabled: false,
+    stableToken: "",
+    stableNetwork: "",
+    stableAddress: "",
     linkEnabled: false,
     paymentLink: "",
     upiEnabled: false,
@@ -342,6 +364,8 @@ const IFSC_RE = /^[A-Z]{4}0[A-Z0-9]{6}$/;
 const SWIFT_RE = /^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}(?:[A-Z0-9]{3})?$/;
 const DOMESTIC_ACCOUNT_RE = /^\d{6,18}$/;
 const SWIFT_ACCOUNT_RE = /^[A-Z0-9]{6,34}$/;
+const US_ACCOUNT_RE = /^\d{4,17}$/;
+const ROUTING_RE = /^\d{9}$/;
 const UPI_RE = /^[A-Za-z0-9._-]{2,64}@[A-Za-z][A-Za-z0-9]{1,31}$/;
 
 /** https only, no credentials - a payment link is shown as text, never as a
@@ -384,6 +408,7 @@ export function validateInvoice(f: InvoiceForm): Errors {
   if (f.fromPostal && !/^[A-Za-z0-9 -]{3,12}$/.test(f.fromPostal.trim())) e.fromPostal = "Invalid postal code";
   if (f.fromPhone && !PHONE_RE.test(f.fromPhone.trim())) e.fromPhone = "Invalid phone number";
   if (f.fromEmail && !EMAIL_RE.test(f.fromEmail.trim())) e.fromEmail = "Invalid email address";
+  if (f.fromGstin && !isValidGstin(f.fromGstin)) e.fromGstin = "Not a valid GSTIN (check the number)";
 
   if (!finalText(f.toName)) e.toName = "Required";
   if (!finalText(f.toAddress)) e.toAddress = "Required";
@@ -429,10 +454,18 @@ export function validateInvoice(f: InvoiceForm): Errors {
     if (f.bankMode === "domestic") {
       if (!DOMESTIC_ACCOUNT_RE.test(f.bankAccount)) e.bankAccount = "6-18 digits";
       if (!IFSC_RE.test(f.bankIfsc.trim())) e.bankIfsc = "Invalid IFSC (e.g. SBIN0001531)";
-    } else {
+    } else if (f.bankMode === "swift") {
       if (!SWIFT_ACCOUNT_RE.test(f.bankAccount)) e.bankAccount = "6-34 letters/numbers (account or IBAN)";
       if (!SWIFT_RE.test(f.bankSwift.trim())) e.bankSwift = "Invalid SWIFT/BIC (8 or 11 characters)";
+    } else {
+      if (!US_ACCOUNT_RE.test(f.bankAccount)) e.bankAccount = "4-17 digits";
+      if (!ROUTING_RE.test(f.bankRouting.trim())) e.bankRouting = "Routing number must be 9 digits";
     }
+  }
+  if (f.stableEnabled) {
+    if (!f.stableToken) e.stableToken = "Select a stablecoin account";
+    if (!f.stableNetwork) e.stableNetwork = "Required";
+    if (!/^[A-Za-z0-9_-]{16,100}$/.test(f.stableAddress.trim())) e.stableAddress = "Invalid address";
   }
   if (f.linkEnabled && !parsePaymentLink(f.paymentLink)) e.paymentLink = "Enter a full https:// link";
   if (f.upiEnabled && !UPI_RE.test(f.upiId.trim())) e.upiId = "Invalid UPI ID (e.g. name@bank)";
@@ -447,7 +480,7 @@ export function sectionOfError(key: string): string {
   if (key.startsWith("from") || key === "logo") return "from";
   if (key.startsWith("to")) return "to";
   if (key.startsWith("item") || key === "taxRate" || key.startsWith("discount")) return "items";
-  if (key.startsWith("bank") || ["clientCountry", "paymentLink", "upiId"].includes(key)) return "payment";
+  if (key.startsWith("bank") || key.startsWith("stable") || ["clientCountry", "paymentLink", "upiId"].includes(key)) return "payment";
   return "notes";
 }
 
@@ -455,12 +488,14 @@ export function sectionOfError(key: string): string {
 export function withDisabledMethodsCleared(f: InvoiceForm): InvoiceForm {
   const next = { ...f };
   if (!f.bankEnabled) {
-    next.bankHolder = next.bankAccount = next.bankIfsc = next.bankSwift = next.bankName = next.bankAddress = "";
-  } else if (f.bankMode === "domestic") {
-    next.bankSwift = "";
+    next.bankHolder = next.bankAccount = next.bankIfsc = next.bankSwift = next.bankRouting = next.bankName = next.bankAddress = "";
   } else {
-    next.bankIfsc = "";
+    // Only the identifier that belongs to the chosen rail is kept.
+    if (f.bankMode !== "domestic") next.bankIfsc = "";
+    if (f.bankMode !== "swift") next.bankSwift = "";
+    if (f.bankMode !== "ach" && f.bankMode !== "fedwire") next.bankRouting = "";
   }
+  if (!f.stableEnabled) next.stableToken = next.stableNetwork = next.stableAddress = "";
   if (!f.discountType) next.discountValue = "";
   // GSTIN only applies to Indian clients.
   if (f.toCountry && f.toCountry !== "IN") next.toTaxId = "";

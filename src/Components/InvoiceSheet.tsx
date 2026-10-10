@@ -1,5 +1,7 @@
 import {
+  BANK_RAIL_LABEL,
   COUNTRIES,
+  STABLE_NETWORK_LABEL,
   computeTotals,
   displayDate,
   finalText,
@@ -45,8 +47,9 @@ export default function InvoiceSheet({ form }: { form: InvoiceForm }) {
   const link = form.linkEnabled ? parsePaymentLink(form.paymentLink) : null;
   const upi = form.upiEnabled ? finalText(form.upiId) : "";
   const showBank =
-    form.bankEnabled && !!(form.bankHolder || form.bankAccount || form.bankIfsc || form.bankSwift || form.bankName || form.bankAddress);
-  const hasPayment = showBank || !!link || !!upi;
+    form.bankEnabled && !!(form.bankHolder || form.bankAccount || form.bankIfsc || form.bankSwift || form.bankRouting || form.bankName || form.bankAddress);
+  const showStable = form.stableEnabled && !!form.stableAddress;
+  const hasPayment = showBank || showStable || !!link || !!upi;
   const countryName = COUNTRIES.find((c) => c.code === form.toCountry)?.name ?? "";
   const hasHsn = t.items.some((it) => it.sacHsn);
   const cols = hasHsn ? ["34%", "12%", "8%", "20%", "26%"] : ["42%", "0", "10%", "22%", "26%"];
@@ -89,6 +92,7 @@ export default function InvoiceSheet({ form }: { form: InvoiceForm }) {
           {finalText(form.fromPostal) && <div style={{ marginTop: 6 }}>{finalText(form.fromPostal)}</div>}
           {finalText(form.fromPhone) && <div style={{ marginTop: 6 }}>{finalText(form.fromPhone)}</div>}
           {finalText(form.fromEmail) && <div style={{ marginTop: 6, overflowWrap: "anywhere" }}>{finalText(form.fromEmail)}</div>}
+          {finalText(form.fromGstin) && <div style={{ marginTop: 6 }}>GSTIN: {finalText(form.fromGstin)}</div>}
         </div>
 
         <div style={{ width: 310 }}>
@@ -200,13 +204,26 @@ export default function InvoiceSheet({ form }: { form: InvoiceForm }) {
               <div style={{ fontWeight: 700, textDecoration: "underline", marginBottom: 4 }}>Payment Methods:</div>
               {showBank && (
                 <div style={{ marginBottom: 6, fontWeight: 700 }}>
-                  <div>{form.bankMode === "swift" ? "International bank transfer (SWIFT)" : "Bank transfer"}</div>
+                  <div>{form.bankMode === "swift" ? "International bank transfer (SWIFT)" : form.bankMode === "domestic" ? "Bank transfer" : "Bank transfer (" + BANK_RAIL_LABEL[form.bankMode] + ")"}</div>
                   {finalText(form.bankHolder) && <div>Name on Bank account: {finalText(form.bankHolder)}</div>}
                   {form.bankAccount && <div>{form.bankMode === "swift" ? "Account No. / IBAN" : "Account No."}: {form.bankAccount}</div>}
                   {form.bankMode === "domestic" && finalText(form.bankIfsc) && <div>IFSC Code: {finalText(form.bankIfsc)}</div>}
                   {form.bankMode === "swift" && finalText(form.bankSwift) && <div>SWIFT / BIC: {finalText(form.bankSwift)}</div>}
+                  {(form.bankMode === "ach" || form.bankMode === "fedwire") && finalText(form.bankRouting) && (
+                    <div>{BANK_RAIL_LABEL[form.bankMode]} Routing No.: {finalText(form.bankRouting)}</div>
+                  )}
                   {finalText(form.bankName) && <div>Bank: {finalText(form.bankName)}</div>}
                   {finalText(form.bankAddress) && <div style={{ whiteSpace: "pre-line" }}>Bank Address: {finalText(form.bankAddress)}</div>}
+                </div>
+              )}
+              {showStable && (
+                <div style={{ marginBottom: 6, fontWeight: 700 }}>
+                  <div>Stablecoin payment</div>
+                  <div>
+                    {form.stableToken}
+                    {form.stableNetwork ? " on " + STABLE_NETWORK_LABEL[form.stableNetwork] + " network" : ""}
+                  </div>
+                  <div>Address: {finalText(form.stableAddress)}</div>
                 </div>
               )}
               {link && (
