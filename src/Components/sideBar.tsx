@@ -8,7 +8,11 @@ import {
   Folder,
   FolderOpen,
   Settings,
-  LogOut
+  LogOut,
+  Calendar,
+  HelpCircle,
+  PanelLeftClose,
+  PanelLeftOpen
 } from 'lucide-react';
 
 import { getCalApi } from '@calcom/embed-react';
@@ -46,7 +50,12 @@ interface ExpandedFolders {
   [key: string]: boolean;
 }
 
-const sideBAr: React.FC = () => {
+interface SideBarProps {
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
+}
+
+const sideBAr: React.FC<SideBarProps> = ({ collapsed = false, onToggleCollapse }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const user = useAuthStore((s) => s.user);
@@ -179,16 +188,27 @@ const sideBAr: React.FC = () => {
     <div className="relative h-full">
       <div>
         <div className=" pt-4 ">
-          <div className="flex justify-between items-center space-x-3  mb-4">
-            <div className='flex items-center  gap-2'>
-              <div className='size-9 flex justify-center items-center overflow-hidden'>
+          <div className={`flex items-center mb-4 ${collapsed ? 'flex-col gap-3' : 'justify-between space-x-3'}`}>
+            <div className={`flex items-center min-w-0 ${collapsed ? '' : 'gap-2'}`}>
+              <div className='size-9 flex justify-center items-center overflow-hidden shrink-0'>
                 <img src={logo} alt="Payzoll logo" className='w-full h-full object-contain' />
               </div>
-              <div className='text-black dark:text-white'>
-                <h4 className="text-black dark:text-white">{user?.name || "Loading..."}</h4>
-
-              </div>
+              {!collapsed && (
+                <div className='text-black dark:text-white min-w-0'>
+                  <h4 className="text-black dark:text-white truncate">{user?.name || "Loading..."}</h4>
+                </div>
+              )}
             </div>
+            {onToggleCollapse && (
+              <button
+                onClick={onToggleCollapse}
+                title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                className="shrink-0 p-1.5 rounded-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -202,15 +222,15 @@ const sideBAr: React.FC = () => {
               <button
                 onClick={() => handleItemClick(item)}
                 disabled={item.disabled}
-                title={item.disabled ? item.disabledReason : undefined}
-                className={`w-full flex items-center gap-3  py-1.5 rounded-sm pl-3 pr-3 text-left transition-all duration-200 group ${item.disabled
+                title={collapsed ? item.label : item.disabled ? item.disabledReason : undefined}
+                className={`w-full flex items-center py-1.5 rounded-sm text-left transition-all duration-200 group ${collapsed ? 'justify-center px-0' : 'gap-3 pl-3 pr-3'} ${item.disabled
                   ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
                   : activeItem === item.id && !item.isFolder
                     ? 'bg-arc-gold-50 dark:bg-arc-gold-900/20 text-arc-gold-600 dark:text-arc-gold-400'
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                   }`}
               >
-                <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className={`flex items-center ${collapsed ? '' : 'gap-3 flex-1 min-w-0'}`}>
                   {item.isFolder ? (
                     expandedFolders[item.id] ? (
                       <FolderOpen className="text-arc-gold-500" size={16} />
@@ -220,9 +240,9 @@ const sideBAr: React.FC = () => {
                   ) : (
                     <item.icon size={18} />
                   )}
-                  <span className="font-medium text-sm truncate">{item.label}</span>
+                  {!collapsed && <span className="font-medium text-sm truncate">{item.label}</span>}
                 </div>
-                {item.disabled ? (
+                {collapsed ? null : item.disabled ? (
                   <span className="text-xs text-gray-300 dark:text-gray-600 shrink-0">
                     {item.disabledReason === 'Coming soon' ? 'Coming soon' : 'Locked'}
                   </span>
@@ -236,7 +256,7 @@ const sideBAr: React.FC = () => {
               </button>
 
               {/* Folder Children */}
-              {item.isFolder && expandedFolders[item.id] && item.children && (
+              {!collapsed && item.isFolder && expandedFolders[item.id] && item.children && (
                 <div className=" mt-1 space-y-1">
                   {item.children.map((child) => (
                     <button
@@ -260,7 +280,7 @@ const sideBAr: React.FC = () => {
 
 
       {/* Bottom Section */}
-      <div className="absolute bottom-5 left-0 right-0 px-3 space-y-1">
+      <div className={`absolute bottom-5 left-0 right-0 space-y-1 ${collapsed ? 'px-2' : 'px-3'}`}>
         <button
           data-cal-link="payzoll/30min"
           data-cal-namespace="payzoll-booking"
@@ -270,24 +290,29 @@ const sideBAr: React.FC = () => {
             ...(user?.name ? { name: user.name } : {}),
             ...(user?.email ? { email: user.email } : {}),
           })}
-          className="w-full flex items-center gap-3 py-1.5 px-3 rounded-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200"
+          title={collapsed ? 'Book a Demo' : undefined}
+          className={`w-full flex items-center py-1.5 rounded-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 ${collapsed ? 'justify-center px-0' : 'gap-3 px-3'}`}
         >
-          <span className="font-medium text-sm">Book a Demo</span>
+          <Calendar size={18} className="shrink-0" />
+          {!collapsed && <span className="font-medium text-sm">Book a Demo</span>}
         </button>
 
         <button
           onClick={() => setHelpModalOpen(true)}
-          className="w-full flex items-center gap-3 py-1.5 px-3 rounded-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200"
+          title={collapsed ? 'Help and Support' : undefined}
+          className={`w-full flex items-center py-1.5 rounded-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 ${collapsed ? 'justify-center px-0' : 'gap-3 px-3'}`}
         >
-          <span className="font-medium text-sm">Help and Support</span>
+          <HelpCircle size={18} className="shrink-0" />
+          {!collapsed && <span className="font-medium text-sm">Help and Support</span>}
         </button>
 
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 py-1.5 px-3 rounded-sm text-left text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200"
+          title={collapsed ? 'Log out' : undefined}
+          className={`w-full flex items-center py-1.5 rounded-sm text-left text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 ${collapsed ? 'justify-center px-0' : 'gap-3 px-3'}`}
         >
-          <LogOut size={18} />
-          <span className="font-medium text-sm">Log out</span>
+          <LogOut size={18} className="shrink-0" />
+          {!collapsed && <span className="font-medium text-sm">Log out</span>}
         </button>
       </div>
 
