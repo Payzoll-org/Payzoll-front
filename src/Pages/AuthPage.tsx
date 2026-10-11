@@ -477,6 +477,19 @@ export default function AuthPage() {
     }
   };
 
+  // While the silent session restore is still in flight (lib/httpClient.ts's
+  // bootstrapSession), show a splash instead of the login form - otherwise a
+  // returning user with a valid refresh cookie sees the login page flash
+  // before the redirect effect above bounces them to /dashboard. Mirrors
+  // ProtectedRoute's own "Checking session..." gate.
+  if (!hasHydrated) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-100">
+        <p className="text-gray-600 text-lg">Checking session...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen w-screen flex flex-col lg:flex-row p-3 bg-gray-100 font-body">
       {/* Left Side - AI Agents Showcase (desktop only - mobile shows just the form) */}
