@@ -1,4 +1,3 @@
-[README (1).md](https://github.com/user-attachments/files/33321443/README.1.md)
 <div align="center">
 
 <img src="assets/payzoll-wordmark.webp" alt="PayZoll" width="360">
