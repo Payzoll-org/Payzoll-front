@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/payzoll-wordmark.webp" alt="PayZoll" width="360">
+<img src=".github/assets/payzoll-wordmark.webp" alt="PayZoll" width="360">
 
 ### Pay anyone. Pay anywhere.
 
@@ -16,7 +16,7 @@ Receive international payments and pay global teams using stablecoins and local 
   <a href="https://dune.com/eren07/payzoll">Dune Analytics</a>
 </p>
 
-<img src="assets/global-payments-port.webp" alt="PayZoll global payments illustration" width="100%">
+<img src=".github/assets/global-payments-port.webp" alt="PayZoll global payments illustration" width="100%">
 
 </div>
 
@@ -29,7 +29,7 @@ Cross-border payments can mean fragmented providers, opaque exchange-rate markup
 **PayZoll brings supported fiat and stablecoin payment flows into one platform.** Individuals can receive international income, while businesses can pay employees, contractors, and vendors across supported countries.
 
 <div align="center">
-  <img src="assets/stablecoins-global.webp" alt="Stablecoins and currencies moving globally" width="82%">
+  <img src=".github/assets/stablecoins-global.webp" alt="Stablecoins and currencies moving globally" width="82%">
 </div>
 
 ## The PayZoll platform
@@ -37,7 +37,7 @@ Cross-border payments can mean fragmented providers, opaque exchange-rate markup
 <table>
   <tr>
     <td width="50%" valign="top">
-      <img src="assets/individual-account.webp" alt="Individual account illustration" width="100%">
+      <img src=".github/assets/individual-account.webp" alt="Individual account illustration" width="100%">
       <h3>Individual Account</h3>
       For freelancers, remote workers, consultants, and independent professionals receiving payments from international clients.
       <ul>
@@ -48,7 +48,7 @@ Cross-border payments can mean fragmented providers, opaque exchange-rate markup
       </ul>
     </td>
     <td width="50%" valign="top">
-      <img src="assets/global-business-payouts.webp" alt="Global business and payout illustration" width="100%">
+      <img src=".github/assets/global-business-payouts.webp" alt="Global business and payout illustration" width="100%">
       <h3>Business Account</h3>
       For companies managing overseas collections and payments to employees, contractors, and vendors.
       <ul>
@@ -64,7 +64,7 @@ Cross-border payments can mean fragmented providers, opaque exchange-rate markup
 ## How it works
 
 <div align="center">
-  <img src="assets/global-payments-illustration.webp" alt="PayZoll cross-border payments illustration" width="100%">
+  <img src=".github/assets/global-payments-illustration.webp" alt="PayZoll cross-border payments illustration" width="100%">
 </div>
 
 ### For individuals
@@ -88,7 +88,7 @@ Cross-border payments can mean fragmented providers, opaque exchange-rate markup
 PayZoll uses a dual-rail approach to connect supported stablecoin and fiat payment flows.
 
 <div align="center">
-  <img src="assets/business-account-coin.webp" alt="PayZoll gold payment coin" width="180">
+  <img src=".github/assets/business-account-coin.webp" alt="PayZoll gold payment coin" width="180">
 </div>
 
 ```text
@@ -142,7 +142,7 @@ Current availability varies by account type, corridor, currency, payment method,
 ## Transparent pricing
 
 <div align="center">
-  <img src="assets/pricing-comparison.webp" alt="PayZoll pricing comparison illustration" width="82%">
+  <img src=".github/assets/pricing-comparison.webp" alt="PayZoll pricing comparison illustration" width="82%">
 </div>
 
 PayZoll's published pricing has included a **1% flat fee with zero additional FX markup**, using a mid-market reference rate. Review the live quote and applicable terms before confirming a transaction, as pricing and availability may vary by corridor or transaction type.
@@ -150,7 +150,7 @@ PayZoll's published pricing has included a **1% flat fee with zero additional FX
 ## Remittance documentation and tax support
 
 <div align="center">
-  <img src="assets/remittance-document.webp" alt="Remittance documentation illustration" width="82%">
+  <img src=".github/assets/remittance-document.webp" alt="Remittance documentation illustration" width="82%">
 </div>
 
 International payments may require identity or business verification, source-of-funds information, payment-purpose details, screening, and supporting documents.
@@ -158,7 +158,7 @@ International payments may require identity or business verification, source-of-
 PayZoll helps users organize transaction records and access applicable documentation through the platform. For eligible inward remittances to India, this may include Foreign Inward Remittance Advice (FIRA) or other documents made available through the relevant banking and payment partners.
 
 <div align="center">
-  <img src="assets/tax-filing.webp" alt="Tax filing and compliance illustration" width="82%">
+  <img src=".github/assets/tax-filing.webp" alt="Tax filing and compliance illustration" width="82%">
 </div>
 
 **Please note:**
@@ -187,7 +187,24 @@ PayZoll helps users organize transaction records and access applicable documenta
 
 ## About this repository
 
-This README describes the PayZoll product. Repository-specific implementation details, APIs, SDKs, or deployment instructions should be documented according to the actual code and files included in this repository.
+This is the PayZoll web frontend, built with React 19, TypeScript, Vite and Tailwind CSS.
+
+```bash
+npm install
+cp .env.example .env   # then fill in the API URLs below
+npm run dev            # start the dev server
+npm run build          # type-check and build to dist/
+npm run lint
+```
+
+| Variable | Purpose |
+| --- | --- |
+| `VITE_AUTH_API_URL` | Auth service |
+| `VITE_GATEWAY_API_URL` | API gateway |
+| `VITE_AGENT_CHAT_API_URL` | Agent chat API |
+| `VITE_AGENT_MANAGEMENT_API_URL` | Agent management API |
+
+The `Dockerfile`, `nginx.conf.template` and `cloudbuild.yaml` files handle container builds and deployment.
 
 ## Disclaimer
 
@@ -197,7 +214,7 @@ PayZoll provides technology and payment workflows through its platform and relev
 
 <div align="center">
 
-<img src="assets/payzoll-gold-emblem.webp" alt="PayZoll emblem" width="100">
+<img src=".github/assets/payzoll-gold-emblem.webp" alt="PayZoll emblem" width="100">
 
 ### PayZoll
 **People. Payments. Progress. Globally.**
