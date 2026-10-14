@@ -520,12 +520,12 @@ const PRODUCT_DESCRIPTION_OPTIONS: { label: string; description: string }[] = [
   {
     label: "Web3 / Blockchain developer",
     description:
-      "I provide software development services as a Blockchain/Web3 developer to overseas clients and companies. I focus on building and maintaining blockchain-based applications, including smart contract development and full-stack engineering (frontend and backend). I have worked with well-known organizations in the Web3 space",
+      "I provide software development services as a Blockchain/Web3 developer to overseas clients and companies. I focus on building and maintaining blockchain-based applications, including smart contract development and full-stack engineering (frontend and backend). I have worked with well-known organizations in the Web3 space.",
   },
   {
     label: "Full stack developer or software developer",
     description:
-      "I provide software development and web development services to international clients. I work as an independent software developer, building professional software products, websites, and custom digital solutions for clients in other countries. We receive payments from overseas clients for software development services.",
+      "I provide software development and web development services to international clients. I work as an independent software developer, building professional software products, websites, and custom digital solutions for clients in other countries. I receive payments from overseas clients for software development services.",
   },
   {
     label: "Security researcher",
@@ -535,7 +535,7 @@ const PRODUCT_DESCRIPTION_OPTIONS: { label: string; description: string }[] = [
   {
     label: "Community leader",
     description:
-      "I organizes hackathons, tech events, workshops, meetups, and networking programs for developers, students, freelancers, and tech enthusiasts. I also offer event marketing, digital marketing, social media promotion, creative services, and freelance technology solutions, collaborating with startups, brands, and industry professionals.",
+      "I organize hackathons, tech events, workshops, meetups, and networking programs for developers, students, freelancers, and tech enthusiasts. I also offer event marketing, digital marketing, social media promotion, creative services, and freelance technology solutions, collaborating with startups, brands, and industry professionals.",
   },
 ];
 const OTHER_DESCRIPTION = "__other__";
@@ -586,7 +586,7 @@ function AboutBusinessStep({
     }
 
     if (dba.trim().length > 16) {
-      toast.error("Business display name (DBA) must be 16 characters or fewer");
+      toast.error("Legal name must be 16 characters or fewer");
       return;
     }
 
@@ -647,13 +647,13 @@ function AboutBusinessStep({
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex flex-col w-full sm:w-1/2">
               <label className="text-sm font-medium mb-1 text-gray-700">
-                Business display name (DBA) *
+                Doing business as (legal name) *
               </label>
               <input
                 type="text"
                 value={dba}
                 onChange={(e) => setDba(e.target.value)}
-                placeholder="Customer-facing business name"
+                placeholder="e.g. Chinmay Farkya or Monad Inc."
                 maxLength={16}
                 className={inputClass}
                 disabled={loading}
@@ -664,22 +664,23 @@ function AboutBusinessStep({
             
 
             <div className="flex flex-col w-full sm:w-1/2">
-              <label className="text-sm font-medium mb-1 text-gray-700">Website *</label>
+              <label className="text-sm font-medium mb-1 text-gray-700">Professional profile (LinkedIn or X) *</label>
               <input
                 type="text"
                 value={website}
                 onChange={(e) => setWebsite(e.target.value)}
-                placeholder="www.yourbusiness.com"
+                placeholder="linkedin.com/in/yourname"
                 className={inputClass}
                 disabled={loading}
               />
+              <p className="text-xs text-gray-400 mt-1">Must show your legal name</p>
             </div>
             
           </div>
 
           <div className="flex flex-col">
             <label className="text-sm font-medium mb-1 text-gray-700">
-              Product / business description *
+              Services you receive international payments for *
             </label>
             <select
               value={descriptionChoice}
@@ -692,7 +693,7 @@ function AboutBusinessStep({
               disabled={loading}
             >
               <option value="" disabled>
-                Select the option closest to your business
+                Select the option closest to your work
               </option>
               {PRODUCT_DESCRIPTION_OPTIONS.map((option) => (
                 <option key={option.label} value={option.description}>
@@ -717,7 +718,7 @@ function AboutBusinessStep({
                 <textarea
                   value={productDescription}
                   onChange={(e) => setProductDescription(e.target.value)}
-                  placeholder="Describe what your business does"
+                  placeholder="Describe the services you provide"
                   rows={2}
                   maxLength={400}
                   className={`${inputClass} resize-none mt-2`}
@@ -934,30 +935,30 @@ function BusinessIdentifiersStep({
     <>
       <StepHeader
         step={2}
-        title="Address & PAN details"
-        subtitle="Provide your registered address and PAN to verify your identity"
+        title="Current address & PAN details"
+        subtitle="Provide your current address and PAN to verify your identity"
       />
       <StepCard>
         <div className="flex flex-col gap-3.5">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex flex-col w-full sm:w-1/2">
-              <label className="text-sm font-medium mb-1 text-gray-700">Line 1 *</label>
+              <label className="text-sm font-medium mb-1 text-gray-700">Current address line 1 *</label>
               <input
                 type="text"
                 value={addressLine1}
                 onChange={(e) => setAddressLine1(e.target.value)}
-                placeholder="Enter Address line 1"
+                placeholder="House / flat no., street"
                 className={inputClass}
                 disabled={loading}
               />
             </div>
             <div className="flex flex-col w-full sm:w-1/2">
-              <label className="text-sm font-medium mb-1 text-gray-700">Line 2</label>
+              <label className="text-sm font-medium mb-1 text-gray-700">Current address line 2</label>
               <input
                 type="text"
                 value={addressLine2}
                 onChange={(e) => setAddressLine2(e.target.value)}
-                placeholder="Enter Address line 2"
+                placeholder="Area, landmark (optional)"
                 className={inputClass}
                 disabled={loading}
               />
@@ -1108,8 +1109,9 @@ function BusinessIdentifiersStep({
                 disabled={loading}
               />
               <p className="text-xs text-gray-400 mt-1">
-                e.g. contract/agreement with employer, or offer letter from the company. JPEG,
-                PNG or PDF, up to 10MB
+                e.g. a contract or agreement with your employer, an offer letter, or past invoices
+                with matching bank statements showing the funds received (combined into a single
+                PDF). JPEG, PNG or PDF, up to 10MB
               </p>
               {sourceOfIncomeFile ? (
                 <p className="text-xs text-green-600 mt-1 font-medium">
@@ -1315,14 +1317,14 @@ function BankDetailsStep({
           <div className="mt-5 rounded-lg bg-gray-50 border border-gray-100 px-4 py-3">
             <p className="text-sm font-medium text-gray-700">Account holder</p>
             <p className="text-sm text-gray-500 mt-0.5">{accountHolderName}</p>
-            <p className="text-sm font-medium text-gray-700 mt-3">Billing address</p>
+            <p className="text-sm font-medium text-gray-700 mt-3">Current address</p>
             <p className="text-sm text-gray-500 mt-0.5">
               {[address.line1, address.city, address.state, address.postalCode]
                 .filter(Boolean)
                 .join(", ")}
             </p>
             <p className="text-xs text-gray-400 mt-1">
-              Same as the name on PAN and business address from the previous step. Go back to
+              Same as the name on PAN and current address from the previous step. Go back to
               change either.
             </p>
           </div>
@@ -1477,9 +1479,9 @@ function SummaryStep({
       <StepCard scrollable>
         <div className="flex flex-col gap-4">
           <SummarySection title="Business details" onEdit={() => onEditStep(1)}>
-            <SummaryRow label="Website" value={aboutBusiness.website} />
-            <SummaryRow label="Business display name" value={aboutBusiness.dba} />
-            <SummaryRow label="Description" value={aboutBusiness.productDescription} />
+            <SummaryRow label="Professional profile" value={aboutBusiness.website} />
+            <SummaryRow label="Doing business as (legal name)" value={aboutBusiness.dba} />
+            <SummaryRow label="Services provided" value={aboutBusiness.productDescription} />
             <SummaryRow
               label="Est. monthly volume (USD)"
               value={aboutBusiness.estimatedMonthlyVolume}
@@ -1497,7 +1499,7 @@ function SummaryStep({
 
           <SummarySection title="Business identifiers" onEdit={() => onEditStep(2)}>
             <SummaryRow
-              label="Address"
+              label="Current address"
               value={[
                 businessIdentifiers.addressLine1,
                 businessIdentifiers.addressLine2,
@@ -1745,7 +1747,7 @@ export default function KycPage() {
 
                   if (reachedSummary && bankAccountOutOfSync) {
                     toast.error(
-                      "Your name or business address changed - please reconfirm your payout bank account."
+                      "Your name or current address changed - please reconfirm your payout bank account."
                     );
                     setStep(3);
                     return;
