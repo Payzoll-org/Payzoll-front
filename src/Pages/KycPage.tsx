@@ -647,7 +647,7 @@ function AboutBusinessStep({
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex flex-col w-full sm:w-1/2">
               <label className="text-sm font-medium mb-1 text-gray-700">
-                Doing business as (legal name) *
+                Doing business as (Your legal name or Your Entity Name) *
               </label>
               <input
                 type="text"
