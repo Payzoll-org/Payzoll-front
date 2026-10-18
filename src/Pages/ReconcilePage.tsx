@@ -662,7 +662,7 @@ function ReceivableCreateForm({
           </select>
           {allowedPurposeCodes !== null && purposeCodeOptions.length === 0 && (
             <p className="text-xs text-amber-700 mt-1">
-              XflowPay hasn't approved a purpose code for your account yet. Complete the "About Business" step in
+              Payzoll hasn't approved a purpose code for your account yet. Complete the "About Business" step in
               KYC if you haven't, or wait for approval - you'll get a notification once it's granted.
             </p>
           )}
