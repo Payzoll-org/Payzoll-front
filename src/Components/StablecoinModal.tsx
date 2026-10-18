@@ -140,7 +140,7 @@ export default function StablecoinModal({ onClose, onComplete }: StablecoinModal
           {phase === "ready" && tosUrl && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-8 text-center">
               <p className="text-sm text-gray-700">
-                XflowPay's partner Bridge needs you to review and accept their Terms of Service
+                Payzoll's partner Bridge needs you to review and accept their Terms of Service
                 in a new window before stablecoin payments can turn on.
               </p>
               <button
