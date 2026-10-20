@@ -18,6 +18,7 @@ export const API_BASE_MAP: Record<ApiService, string> = {
 
 export const API_ROUTES = {
   auth: {
+    checkEmail: "/api/auth/check-email",
     register: "/api/auth/register",
     verifyOtp: "/api/auth/verify-otp",
     resendOtp: "/api/auth/resend-otp",
