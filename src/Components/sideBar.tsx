@@ -205,29 +205,81 @@ const sideBAr: React.FC<SideBarProps> = ({ collapsed = false, onToggleCollapse }
     }),
   };
 
+  // Labels stay mounted and shrink/fade with the sidebar's width instead of
+  // popping in and out, so opening and closing is one continuous motion.
+  const fade = `whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out motion-reduce:transition-none ${
+    collapsed ? 'max-w-0 opacity-0' : 'max-w-[200px] opacity-100'
+  }`;
+
+  // Bottom links: padding animates (instead of switching layout) so each icon
+  // glides to the centre of the narrow rail while the sidebar closes.
+  const bottomItem = (tone: string) =>
+    `w-full flex items-center py-1.5 rounded-sm text-left overflow-hidden transition-[padding,background-color] duration-300 ease-in-out motion-reduce:transition-none ${
+      collapsed ? 'px-[11px]' : 'px-3'
+    } ${tone}`;
+
   return (
     <div className="relative h-full">
       <div>
         <div className=" pt-4 ">
-          <div className={`flex items-center mb-4 ${collapsed ? 'flex-col gap-3' : 'justify-between space-x-3'}`}>
-            <div className={`flex items-center min-w-0 ${collapsed ? '' : 'gap-2'}`}>
-              <div className='size-9 flex justify-center items-center overflow-hidden shrink-0'>
-                <img src={logo} alt="Payzoll logo" className='w-full h-full object-contain' />
-              </div>
-              {!collapsed && (
-                <div className='text-black dark:text-white min-w-0'>
-                  <h4 className="text-black dark:text-white truncate">{user?.name || "Loading..."}</h4>
-                </div>
-              )}
+          <div
+            className={`flex items-center mb-4 transition-[padding] duration-300 ease-in-out motion-reduce:transition-none ${
+              collapsed ? 'pl-[14px]' : 'pl-0'
+            }`}
+          >
+            {/* Logo. While the sidebar is closed, hovering it swaps it for the
+                "open sidebar" button (cross-fade) and clicking opens the sidebar. */}
+            <button
+              type="button"
+              onClick={onToggleCollapse}
+              disabled={!collapsed || !onToggleCollapse}
+              tabIndex={collapsed ? 0 : -1}
+              title={collapsed ? 'Expand sidebar' : undefined}
+              aria-label={collapsed ? 'Expand sidebar' : 'Payzoll'}
+              className={`group/logo relative size-9 shrink-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-arc-gold-400 ${
+                collapsed ? 'cursor-pointer' : 'cursor-default'
+              }`}
+            >
+              <img
+                src={logo}
+                alt="Payzoll logo"
+                className={`absolute inset-0 size-full object-contain transition-all duration-300 ease-in-out motion-reduce:transition-none ${
+                  collapsed
+                    ? 'group-hover/logo:opacity-0 group-hover/logo:scale-75 group-focus-visible/logo:opacity-0 group-focus-visible/logo:scale-75'
+                    : ''
+                }`}
+              />
+              <span
+                aria-hidden="true"
+                className={`absolute inset-0 flex items-center justify-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 shadow-sm transition-all duration-300 ease-in-out motion-reduce:transition-none ${
+                  collapsed
+                    ? 'opacity-0 scale-75 group-hover/logo:opacity-100 group-hover/logo:scale-100 group-focus-visible/logo:opacity-100 group-focus-visible/logo:scale-100'
+                    : 'opacity-0 scale-75 pointer-events-none'
+                }`}
+              >
+                <PanelLeftOpen size={20} />
+              </span>
+            </button>
+
+            <div className={`min-w-0 text-black dark:text-white ${fade} ${collapsed ? 'ml-0 pr-0' : 'ml-2 pr-3'}`}>
+              <h4 className="text-black dark:text-white truncate">{user?.name || "Loading..."}</h4>
             </div>
+
+            {/* Collapse button: only while the sidebar is open - it fades away
+                as the sidebar closes (the logo takes over as the way back in). */}
             {onToggleCollapse && (
               <button
+                type="button"
                 onClick={onToggleCollapse}
-                title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                className="shrink-0 p-1.5 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-colors"
+                tabIndex={collapsed ? -1 : 0}
+                aria-hidden={collapsed}
+                title="Collapse sidebar"
+                aria-label="Collapse sidebar"
+                className={`ml-auto shrink-0 overflow-hidden rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-all duration-300 ease-in-out motion-reduce:transition-none ${
+                  collapsed ? 'max-w-0 p-0 border-0 opacity-0 pointer-events-none' : 'max-w-10 p-1.5 border opacity-100'
+                }`}
               >
-                {collapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
+                <PanelLeftClose size={20} />
               </button>
             )}
           </div>
@@ -244,33 +296,33 @@ const sideBAr: React.FC<SideBarProps> = ({ collapsed = false, onToggleCollapse }
                 onClick={() => handleItemClick(item)}
                 disabled={item.disabled}
                 title={collapsed ? item.label : item.disabled ? item.disabledReason : undefined}
-                className={`w-full flex items-center py-1.5 rounded-sm text-left transition-all duration-200 group ${collapsed ? 'justify-center px-0' : 'gap-3 pl-3 pr-3'} ${item.disabled
+                className={`w-full flex items-center py-1.5 rounded-sm text-left overflow-hidden transition-[padding,background-color,color] duration-300 ease-in-out motion-reduce:transition-none group ${collapsed ? 'px-[23px]' : 'px-3'} ${item.disabled
                   ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
                   : activeItem === item.id && !item.isFolder
                     ? 'bg-arc-gold-50 dark:bg-arc-gold-900/20 text-arc-gold-600 dark:text-arc-gold-400'
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                   }`}
               >
-                <div className={`flex items-center ${collapsed ? '' : 'gap-3 flex-1 min-w-0'}`}>
+                <div className="flex items-center flex-1 min-w-0">
                   {item.isFolder ? (
                     expandedFolders[item.id] ? (
-                      <FolderOpen className="text-arc-gold-500" size={16} />
+                      <FolderOpen className="text-arc-gold-500 shrink-0" size={16} />
                     ) : (
-                      <Folder size={15} />
+                      <Folder className="shrink-0" size={15} />
                     )
                   ) : (
                     <item.icon size={18} />
                   )}
-                  {!collapsed && <span className="font-medium text-sm truncate">{item.label}</span>}
+                  <span className={`font-medium text-sm truncate ${fade} ${collapsed ? 'ml-0' : 'ml-3'}`}>{item.label}</span>
                 </div>
-                {collapsed ? null : item.disabled ? (
-                  <span className="text-xs text-gray-300 dark:text-gray-600 shrink-0">
+                {item.disabled ? (
+                  <span className={`text-xs text-gray-300 dark:text-gray-600 shrink-0 ${fade}`}>
                     {item.disabledReason === 'Coming soon' ? 'Coming soon' : 'Locked'}
                   </span>
                 ) : item.isFolder ? (
                   <ChevronDown
                     size={14}
-                    className={`transition-transform duration-200 ${expandedFolders[item.id] ? 'rotate-180' : ''
+                    className={`transition-transform duration-200 ${collapsed ? 'opacity-0' : ''} ${expandedFolders[item.id] ? 'rotate-180' : ''
                       }`}
                   />
                 ) : null}
@@ -301,41 +353,41 @@ const sideBAr: React.FC<SideBarProps> = ({ collapsed = false, onToggleCollapse }
 
 
       {/* Bottom Section */}
-      <div className={`absolute bottom-5 left-0 right-0 space-y-1 ${collapsed ? 'px-2' : 'px-3'}`}>
+      <div className="absolute bottom-5 left-0 right-0 space-y-1 px-3">
         <button
           {...calBookingProps}
           title={collapsed ? 'Book a Call with CA' : undefined}
-          className={`w-full flex items-center py-1.5 rounded-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 ${collapsed ? 'justify-center px-0' : 'gap-3 px-3'}`}
+          className={bottomItem('text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800')}
         >
           <Calendar size={18} className="shrink-0" />
-          {!collapsed && <span className="font-medium text-sm">Book a Call with CA</span>}
+          <span className={`font-medium text-sm ${fade} ${collapsed ? 'ml-0' : 'ml-3'}`}>Book a Call with CA</span>
         </button>
 
         <button
           {...calBookingProps}
           title={collapsed ? 'Book a Demo' : undefined}
-          className={`w-full flex items-center py-1.5 rounded-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 ${collapsed ? 'justify-center px-0' : 'gap-3 px-3'}`}
+          className={bottomItem('text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800')}
         >
           <Calendar size={18} className="shrink-0" />
-          {!collapsed && <span className="font-medium text-sm">Book a Demo</span>}
+          <span className={`font-medium text-sm ${fade} ${collapsed ? 'ml-0' : 'ml-3'}`}>Book a Demo</span>
         </button>
 
         <button
           onClick={() => setHelpModalOpen(true)}
           title={collapsed ? 'Help and Support' : undefined}
-          className={`w-full flex items-center py-1.5 rounded-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 ${collapsed ? 'justify-center px-0' : 'gap-3 px-3'}`}
+          className={bottomItem('text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800')}
         >
           <HelpCircle size={18} className="shrink-0" />
-          {!collapsed && <span className="font-medium text-sm">Help and Support</span>}
+          <span className={`font-medium text-sm ${fade} ${collapsed ? 'ml-0' : 'ml-3'}`}>Help and Support</span>
         </button>
 
         <button
           onClick={handleLogout}
           title={collapsed ? 'Log out' : undefined}
-          className={`w-full flex items-center py-1.5 rounded-sm text-left text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 ${collapsed ? 'justify-center px-0' : 'gap-3 px-3'}`}
+          className={bottomItem('text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20')}
         >
           <LogOut size={18} className="shrink-0" />
-          {!collapsed && <span className="font-medium text-sm">Log out</span>}
+          <span className={`font-medium text-sm ${fade} ${collapsed ? 'ml-0' : 'ml-3'}`}>Log out</span>
         </button>
       </div>
 

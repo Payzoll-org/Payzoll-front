@@ -38,7 +38,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
       <div className="flex flex-1 overflow-hidden pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0 md:py-4 md:pr-4">
         {/* Sidebar nav is desktop-only - mobile uses the bottom tab bar instead. */}
         <div
-          className={`hidden md:block md:h-full shrink-0 transition-[width] duration-200 ease-in-out ${
+          // Width AND side padding animate together (padding used to jump), and the
+          // sidebar's labels fade on the same 300ms curve, so it reads as one motion.
+          className={`hidden md:block md:h-full shrink-0 overflow-hidden transition-[width,padding] duration-300 ease-in-out motion-reduce:transition-none ${
             collapsed ? "md:w-20 px-2" : "md:w-80 px-5"
           }`}
         >

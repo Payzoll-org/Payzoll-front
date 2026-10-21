@@ -5,7 +5,9 @@ import { useAuthStore } from "../Zustand/userStore";
 import Logo from "../assets/logo.png";
 import goldCoin from "../assets/coin-gold.webp";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { formatCountdown, useCooldown } from "../hooks/useCooldown";
 import {
+  checkEmail,
   loginUser,
   registerUser,
   refreshCurrentUser,
@@ -49,11 +51,17 @@ export default function AuthPage() {
     password: "" 
   });
   const { user, hasHydrated } = useAuthStore();
+  // One email-first screen instead of Sign In / Sign Up tabs: the email goes
+  // first, then the backend says whether it already has an account - yes ->
+  // "login" (password), no -> "signup" (name + password, then OTP and the
+  // onboarding form).
+  const [authStep, setAuthStep] = useState<"email" | "login" | "signup">("email");
+  const isSignup = authStep === "signup";
   // A shared referral link lands here with ?signup=1 - purely a UI hint so
-  // the visitor starts on the sign-up tab. It carries no referral data (that
-  // lives in an HttpOnly cookie the backend sets).
+  // the headline invites the visitor to create an account. It carries no
+  // referral data (that lives in an HttpOnly cookie the backend sets).
   const [searchParams] = useSearchParams();
-  const [isSignup, setIsSignup] = useState<boolean>(searchParams.get("signup") === "1");
+  const cameFromInvite = searchParams.get("signup") === "1";
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [showVerification, setShowVerification] = useState<boolean>(false);
@@ -74,6 +82,9 @@ export default function AuthPage() {
   const [loginRecoveryOtp, setLoginRecoveryOtp] = useState<string[]>(["", "", "", "", "", ""]);
   const [loginRecoveryLoading, setLoginRecoveryLoading] = useState<boolean>(false);
   const [loginRecoveryResendLoading, setLoginRecoveryResendLoading] = useState<boolean>(false);
+  // Why the last attempt to email a login code failed (rate limit, mail error...),
+  // shown on the screen itself so a failed send never looks like a code went out.
+  const [loginRecoveryError, setLoginRecoveryError] = useState<string | null>(null);
   // Emails already auto-sent a code for in this page visit - the send
   // endpoint shares the password-reset rate limit (3/hour), and login
   // itself allows 5 attempts/15min, so auto-sending on every single
@@ -92,6 +103,12 @@ export default function AuthPage() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
+  // Cooldowns before another emailed code can be requested - one per kind of
+  // code (email verification, password reset, login check). The server
+  // enforces the same wait; these just show it.
+  const verifyCooldown = useCooldown();
+  const resetCooldown = useCooldown();
+  const recoveryCooldown = useCooldown();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -172,18 +189,23 @@ export default function AuthPage() {
   };
   
   const handleResendOtp = async () => {
+    if (verifyCooldown.remaining > 0) return;
     try {
       setResendLoading(true);
-  
+
       await resendOtpRequest({ email: userEmail });
 
       toast.success("OTP resent successfully! Check your email.");
-      
+      verifyCooldown.start();
+
       // Clear OTP inputs
       setOtp(["", "", "", "", "", ""]);
-  
+
     } catch (error: any) {
       console.error("Resend OTP failed:", error);
+      // Asked too soon (e.g. after a reload): pick the countdown up from the
+      // server instead of letting the user keep tapping.
+      if (typeof error.retryAfterSeconds === "number") verifyCooldown.start(error.retryAfterSeconds);
       toast.error(error.message || "Failed to resend OTP");
     } finally {
       setResendLoading(false);
@@ -271,9 +293,35 @@ export default function AuthPage() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
+  const changeEmail = () => {
+    setAuthStep("email");
+    setForm((f) => ({ ...f, firstName: "", lastName: "", password: "" }));
+    setShowPassword(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    // Step 1: just the email - find out whether to log in or sign up.
+    if (authStep === "email") {
+      const email = form.email.trim();
+      if (!email) {
+        toast.error("Please enter your email");
+        return;
+      }
+      setIsLoading(true);
+      try {
+        const exists = await checkEmail(email);
+        setForm((f) => ({ ...f, email, password: "" }));
+        setAuthStep(exists ? "login" : "signup");
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Something went wrong!");
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
     // Validation
     if (!form.email || !form.password) {
       toast.error("Please fill in all required fields");
@@ -298,6 +346,8 @@ export default function AuthPage() {
 
         setUserEmail(form.email);
         setShowVerification(true);
+        // The code was just emailed, so the wait before another one starts now.
+        verifyCooldown.start();
         toast.success("Account created! Please check your email for the verification code.");
       } else {
         // No alert()/navigate() here - the useEffect above already reacts to
@@ -316,7 +366,13 @@ export default function AuthPage() {
       console.error("Error:", error);
       const errorMessage = error.message || "Something went wrong!";
 
-      if (errorMessage.includes("RECOVERY_REQUIRED") || errorMessage.includes("TWO_FACTOR_REQUIRED")) {
+      if (isSignup && errorMessage.toLowerCase().includes("already registered")) {
+        // The account appeared since the email check (e.g. created in another
+        // tab) - carry on as a login instead of leaving them stuck.
+        setForm((f) => ({ ...f, password: "" }));
+        setAuthStep("login");
+        toast("You already have an account - enter your password to log in.", { icon: "👋" });
+      } else if (errorMessage.includes("RECOVERY_REQUIRED") || errorMessage.includes("TWO_FACTOR_REQUIRED")) {
         // Same screen, two reasons to land here: either the password
         // typed was actually correct but Two-Factor Authentication (on
         // by default - Settings) still requires a second check, or this
@@ -330,6 +386,7 @@ export default function AuthPage() {
         const cleanEmail = form.email.toLowerCase().trim();
         setLoginRecoveryEmail(form.email);
         setLoginRecoveryOtp(["", "", "", "", "", ""]);
+        setLoginRecoveryError(null);
         setShowLoginRecovery(true);
 
         const alreadySent = loginRecoveryAutoSentFor.current.has(cleanEmail);
@@ -339,12 +396,23 @@ export default function AuthPage() {
           // implying a retry failed or anything went wrong.
           toast("Enter the code we already sent you, or tap Resend Code below.", { icon: "📧" });
         } else {
-          toast("For your security, we've emailed you a code to continue.", { icon: "🔐" });
           try {
             await requestLoginRecovery(form.email);
             loginRecoveryAutoSentFor.current.add(cleanEmail);
+            recoveryCooldown.start();
+            // Said only once it is true - this used to appear before the send,
+            // so it claimed an email had gone out even when it hadn't.
+            toast("For your security, we've emailed you a code to continue.", { icon: "🔐" });
           } catch (sendError: any) {
-            toast.error(sendError.message || "Couldn't send the code - tap Resend Code below to try again.");
+            if (typeof sendError.retryAfterSeconds === "number") {
+              // A code went out moments ago and is still valid.
+              recoveryCooldown.start(sendError.retryAfterSeconds);
+              toast("A code was already sent a moment ago - enter it below.", { icon: "📧" });
+            } else {
+              const message = sendError.message || "Couldn't send the code - tap Resend Code to try again.";
+              setLoginRecoveryError(message);
+              toast.error(message);
+            }
           }
         }
       } else if (
@@ -367,6 +435,9 @@ export default function AuthPage() {
   };
 
   const openForgotPassword = () => {
+    // Fresh start: another address may be typed, and the server still holds the
+    // same wait for one that already got a code (it answers with the time left).
+    resetCooldown.reset();
     setForgotEmail(form.email);
     setForgotStep("request");
     setForgotOtp("");
@@ -380,12 +451,20 @@ export default function AuthPage() {
       setForgotError("Enter your email first");
       return;
     }
+    if (resetCooldown.remaining > 0) return;
     setForgotError(null);
     setForgotLoading(true);
     try {
       await requestPasswordReset(forgotEmail);
+      resetCooldown.start();
       setForgotStep("reset");
     } catch (error: any) {
+      // Asked again too soon: a code was already sent a moment ago, so go to
+      // the code screen and show how long until a new one can be requested.
+      if (typeof error.retryAfterSeconds === "number") {
+        resetCooldown.start(error.retryAfterSeconds);
+        setForgotStep("reset");
+      }
       // This whole flow only ever showed an inline red line under the
       // email field, never a toast - easy to miss, especially now that
       // every other error in the app shows as a toast (e.g. rate-limit
@@ -464,13 +543,21 @@ export default function AuthPage() {
   };
 
   const handleResendLoginRecovery = async () => {
+    if (recoveryCooldown.remaining > 0) return;
     setLoginRecoveryResendLoading(true);
+    setLoginRecoveryError(null);
     try {
       await requestLoginRecovery(loginRecoveryEmail);
       loginRecoveryAutoSentFor.current.add(loginRecoveryEmail.toLowerCase().trim());
+      recoveryCooldown.start();
       toast.success("Code resent - check your email.");
       setLoginRecoveryOtp(["", "", "", "", "", ""]);
     } catch (error: any) {
+      if (typeof error.retryAfterSeconds === "number") {
+        recoveryCooldown.start(error.retryAfterSeconds);
+      } else {
+        setLoginRecoveryError(error.message || "Failed to resend code");
+      }
       toast.error(error.message || "Failed to resend code");
     } finally {
       setLoginRecoveryResendLoading(false);
@@ -830,10 +917,12 @@ export default function AuthPage() {
                   </button>
                   <button
                     onClick={handleSendResetCode}
-                    disabled={forgotLoading}
-                    className="text-sm text-black font-medium hover:opacity-70 underline disabled:opacity-30"
+                    disabled={forgotLoading || resetCooldown.remaining > 0}
+                    className="text-sm text-black font-medium hover:opacity-70 underline disabled:opacity-30 disabled:no-underline"
                   >
-                    Resend Code
+                    {resetCooldown.remaining > 0
+                      ? `Resend code in ${formatCountdown(resetCooldown.remaining)}`
+                      : "Resend Code"}
                   </button>
                 </div>
               )}
@@ -854,6 +943,11 @@ export default function AuthPage() {
                 </h2>
                 <p className="text-gray-500 text-sm">Enter the 6-digit code sent to</p>
                 <p className="text-arc-gold-600 font-medium text-lg mt-1">{loginRecoveryEmail}</p>
+                {loginRecoveryError && (
+                  <p role="alert" className="mt-4 max-w-sm mx-auto text-sm text-red-600">
+                    {loginRecoveryError}
+                  </p>
+                )}
               </div>
 
               <div className="flex justify-center gap-2 sm:gap-4 mb-10">
@@ -861,6 +955,10 @@ export default function AuthPage() {
                   <input
                     key={i}
                     type="text"
+                    // numeric keypad on phones - and it stays numeric when focus hops to the next box
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    aria-label={`Digit ${i + 1} of 6`}
                     maxLength={1}
                     value={loginRecoveryOtp[i]}
                     className="w-10 h-12 sm:w-14 sm:h-16 text-center border border-gray-300 rounded-lg
@@ -895,11 +993,15 @@ export default function AuthPage() {
                 <p className="text-sm text-gray-500 mb-2">Didn't receive the code?</p>
                 <button
                   onClick={handleResendLoginRecovery}
-                  disabled={loginRecoveryResendLoading}
+                  disabled={loginRecoveryResendLoading || recoveryCooldown.remaining > 0}
                   className="text-sm text-black font-medium hover:opacity-70 underline
                             disabled:opacity-30 disabled:cursor-not-allowed"
                 >
-                  {loginRecoveryResendLoading ? "Sending..." : "Resend Code"}
+                  {loginRecoveryResendLoading
+                    ? "Sending..."
+                    : recoveryCooldown.remaining > 0
+                      ? `Resend code in ${formatCountdown(recoveryCooldown.remaining)}`
+                      : "Resend Code"}
                 </button>
               </div>
 
@@ -934,6 +1036,10 @@ export default function AuthPage() {
                 <input
                   key={i}
                   type="text"
+                  // numeric keypad on phones - and it stays numeric when focus hops to the next box
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  aria-label={`Digit ${i + 1} of 6`}
                   maxLength={1}
                   value={otp[i]}
                   className="w-10 h-12 sm:w-14 sm:h-16 text-center border border-gray-300 rounded-lg
@@ -970,11 +1076,15 @@ export default function AuthPage() {
               <p className="text-sm text-gray-500 mb-2">Didn't receive the code?</p>
               <button
                 onClick={handleResendOtp}
-                disabled={resendLoading}
-                className="text-sm text-black font-medium hover:opacity-70 underline 
-                          disabled:opacity-30 disabled:cursor-not-allowed"
+                disabled={resendLoading || verifyCooldown.remaining > 0}
+                className="text-sm text-black font-medium hover:opacity-70 underline
+                          disabled:opacity-30 disabled:cursor-not-allowed disabled:no-underline"
               >
-                {resendLoading ? "Sending..." : "Resend Code"}
+                {resendLoading
+                  ? "Sending..."
+                  : verifyCooldown.remaining > 0
+                    ? `Resend code in ${formatCountdown(verifyCooldown.remaining)}`
+                    : "Resend Code"}
               </button>
             </div>
           
@@ -985,75 +1095,94 @@ export default function AuthPage() {
           ) : (
             // Auth Form
             <div className="rounded-md overflow-hidden p-4 sm:p-6 lg:p-8">
-              {/* Toggle */}
-              <div className="flex justify-between bg-white rounded-lg overflow-hidden mb-8">
-                <button
-                  onClick={() => {
-                    setIsSignup(false);
-                    setForm({ firstName: "", lastName: "", email: "", password: "" });
-                  }}
-                  className={`w-1/2 py-3 rounded-lg text-lg font-medium transition-all ${
-                    !isSignup
-                      ? "bg-arc-gold-600 text-white"
-                      : "text-black hover:text-gray-900"
-                  }`}
-                >
-                  Sign In
-                </button>
-                <button
-                  onClick={() => {
-                    setIsSignup(true);
-                    setForm({ firstName: "", lastName: "", email: "", password: "" });
-                  }}
-                  className={`w-1/2 py-3 rounded-lg text-lg font-medium transition-all ${
-                    isSignup
-                      ? "bg-arc-gold-600 text-white shadow-md"
-                      : "text-black hover:text-gray-900"
-                  }`}
-                >
-                  Sign Up
-                </button>
-              </div>
-
-              {/* Title */}
-              <h2 className="text-3xl lg:text-4xl font-heading  font-medium mb-2 text-black">
-                {isSignup ? "Create your account" : "Welcome back"}
+              {/* Title - one screen, three steps: email -> (password | sign-up details) */}
+              <h2 className="text-3xl lg:text-4xl font-heading font-medium mb-2 text-black">
+                {authStep === "login"
+                  ? "Welcome back"
+                  : authStep === "signup"
+                    ? "Create your account"
+                    : cameFromInvite
+                      ? "Create your account"
+                      : "Welcome to Payzoll"}
               </h2>
               <p className="text-sm text-gray-600 mb-8 lg:mb-10">
-                {isSignup
-                  ? "Start receiving and withdrawing international payments"
-                  : "Continue managing your international payments with ease"}
+                {authStep === "login"
+                  ? "Enter your password to continue managing your international payments"
+                  : authStep === "signup"
+                    ? "You're new here - set up your account to start receiving and withdrawing international payments"
+                    : "Enter your email to log in, or to create your account if you're new"}
               </p>
 
-              <div className="flex flex-col gap-5">
+              <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
+                {authStep === "email" ? (
+                  <div className="flex flex-col">
+                    <label htmlFor="auth-email" className="text-sm font-medium mb-2 text-gray-700">
+                      Email *
+                    </label>
+                    <input
+                      id="auth-email"
+                      type="email"
+                      name="email"
+                      autoComplete="email"
+                      autoFocus
+                      value={form.email}
+                      onChange={handleChange}
+                      placeholder="example@email.com"
+                      className="px-1 py-2 focus:outline-none focus:ring-0 border-b-2 border-gray-300
+                                focus:border-black transition text-sm lg:text-base"
+                      disabled={isLoading}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between gap-3 border-b-2 border-gray-200 pb-2">
+                    <div className="min-w-0">
+                      <span className="block text-xs text-gray-500">Email</span>
+                      <span className="block text-sm lg:text-base text-gray-900 truncate">{form.email}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={changeEmail}
+                      disabled={isLoading}
+                      className="shrink-0 text-sm text-black hover:underline font-medium disabled:opacity-50"
+                    >
+                      Change
+                    </button>
+                  </div>
+                )}
+
                 {isSignup && (
                   <div className="flex flex-col sm:flex-row gap-5">
                     <div className="flex flex-col w-full sm:w-1/2">
-                      <label className="text-sm font-medium mb-2 text-gray-700">
+                      <label htmlFor="auth-first" className="text-sm font-medium mb-2 text-gray-700">
                         First name *
                       </label>
                       <input
+                        id="auth-first"
                         type="text"
                         name="firstName"
+                        autoComplete="given-name"
+                        autoFocus
                         value={form.firstName}
                         onChange={handleChange}
                         placeholder="John"
-                        className="px-1 py-2 focus:outline-none focus:ring-0 border-b-2 border-gray-300 
+                        className="px-1 py-2 focus:outline-none focus:ring-0 border-b-2 border-gray-300
                                   focus:border-black transition text-sm lg:text-base"
                         disabled={isLoading}
                       />
                     </div>
                     <div className="flex flex-col w-full sm:w-1/2">
-                      <label className="text-sm font-medium mb-2 text-gray-700">
+                      <label htmlFor="auth-last" className="text-sm font-medium mb-2 text-gray-700">
                         Last name *
                       </label>
                       <input
+                        id="auth-last"
                         type="text"
                         name="lastName"
+                        autoComplete="family-name"
                         value={form.lastName}
                         onChange={handleChange}
                         placeholder="Doe"
-                        className="px-1 py-2 focus:outline-none focus:ring-0 border-b-2 border-gray-300 
+                        className="px-1 py-2 focus:outline-none focus:ring-0 border-b-2 border-gray-300
                                   focus:border-black transition text-sm lg:text-base"
                         disabled={isLoading}
                       />
@@ -1061,47 +1190,42 @@ export default function AuthPage() {
                   </div>
                 )}
 
-                <div className="flex flex-col">
-                  <label className="text-sm font-medium mb-2 text-gray-700">
-                    Email *
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={form.email}
-                    onChange={handleChange}
-                    placeholder="example@email.com"
-                    className="px-1 py-2 focus:outline-none focus:ring-0 border-b-2 border-gray-300 
-                              focus:border-black transition text-sm lg:text-base"
-                    disabled={isLoading}
-                  />
-                </div>
+                {authStep !== "email" && (
+                  <div className="flex flex-col">
+                    <label htmlFor="auth-password" className="text-sm font-medium mb-2 text-gray-700">
+                      {isSignup ? "Create a password *" : "Password *"}
+                    </label>
+                    {/* The eye is positioned against this wrapper (just the input), so
+                        the hint line below can't pull it out of line with the field. */}
+                    <div className="relative">
+                      <input
+                        id="auth-password"
+                        type={showPassword ? "text" : "password"}
+                        name="password"
+                        autoComplete={isSignup ? "new-password" : "current-password"}
+                        autoFocus={authStep === "login"}
+                        value={form.password}
+                        onChange={handleChange}
+                        placeholder="••••••••"
+                        className="w-full px-1 py-2 focus:outline-none focus:ring-0 border-b-2 border-gray-300
+                                  focus:border-black transition text-sm lg:text-base pr-10"
+                        disabled={isLoading}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition"
+                        disabled={isLoading}
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                    {isSignup && <p className="text-xs text-gray-400 mt-1">At least 8 characters.</p>}
+                  </div>
+                )}
 
-                <div className="flex flex-col relative">
-                  <label className="text-sm font-medium mb-2 text-gray-700">
-                    Password *
-                  </label>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    name="password"
-                    value={form.password}
-                    onChange={handleChange}
-                    placeholder="••••••••"
-                    className="px-1 py-2 focus:outline-none focus:ring-0 border-b-2 border-gray-300 
-                              focus:border-black transition text-sm lg:text-base pr-10"
-                    disabled={isLoading}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-2 bottom-3 text-gray-500 hover:text-gray-700 transition"
-                    disabled={isLoading}
-                  >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-
-                {!isSignup && (
+                {authStep === "login" && (
                   <div className="flex justify-end -mt-2">
                     <button
                       type="button"
@@ -1116,23 +1240,25 @@ export default function AuthPage() {
                 {/* Submit Button */}
                 <div className="flex justify-end mt-4">
                   <button
-                    onClick={handleSubmit}
+                    type="submit"
                     disabled={isLoading}
-                    className="px-8 h-12 flex items-center justify-center gap-3 bg-arc-gold-600 rounded-full 
-                              hover:scale-105 transition-transform shadow-lg hover:shadow-xl 
+                    className="px-8 h-12 flex items-center justify-center gap-3 bg-arc-gold-600 rounded-full
+                              hover:scale-105 transition-transform shadow-lg hover:shadow-xl
                               disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                   >
                     {isLoading ? (
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     ) : (
                       <>
-                        <span className="text-white font-medium">Continue</span>
+                        <span className="text-white font-medium">
+                          {authStep === "login" ? "Log in" : authStep === "signup" ? "Create account" : "Continue"}
+                        </span>
                         <span className="text-white text-xl">→</span>
                       </>
                     )}
                   </button>
                 </div>
-              </div>
+              </form>
 
             </div>
           )}

@@ -42,8 +42,29 @@ function assertData(response: Response, data: any) {
       data?.message ||
       data?.error ||
       "Request failed";
-    throw new Error(message);
+    // A resend asked for too soon also says how many seconds are left, so the
+    // screen can show an accurate countdown.
+    const error = new Error(message) as Error & { retryAfterSeconds?: number };
+    if (typeof data?.retryAfterSeconds === "number") error.retryAfterSeconds = data.retryAfterSeconds;
+    throw error;
   }
+}
+
+/**
+ * Whether the email already has an account - the single email-first screen
+ * uses this to decide between asking for a password (log in) and collecting
+ * the sign-up details.
+ */
+export async function checkEmail(email: string): Promise<boolean> {
+  const response = await http(ROUTES.checkEmail, {
+    method: "POST",
+    auth: false,
+    body: JSON.stringify({ email }),
+  });
+
+  const data = await response.json();
+  assertData(response, data);
+  return data?.data?.exists === true;
 }
 
 export async function registerUser(payload: RegisterPayload) {
