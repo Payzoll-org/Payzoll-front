@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { Check, ChevronsUpDown, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { submitAboutBusiness, getIndustryCodes, PURPOSE_CODE_OPTIONS, type IndustryCodeOption,} from "../services/aboutBusinessApi";
-import { submitBusinessIdentifiers, uploadPanCard, uploadAddressDocument, uploadSourceOfIncome,} from "../services/businessIdentifiersApi";
+import { submitBusinessIdentifiers, uploadPanCard, uploadAddressDocument, uploadSourceOfIncome, submitCompanyBusinessIdentifiers, uploadIncorporationCertificate,} from "../services/businessIdentifiersApi";
 import { submitInrBankAccount, submitEefcBankAccount,} from "../services/bankAccountApi";
 import { submitOwnerPerson, activateAccount, getKycProgress } from "../services/accountActivationApi";
+import { addCompanyPerson, type CompanyPerson } from "../services/personApi";
 import { refreshCurrentUser } from "../services/authApi";
 import { useAuthStore } from "../Zustand/userStore";
 import StablecoinModal from "../Components/StablecoinModal";
@@ -14,21 +15,33 @@ import payzollLogo from "../assets/payzoll.png";
 const inputClass =
   "px-1 py-2 focus:outline-none focus:ring-0 border-b-2 border-gray-300 focus:border-black transition text-sm lg:text-base";
 
-const TOTAL_STEPS = 4;
-
-const SIDEBAR_STEPS = [
+// Step labels differ by business type: a company has an extra "Directors &
+// Owners" step between identifiers and bank details (XflowPay needs a person
+// per director / beneficial owner). Everything that renders the journey reads
+// its length and labels from here so the two flows stay in sync.
+const SIDEBAR_STEPS_DEFAULT = [
   "Business Details",
   "Business Identifiers",
   "Bank Details",
   "Summary and Declaration",
 ];
 
+const SIDEBAR_STEPS_COMPANY = [
+  "Business Details",
+  "Business Identifiers",
+  "Directors & Owners",
+  "Bank Details",
+  "Summary and Declaration",
+];
+
 function StepHeader({
   step,
+  totalSteps,
   title,
   subtitle,
 }: {
-  step: 1 | 2 | 3 | 4;
+  step: number;
+  totalSteps: number;
   title: string;
   subtitle: string;
 }) {
@@ -39,7 +52,7 @@ function StepHeader({
           {step}
         </span>
         <span className="text-xs font-semibold text-arc-gold-600 tracking-wide">
-          STEP {step} OF {TOTAL_STEPS}
+          STEP {step} OF {totalSteps}
         </span>
       </div>
       <h2 className="text-xl lg:text-2xl font-semibold mb-1 text-gray-900">{title}</h2>
@@ -424,9 +437,11 @@ function StepCard({
 
 function OnboardingSidebar({
   step,
+  steps,
   reachedSummary,
 }: {
-  step: 1 | 2 | 3 | 4;
+  step: number;
+  steps: string[];
   reachedSummary: boolean;
 }) {
   return (
@@ -438,11 +453,11 @@ function OnboardingSidebar({
       <p className="text-sm text-gray-500 mb-6">One-time KYC to unlock settlements.</p>
 
       <div className="flex mt-5 flex-col">
-        {SIDEBAR_STEPS.map((label, idx) => {
+        {steps.map((label, idx) => {
           const n = idx + 1;
           const isActive = n === step;
-          const isDone = n < step || (reachedSummary && n < 4);
-          const isLast = idx === SIDEBAR_STEPS.length - 1;
+          const isDone = n < step || (reachedSummary && n < steps.length);
+          const isLast = idx === steps.length - 1;
 
           return (
             <div key={label} className="flex  gap-4">
@@ -543,9 +558,13 @@ const OTHER_DESCRIPTION = "__other__";
 function AboutBusinessStep({
   initial,
   onDone,
+  stepNumber = 1,
+  totalSteps = 4,
 }: {
   initial?: AboutBusinessSummary | null;
   onDone: (data: AboutBusinessSummary) => void;
+  stepNumber?: number;
+  totalSteps?: number;
 }) {
   const user = useAuthStore((s) => s.user);
   const isSoleProprietorship = user?.userType === "soleproprietorship";
@@ -638,7 +657,8 @@ function AboutBusinessStep({
   return (
     <>
       <StepHeader
-        step={1}
+        step={stepNumber}
+        totalSteps={totalSteps}
         title="Tell us about your business"
         subtitle="We use this to set up your account with our payment partner"
       />
@@ -796,10 +816,14 @@ function BusinessIdentifiersStep({
   initial,
   onDone,
   onBack,
+  stepNumber = 2,
+  totalSteps = 4,
 }: {
   initial?: BusinessIdentifiersSummary | null;
   onDone: (data: BusinessIdentifiersSummary) => void;
   onBack: () => void;
+  stepNumber?: number;
+  totalSteps?: number;
 }) {
   const user = useAuthStore((s) => s.user);
   const isSoleProprietorship = user?.userType === "soleproprietorship";
@@ -934,7 +958,8 @@ function BusinessIdentifiersStep({
   return (
     <>
       <StepHeader
-        step={2}
+        step={stepNumber}
+        totalSteps={totalSteps}
         title="Current address & PAN details"
         subtitle="Provide your current address and PAN to verify your identity"
       />
@@ -1182,6 +1207,8 @@ function BankDetailsStep({
   accountHolderName,
   onDone,
   onBack,
+  stepNumber = 3,
+  totalSteps = 4,
 }: {
   initial?: BankDetailsSummary | null;
   // The physical address and the owner's name are each collected once, on
@@ -1191,6 +1218,8 @@ function BankDetailsStep({
   accountHolderName: string;
   onDone: (data: BankDetailsSummary) => void;
   onBack: () => void;
+  stepNumber?: number;
+  totalSteps?: number;
 }) {
   const [currency, setCurrency] = useState<Currency>(initial?.currency ?? "INR");
   const [ifsc, setIfsc] = useState(initial?.currency === "INR" ? initial.routingCode : "");
@@ -1259,7 +1288,8 @@ function BankDetailsStep({
   return (
     <>
       <StepHeader
-        step={3}
+        step={stepNumber}
+        totalSteps={totalSteps}
         title="Add your payout bank account"
         subtitle="We'll use this account to send your settlements"
       />
@@ -1426,12 +1456,20 @@ function SummaryStep({
   bankDetails,
   onEditStep,
   onDone,
+  stepNumber = 4,
+  totalSteps = 4,
+  isCompany = false,
 }: {
   aboutBusiness: AboutBusinessSummary;
   businessIdentifiers: BusinessIdentifiersSummary;
   bankDetails: BankDetailsSummary;
-  onEditStep: (step: 1 | 2 | 3) => void;
+  onEditStep: (step: number) => void;
   onDone: () => void;
+  stepNumber?: number;
+  totalSteps?: number;
+  // Company accounts already added their directors/owners in the dedicated
+  // step, so activation must NOT create a single owner person for them.
+  isCompany?: boolean;
 }) {
   const [declared, setDeclared] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -1447,7 +1485,12 @@ function SummaryStep({
     setLoading(true);
 
     try {
-      await submitOwnerPerson();
+      // individual/sole-prop: create the single owner person from the account's
+      // own PAN. company: directors/owners were already created in the Directors
+      // & Owners step, so skip this and go straight to activation.
+      if (!isCompany) {
+        await submitOwnerPerson();
+      }
       await activateAccount();
       // Refresh the store right away so the dashboard shows the real,
       // just-submitted status ("verifying") the instant the user lands
@@ -1472,7 +1515,8 @@ function SummaryStep({
   return (
     <>
       <StepHeader
-        step={4}
+        step={stepNumber}
+        totalSteps={totalSteps}
         title="Review & confirm"
         subtitle="Check everything below, then activate your account"
       />
@@ -1569,7 +1613,379 @@ function SummaryStep({
   );
 }
 
-export default function KycPage() {
+/* ======================================================================
+   Company-only steps
+   ====================================================================== */
+
+interface CompanyIdentifiersSummary {
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state: string;
+  zipcode: string;
+  cin: string;
+  legalName: string;
+  incorporationFileName: string;
+}
+
+// Step 2 for a company: registered address + CIN + Certificate of
+// Incorporation (the company's identity document). No individual PAN here -
+// each director/owner carries their own on the next step.
+function CompanyBusinessIdentifiersStep({
+  initial,
+  onDone,
+  onBack,
+  stepNumber,
+  totalSteps,
+}: {
+  initial?: CompanyIdentifiersSummary | null;
+  onDone: (data: CompanyIdentifiersSummary) => void;
+  onBack: () => void;
+  stepNumber: number;
+  totalSteps: number;
+}) {
+  const [addressLine1, setAddressLine1] = useState(initial?.addressLine1 ?? "");
+  const [addressLine2, setAddressLine2] = useState(initial?.addressLine2 ?? "");
+  const [city, setCity] = useState(initial?.city ?? "");
+  const [state, setState] = useState(initial?.state ?? "");
+  const [zipcode, setZipcode] = useState(initial?.zipcode ?? "");
+  const [cin, setCin] = useState(initial?.cin ?? "");
+  const [incorporationFile, setIncorporationFile] = useState<File | null>(null);
+  // Only ever read (the "On file: …" hint); a resumed cert is replaced by
+  // picking a new file, never re-set in state.
+  const [incorporationFileName] = useState(initial?.incorporationFileName ?? "");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    if (!cin.trim() || !addressLine1.trim() || !city.trim() || !state.trim() || !zipcode.trim()) {
+      toast.error("Please fill in the CIN and the full registered address");
+      return;
+    }
+    if (!incorporationFile && !incorporationFileName) {
+      toast.error("Please upload the Certificate of Incorporation");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const account = await submitCompanyBusinessIdentifiers({
+        addressLine1: addressLine1.trim(),
+        addressLine2: addressLine2.trim() || undefined,
+        city: city.trim(),
+        state: state.trim(),
+        zipcode: zipcode.trim(),
+        cin: cin.trim().toUpperCase(),
+      });
+
+      if (incorporationFile) {
+        await uploadIncorporationCertificate(incorporationFile);
+      }
+
+      onDone({
+        addressLine1: addressLine1.trim(),
+        addressLine2: addressLine2.trim() || undefined,
+        city: city.trim(),
+        state: state.trim(),
+        zipcode: zipcode.trim(),
+        cin: cin.trim().toUpperCase(),
+        legalName: account?.businessDetails?.legalName ?? "",
+        incorporationFileName: incorporationFile ? incorporationFile.name : incorporationFileName,
+      });
+    } catch (error: any) {
+      toast.error(error.message || "Failed to submit company details");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <StepHeader
+        step={stepNumber}
+        totalSteps={totalSteps}
+        title="Company registration & address"
+        subtitle="Your registered office address and CIN, plus the Certificate of Incorporation"
+      />
+      <StepCard scrollable>
+        <div className="flex flex-col gap-5 pb-4">
+          <div className="flex flex-col">
+            <label className="text-sm font-medium mb-1 text-gray-700">
+              CIN (Company Identification Number)
+            </label>
+            <input
+              className={inputClass}
+              value={cin}
+              onChange={(e) => setCin(e.target.value)}
+              placeholder="e.g. U72900KA2020PTC123456"
+              maxLength={21}
+            />
+          </div>
+
+          <div className="flex flex-col">
+            <label className="text-sm font-medium mb-1 text-gray-700">Registered address line 1</label>
+            <input className={inputClass} value={addressLine1} onChange={(e) => setAddressLine1(e.target.value)} />
+          </div>
+          <div className="flex flex-col">
+            <label className="text-sm font-medium mb-1 text-gray-700">Address line 2 (optional)</label>
+            <input className={inputClass} value={addressLine2} onChange={(e) => setAddressLine2(e.target.value)} />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="flex flex-col">
+              <label className="text-sm font-medium mb-1 text-gray-700">City</label>
+              <input className={inputClass} value={city} onChange={(e) => setCity(e.target.value)} />
+            </div>
+            <div className="flex flex-col">
+              <label className="text-sm font-medium mb-1 text-gray-700">State</label>
+              <input className={inputClass} value={state} onChange={(e) => setState(e.target.value)} />
+            </div>
+            <div className="flex flex-col">
+              <label className="text-sm font-medium mb-1 text-gray-700">Postal code</label>
+              <input className={inputClass} value={zipcode} onChange={(e) => setZipcode(e.target.value)} />
+            </div>
+          </div>
+
+          <div className="flex flex-col">
+            <label className="text-sm font-medium mb-1 text-gray-700">Certificate of Incorporation</label>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,application/pdf"
+              onChange={(e) => setIncorporationFile(e.target.files?.[0] ?? null)}
+              className="text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-900 file:px-3 file:py-1.5 file:text-white file:text-sm"
+            />
+            {incorporationFileName && !incorporationFile && (
+              <p className="text-xs text-gray-500 mt-1">On file: {incorporationFileName} — pick a new file to replace it.</p>
+            )}
+            <p className="text-xs text-gray-400 mt-1">JPEG, PNG or PDF, up to 10MB.</p>
+          </div>
+        </div>
+      </StepCard>
+
+      <div className="flex gap-3 mt-4 shrink-0">
+        <button onClick={onBack} className="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50">
+          Back
+        </button>
+        <button
+          onClick={handleSubmit}
+          disabled={loading}
+          className="px-6 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-medium hover:bg-black disabled:opacity-50"
+        >
+          {loading ? "Saving…" : "Continue"}
+        </button>
+      </div>
+    </>
+  );
+}
+
+const emptyPersonForm = {
+  fullName: "",
+  dateOfBirth: "",
+  email: "",
+  panNumber: "",
+  isDirector: true,
+  isOwner: false,
+  addressLine1: "",
+  addressLine2: "",
+  city: "",
+  state: "",
+  zipcode: "",
+};
+
+// Step 3 for a company: add one or more directors / beneficial owners. XflowPay
+// needs KYC for owners with >25% ownership, or at least one director otherwise.
+function DirectorsAndOwnersStep({
+  initialPersons,
+  onDone,
+  onBack,
+  stepNumber,
+  totalSteps,
+}: {
+  initialPersons?: CompanyPerson[] | null;
+  onDone: (persons: CompanyPerson[]) => void;
+  onBack: () => void;
+  stepNumber: number;
+  totalSteps: number;
+}) {
+  const [persons, setPersons] = useState<CompanyPerson[]>(initialPersons ?? []);
+  const [form, setForm] = useState({ ...emptyPersonForm });
+  const [panCard, setPanCard] = useState<File | null>(null);
+  const [adding, setAdding] = useState(false);
+  const panInputRef = useRef<HTMLInputElement>(null);
+
+  const setField = (key: keyof typeof form, value: string | boolean) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
+
+  const handleAdd = async () => {
+    if (!form.fullName.trim() || !form.dateOfBirth || !form.email.trim() || !form.panNumber.trim()) {
+      toast.error("Please fill in name, date of birth, email and PAN");
+      return;
+    }
+    if (!form.isDirector && !form.isOwner) {
+      toast.error("Mark this person as a director, an owner, or both");
+      return;
+    }
+    if (!form.addressLine1.trim() || !form.city.trim() || !form.state.trim() || !form.zipcode.trim()) {
+      toast.error("Please fill in the person's home address");
+      return;
+    }
+    if (!panCard) {
+      toast.error("Please attach this person's PAN card");
+      return;
+    }
+
+    setAdding(true);
+    try {
+      const person = await addCompanyPerson({
+        fullName: form.fullName.trim(),
+        dateOfBirth: form.dateOfBirth,
+        email: form.email.trim(),
+        panNumber: form.panNumber.trim().toUpperCase(),
+        isDirector: form.isDirector,
+        isOwner: form.isOwner,
+        addressLine1: form.addressLine1.trim(),
+        addressLine2: form.addressLine2.trim() || undefined,
+        city: form.city.trim(),
+        state: form.state.trim(),
+        zipcode: form.zipcode.trim(),
+        panCard,
+      });
+      setPersons((prev) => [...prev, person]);
+      setForm({ ...emptyPersonForm });
+      setPanCard(null);
+      if (panInputRef.current) panInputRef.current.value = "";
+      toast.success(`${person.fullName} added`);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to add person");
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const handleContinue = () => {
+    if (persons.length === 0) {
+      toast.error("Add at least one director or owner before continuing");
+      return;
+    }
+    onDone(persons);
+  };
+
+  const roleLabel = (p: CompanyPerson) =>
+    [p.relationship?.director && "Director", p.relationship?.owner && "Owner"].filter(Boolean).join(" · ");
+
+  return (
+    <>
+      <StepHeader
+        step={stepNumber}
+        totalSteps={totalSteps}
+        title="Directors & owners"
+        subtitle="Add each director and anyone owning more than 25% of the company"
+      />
+      <StepCard scrollable>
+        <div className="flex flex-col gap-5 pb-4">
+          {persons.length > 0 && (
+            <div className="flex flex-col gap-2">
+              {persons.map((p) => (
+                <div key={p.id} className="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{p.fullName}</p>
+                    <p className="text-xs text-gray-500">{roleLabel(p)} · {p.status}</p>
+                  </div>
+                  <Check className="w-5 h-5 text-arc-gold-600" />
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="rounded-xl border border-dashed border-gray-300 p-4 flex flex-col gap-4">
+            <p className="text-sm font-semibold text-gray-800">Add a director / owner</p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-col">
+                <label className="text-sm font-medium mb-1 text-gray-700">Full name (as on PAN)</label>
+                <input className={inputClass} value={form.fullName} onChange={(e) => setField("fullName", e.target.value)} />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-sm font-medium mb-1 text-gray-700">Date of birth</label>
+                <input type="date" className={inputClass} value={form.dateOfBirth} onChange={(e) => setField("dateOfBirth", e.target.value)} />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-sm font-medium mb-1 text-gray-700">Email</label>
+                <input type="email" className={inputClass} value={form.email} onChange={(e) => setField("email", e.target.value)} />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-sm font-medium mb-1 text-gray-700">PAN number</label>
+                <input className={inputClass} value={form.panNumber} onChange={(e) => setField("panNumber", e.target.value)} placeholder="ABCDE1234F" />
+              </div>
+            </div>
+
+            <div className="flex gap-6">
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" checked={form.isDirector} onChange={(e) => setField("isDirector", e.target.checked)} />
+                Director
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" checked={form.isOwner} onChange={(e) => setField("isOwner", e.target.checked)} />
+                Owner ({">"}25%)
+              </label>
+            </div>
+
+            <div className="flex flex-col">
+              <label className="text-sm font-medium mb-1 text-gray-700">Home address line 1</label>
+              <input className={inputClass} value={form.addressLine1} onChange={(e) => setField("addressLine1", e.target.value)} />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="flex flex-col">
+                <label className="text-sm font-medium mb-1 text-gray-700">City</label>
+                <input className={inputClass} value={form.city} onChange={(e) => setField("city", e.target.value)} />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-sm font-medium mb-1 text-gray-700">State</label>
+                <input className={inputClass} value={form.state} onChange={(e) => setField("state", e.target.value)} />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-sm font-medium mb-1 text-gray-700">Postal code</label>
+                <input className={inputClass} value={form.zipcode} onChange={(e) => setField("zipcode", e.target.value)} />
+              </div>
+            </div>
+
+            <div className="flex flex-col">
+              <label className="text-sm font-medium mb-1 text-gray-700">PAN card</label>
+              <input
+                ref={panInputRef}
+                type="file"
+                accept="image/jpeg,image/png,application/pdf"
+                onChange={(e) => setPanCard(e.target.files?.[0] ?? null)}
+                className="text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-900 file:px-3 file:py-1.5 file:text-white file:text-sm"
+              />
+            </div>
+
+            <button
+              onClick={handleAdd}
+              disabled={adding}
+              className="self-start px-5 py-2 rounded-xl border border-gray-900 text-gray-900 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
+            >
+              {adding ? "Adding…" : "+ Add person"}
+            </button>
+          </div>
+        </div>
+      </StepCard>
+
+      <div className="flex gap-3 mt-4 shrink-0">
+        <button onClick={onBack} className="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50">
+          Back
+        </button>
+        <button
+          onClick={handleContinue}
+          className="px-6 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-medium hover:bg-black"
+        >
+          Continue
+        </button>
+      </div>
+    </>
+  );
+}
+
+function DefaultKycFlow() {
   const navigate = useNavigate();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [aboutBusiness, setAboutBusiness] = useState<AboutBusinessSummary | null>(null);
@@ -1706,7 +2122,7 @@ export default function KycPage() {
       </header>
 
       <div className="flex flex-1 w-full min-h-0">
-        <OnboardingSidebar step={step} reachedSummary={reachedSummary} />
+        <OnboardingSidebar step={step} steps={SIDEBAR_STEPS_DEFAULT} reachedSummary={reachedSummary} />
 
         <main className="flex-1 flex justify-center py-4 lg:py-6 px-4 min-h-0">
           <div className="w-full max-w-2xl flex flex-col min-h-0">
@@ -1784,6 +2200,203 @@ export default function KycPage() {
                 aboutBusiness={aboutBusiness}
                 businessIdentifiers={businessIdentifiers}
                 bankDetails={bankDetails}
+                onEditStep={(editStep) => setStep(editStep as 1 | 2 | 3 | 4)}
+                onDone={() => setShowStablecoinModal(true)}
+              />
+            )}
+          </div>
+        </main>
+      </div>
+
+      {showStablecoinModal && (
+        <StablecoinModal
+          onClose={() => {
+            setShowStablecoinModal(false);
+            navigate("/dashboard");
+          }}
+          onComplete={() => refreshCurrentUser().catch(() => {})}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ======================================================================
+   Company KYC flow (5 steps: About -> Company registration -> Directors &
+   Owners -> Bank -> Summary). Kept as its own component so the existing
+   individual/sole-proprietor flow above is untouched.
+   ====================================================================== */
+function CompanyKycFlow() {
+  const navigate = useNavigate();
+  const steps = SIDEBAR_STEPS_COMPANY;
+  const totalSteps = steps.length;
+  const [step, setStep] = useState<number>(1);
+  const [aboutBusiness, setAboutBusiness] = useState<AboutBusinessSummary | null>(null);
+  const [companyIdentifiers, setCompanyIdentifiers] = useState<CompanyIdentifiersSummary | null>(null);
+  const [persons, setPersons] = useState<CompanyPerson[]>([]);
+  const [bankDetails, setBankDetails] = useState<BankDetailsSummary | null>(null);
+  const [reachedSummary, setReachedSummary] = useState(false);
+  const [showStablecoinModal, setShowStablecoinModal] = useState(false);
+
+  useEffect(() => {
+    getKycProgress()
+      .then((progress) => {
+        let resumeStep = 1;
+
+        if (progress.aboutBusiness) {
+          const ab = progress.aboutBusiness;
+          setAboutBusiness({
+            ...ab,
+            purposeLabels: ab.purposeCodes.map(
+              (code) => PURPOSE_CODE_OPTIONS.find((opt) => opt.code === code)?.label ?? code
+            ),
+          });
+          resumeStep = 2;
+        }
+
+        const bi = progress.businessIdentifiers;
+        if (bi && bi.cin) {
+          setCompanyIdentifiers({
+            addressLine1: bi.addressLine1,
+            addressLine2: bi.addressLine2,
+            city: bi.city,
+            state: bi.state,
+            zipcode: bi.zipcode,
+            cin: bi.cin,
+            legalName: bi.legalName ?? "",
+            incorporationFileName: bi.hasIncorporationFile ? "Previously uploaded" : "",
+          });
+          if (resumeStep === 2) resumeStep = 3;
+        }
+
+        if (progress.persons && progress.persons.length > 0) {
+          setPersons(progress.persons as CompanyPerson[]);
+          if (resumeStep === 3) resumeStep = 4;
+        }
+
+        if (progress.bankDetails) {
+          const bd = progress.bankDetails;
+          setBankDetails({
+            currency: bd.currency as "INR" | "USD",
+            accountHolderName: bd.accountHolderName,
+            accountNumber: bd.accountNumber,
+            routingCode: bd.routingCode,
+            line1: bd.line1,
+            city: bd.city,
+            state: bd.state,
+            postalCode: bd.postalCode,
+            bankStatementFileName: bd.hasBankStatementFile ? "Previously uploaded" : undefined,
+          });
+          if (resumeStep === 4) {
+            resumeStep = 5;
+            setReachedSummary(true);
+          }
+        }
+
+        setStep(resumeStep);
+      })
+      .catch(() => {});
+  }, []);
+
+  // SummaryStep renders a BusinessIdentifiersSummary; map the company's CIN +
+  // incorporation into it so the review screen has something to show. (The
+  // labels there still read "PAN" - a company-specific summary is a follow-up.)
+  const summaryIdentifiers: BusinessIdentifiersSummary | null = companyIdentifiers
+    ? {
+        addressLine1: companyIdentifiers.addressLine1,
+        addressLine2: companyIdentifiers.addressLine2,
+        city: companyIdentifiers.city,
+        state: companyIdentifiers.state,
+        zipcode: companyIdentifiers.zipcode,
+        panNumber: companyIdentifiers.cin,
+        nameOnPan: companyIdentifiers.legalName,
+        panFileName: companyIdentifiers.incorporationFileName,
+        sourceOfIncomeFileName: "",
+      }
+    : null;
+
+  return (
+    <div className="h-screen w-screen bg-gray-50 flex flex-col overflow-hidden">
+      <header className="w-full border-b border-gray-200 bg-white px-6 lg:px-10 py-3 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden">
+            <img src={payzollLogo} alt="Payzoll logo" className="w-full h-full object-contain p-1" />
+          </div>
+          <span className="font-semibold text-gray-900">Payzoll</span>
+        </div>
+        <button onClick={() => navigate("/dashboard")} className="text-sm text-gray-500 hover:text-black">
+          ← Back to dashboard
+        </button>
+      </header>
+
+      <div className="flex flex-1 w-full min-h-0">
+        <OnboardingSidebar step={step} steps={steps} reachedSummary={reachedSummary} />
+
+        <main className="flex-1 flex justify-center py-4 lg:py-6 px-4 min-h-0">
+          <div className="w-full max-w-2xl flex flex-col min-h-0">
+            {step === 1 && (
+              <AboutBusinessStep
+                initial={aboutBusiness}
+                stepNumber={1}
+                totalSteps={totalSteps}
+                onDone={(data) => {
+                  setAboutBusiness(data);
+                  setStep(reachedSummary ? 5 : 2);
+                }}
+              />
+            )}
+            {step === 2 && (
+              <CompanyBusinessIdentifiersStep
+                initial={companyIdentifiers}
+                stepNumber={2}
+                totalSteps={totalSteps}
+                onBack={() => setStep(1)}
+                onDone={(data) => {
+                  setCompanyIdentifiers(data);
+                  setStep(reachedSummary ? 5 : 3);
+                }}
+              />
+            )}
+            {step === 3 && (
+              <DirectorsAndOwnersStep
+                initialPersons={persons}
+                stepNumber={3}
+                totalSteps={totalSteps}
+                onBack={() => setStep(2)}
+                onDone={(p) => {
+                  setPersons(p);
+                  setStep(reachedSummary ? 5 : 4);
+                }}
+              />
+            )}
+            {step === 4 && companyIdentifiers && (
+              <BankDetailsStep
+                initial={bankDetails}
+                stepNumber={4}
+                totalSteps={totalSteps}
+                address={{
+                  line1: companyIdentifiers.addressLine1,
+                  city: companyIdentifiers.city,
+                  state: companyIdentifiers.state,
+                  postalCode: companyIdentifiers.zipcode,
+                }}
+                accountHolderName={companyIdentifiers.legalName}
+                onBack={() => setStep(3)}
+                onDone={(data) => {
+                  setBankDetails(data);
+                  setReachedSummary(true);
+                  setStep(5);
+                }}
+              />
+            )}
+            {step === 5 && aboutBusiness && summaryIdentifiers && bankDetails && (
+              <SummaryStep
+                aboutBusiness={aboutBusiness}
+                businessIdentifiers={summaryIdentifiers}
+                bankDetails={bankDetails}
+                isCompany
+                stepNumber={5}
+                totalSteps={totalSteps}
                 onEditStep={(editStep) => setStep(editStep)}
                 onDone={() => setShowStablecoinModal(true)}
               />
@@ -1803,4 +2416,16 @@ export default function KycPage() {
       )}
     </div>
   );
+}
+
+export default function KycPage() {
+  const user = useAuthStore((s) => s.user);
+
+  // userType can be stale right after login; refresh so the correct flow is
+  // chosen (company vs individual/sole-proprietor).
+  useEffect(() => {
+    refreshCurrentUser().catch(() => {});
+  }, []);
+
+  return user?.userType === "company" ? <CompanyKycFlow /> : <DefaultKycFlow />;
 }
