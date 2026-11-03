@@ -43,6 +43,9 @@ export const API_ROUTES = {
     pan: "/api/business-identifiers/pan",
     address: "/api/business-identifiers/address",
     sourceOfIncome: "/api/business-identifiers/source-of-income",
+    // Company flow: address + CIN, and the Certificate of Incorporation.
+    company: "/api/business-identifiers/company",
+    incorporation: "/api/business-identifiers/incorporation",
   },
   bankAccount: {
     list: "/api/bank-account",
@@ -51,6 +54,9 @@ export const API_ROUTES = {
   },
   person: {
     owner: "/api/person/owner",
+    // Company flow: add a director/owner, and list all persons on the account.
+    company: "/api/person/company",
+    list: "/api/person",
   },
   account: {
     activate: "/api/account/activate",

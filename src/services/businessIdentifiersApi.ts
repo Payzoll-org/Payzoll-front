@@ -34,6 +34,44 @@ export async function submitBusinessIdentifiers(payload: BusinessIdentifiersPayl
   return data?.data?.account;
 }
 
+export interface CompanyBusinessIdentifiersPayload {
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state: string;
+  zipcode: string;
+  // Company registration number (CIN) - the company equivalent of the
+  // individual PAN. Goes to business_details.ids.business.
+  cin: string;
+}
+
+export async function submitCompanyBusinessIdentifiers(
+  payload: CompanyBusinessIdentifiersPayload
+) {
+  const response = await http(ROUTES.company, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+  assertData(response, data);
+  return data?.data?.account;
+}
+
+export async function uploadIncorporationCertificate(file: File) {
+  const formData = new FormData();
+  formData.append("incorporationCertificate", file);
+
+  const response = await http(ROUTES.incorporation, {
+    method: "POST",
+    body: formData,
+  });
+
+  const data = await response.json();
+  assertData(response, data);
+  return data?.data?.account;
+}
+
 export async function uploadPanCard(file: File) {
   const formData = new FormData();
   formData.append("panCard", file);

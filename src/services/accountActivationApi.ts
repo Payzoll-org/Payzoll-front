@@ -75,17 +75,34 @@ export interface KycProgressAboutBusiness {
 }
 
 export interface KycProgressBusinessIdentifiers {
+  // "company" | "individual" | "sole_proprietor". For a company the
+  // individual-PAN fields below are absent and the company fields (cin,
+  // legalName, hasIncorporationFile) are present instead.
+  businessType?: string;
   addressLine1: string;
   addressLine2?: string;
   city: string;
   state: string;
   zipcode: string;
-  panNumber: string;
-  nameOnPan: string;
+  // individual / sole-proprietor
+  panNumber?: string;
+  nameOnPan?: string;
   gstin?: string;
-  hasPanFile: boolean;
-  hasAddressFile: boolean;
-  hasSourceOfIncomeFile: boolean;
+  hasPanFile?: boolean;
+  hasAddressFile?: boolean;
+  hasSourceOfIncomeFile?: boolean;
+  // company
+  cin?: string;
+  legalName?: string;
+  hasIncorporationFile?: boolean;
+}
+
+export interface KycProgressPerson {
+  id: string;
+  xflowPersonId: string;
+  fullName: string;
+  relationship: { director: boolean; owner: boolean };
+  status: string;
 }
 
 export interface KycProgressBankDetails {
@@ -104,6 +121,9 @@ export interface KycProgress {
   aboutBusiness: KycProgressAboutBusiness | null;
   businessIdentifiers: KycProgressBusinessIdentifiers | null;
   bankDetails: KycProgressBankDetails | null;
+  // Company only: the directors/owners already on file (null for
+  // individual/sole-proprietor).
+  persons?: KycProgressPerson[] | null;
 }
 
 /**

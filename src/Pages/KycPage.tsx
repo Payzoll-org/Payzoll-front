@@ -1631,8 +1631,11 @@ export default function KycPage() {
             city: bi.city,
             state: bi.state,
             zipcode: bi.zipcode,
-            panNumber: bi.panNumber,
-            nameOnPan: bi.nameOnPan,
+            // Company accounts have no individual PAN here (each director/owner
+            // carries their own) - coalesce so the existing summary type stays
+            // satisfied; the company UI uses CIN + the directors list instead.
+            panNumber: bi.panNumber ?? "",
+            nameOnPan: bi.nameOnPan ?? "",
             gstin: bi.gstin,
             // Real filenames aren't retrievable after the fact - these are
             // only ever shown as "On file: X - pick a new file to replace
