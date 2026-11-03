@@ -12,6 +12,7 @@ function assertData(response: Response, data: any) {
 export interface PersonRelationship {
   director: boolean;
   owner: boolean;
+  representative: boolean;
 }
 
 export interface CompanyPerson {
@@ -29,6 +30,7 @@ export interface AddCompanyPersonInput {
   panNumber: string;
   isDirector: boolean;
   isOwner: boolean;
+  isRepresentative: boolean;
   addressLine1: string;
   addressLine2?: string;
   city: string;
@@ -50,6 +52,7 @@ export async function addCompanyPerson(input: AddCompanyPersonInput): Promise<Co
   fd.append("panNumber", input.panNumber);
   fd.append("isDirector", String(input.isDirector));
   fd.append("isOwner", String(input.isOwner));
+  fd.append("isRepresentative", String(input.isRepresentative));
   fd.append("addressLine1", input.addressLine1);
   if (input.addressLine2) fd.append("addressLine2", input.addressLine2);
   fd.append("city", input.city);

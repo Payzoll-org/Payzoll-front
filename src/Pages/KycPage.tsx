@@ -1784,6 +1784,7 @@ const emptyPersonForm = {
   panNumber: "",
   isDirector: true,
   isOwner: false,
+  isRepresentative: false,
   addressLine1: "",
   addressLine2: "",
   city: "",
@@ -1842,6 +1843,7 @@ function DirectorsAndOwnersStep({
         panNumber: form.panNumber.trim().toUpperCase(),
         isDirector: form.isDirector,
         isOwner: form.isOwner,
+        isRepresentative: form.isRepresentative,
         addressLine1: form.addressLine1.trim(),
         addressLine2: form.addressLine2.trim() || undefined,
         city: form.city.trim(),
@@ -1866,11 +1868,24 @@ function DirectorsAndOwnersStep({
       toast.error("Add at least one director or owner before continuing");
       return;
     }
+    // XflowPay rejects company activation unless at least one person is a
+    // Business Representative - enforce it here so the user doesn't only find
+    // out at the final activation step.
+    if (!persons.some((p) => p.relationship?.representative)) {
+      toast.error("At least one person must be marked as a Business Representative");
+      return;
+    }
     onDone(persons);
   };
 
   const roleLabel = (p: CompanyPerson) =>
-    [p.relationship?.director && "Director", p.relationship?.owner && "Owner"].filter(Boolean).join(" · ");
+    [
+      p.relationship?.director && "Director",
+      p.relationship?.owner && "Owner",
+      p.relationship?.representative && "Representative",
+    ]
+      .filter(Boolean)
+      .join(" · ");
 
   return (
     <>
@@ -1927,7 +1942,14 @@ function DirectorsAndOwnersStep({
                 <input type="checkbox" checked={form.isOwner} onChange={(e) => setField("isOwner", e.target.checked)} />
                 Owner ({">"}25%)
               </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" checked={form.isRepresentative} onChange={(e) => setField("isRepresentative", e.target.checked)} />
+                Representative
+              </label>
             </div>
+            <p className="text-xs text-gray-400 -mt-2">
+              At least one person must be a Business Representative (often the same person as a director).
+            </p>
 
             <div className="flex flex-col">
               <label className="text-sm font-medium mb-1 text-gray-700">Home address line 1</label>
