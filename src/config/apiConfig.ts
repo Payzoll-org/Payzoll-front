@@ -1,19 +1,13 @@
-export type ApiService = "auth" | "agentManagement" | "agentChat" | "gateway";
+export type ApiService = "auth";
 
+// The Payzoll backend origin. Compiled into the bundle at build time
+// (Dockerfile sets VITE_AUTH_API_URL=https://api.payzoll.finance); the
+// fallback is the local backend, which runs on port 4000 (Payzoll-back .env).
 const AUTH_API_URL =
-  import.meta.env.VITE_AUTH_API_URL || "http://localhost:3000/s1/platform";
-const AGENT_MANAGEMENT_API_URL =
-  import.meta.env.VITE_AGENT_MANAGEMENT_API_URL || "http://localhost:3000/s2/agents";
-const AGENT_CHAT_API_URL =
-  import.meta.env.VITE_AGENT_CHAT_API_URL || "http://localhost:3000/s3/agentchat";
-const GATEWAY_API_URL =
-  import.meta.env.VITE_GATEWAY_API_URL || "http://localhost:3000";
+  import.meta.env.VITE_AUTH_API_URL || "http://localhost:4000";
 
 export const API_BASE_MAP: Record<ApiService, string> = {
   auth: AUTH_API_URL,
-  agentManagement: AGENT_MANAGEMENT_API_URL,
-  agentChat: AGENT_CHAT_API_URL,
-  gateway: GATEWAY_API_URL,
 };
 
 export const API_ROUTES = {
@@ -114,32 +108,6 @@ export const API_ROUTES = {
     // Public shared-link endpoint - only ever opened as a full-page
     // navigation (Pages/ReferralLandingPage.tsx), never fetch()ed.
     link: (code: string) => `/api/ref/${code}`,
-  },
-  agentManagement: {
-    agents: "/api/agent",
-    agentById: (agentId: string) => `/api/agent/${agentId}`,
-    agentsBySession: (sessionId: string) => `/api/agent/session/${sessionId}`,
-    agentsByUser: (userId: string) => `/api/agent/createdBy/${userId}`,
-    agentsByFolder: (folderId: string) => `/api/agent/folder/${folderId}`,
-    createAgent: "/api/agent/create",
-    getAgentConfig: (agentId: string) =>
-      `/api/agentconfig/get-config/${agentId}`,
-    saveAgentConfig: (agentId: string) =>
-      `/api/agentconfig/save-config/${agentId}`,
-    folders: (sessionId: string) => `/api/folder/${sessionId}`,
-    createFolder: "/api/folder/create",
-    updateFolder: (folderId: string) => `/api/folder/update/${folderId}`,
-    deleteFolder: (folderId: string) => `/api/folder/delete/${folderId}`,
-  },
-  agentChat: {
-    chat: "/chat",
-    conversations: "/api/chat/conversations",
-    sendMessage: "/api/chat/messages",
-  },
-  livekit: {
-    token: "/api/livekit/token",
-    createRoom: "/api/livekit/room/create",
-    serverUrl: "/api/livekit/url",
   },
 };
 

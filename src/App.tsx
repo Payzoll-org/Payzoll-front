@@ -2,28 +2,83 @@ import {
   createBrowserRouter,
   RouterProvider,
   Navigate,
+  Outlet,
 } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
 import { Toaster } from 'react-hot-toast';
 import './App.css';
-import MainPage from './Pages/MainPageLayout';
-import AuthPage from './Pages/AuthPage';
-import KycPage from './Pages/KycPage';
-import ReconcilePage from './Pages/ReconcilePage';
-import TransactionHistoryPage from './Pages/TransactionHistoryPage';
-import PayoutDetailPage from './Pages/PayoutDetailPage';
-import StablecoinCallbackPage from './Pages/StablecoinCallbackPage';
-import SettingsPage from './Pages/SettingsPage';
-import ReferPage from './Pages/ReferPage';
-import ReferralLandingPage from './Pages/ReferralLandingPage';
-import InternationalBankingPage from './Pages/InternationalBankingPage';
-import PayoutCalculatorPage from './Pages/PayoutCalculatorPage';
-import DepositDetailsPage from './Pages/DepositDetailsPage';
-import InvoicePage from './Pages/InvoicePage';
-import InvoicesListPage from './Pages/InvoicesListPage';
 import ProtectedRoute from './Components/ProtectedRoute';
 import { useAuthBootstrap } from './hooks/useAuthBootstrap';
 
+// Each page is code-split with React.lazy so the initial download no longer
+// carries every route at once. A logged-out visitor on /auth, or someone
+// opening a public /ref/<code> link, no longer pulls the entire authenticated
+// dashboard (KYC, Reconcile, Invoice, Settings, ...) they can't even see yet -
+// each page's chunk is fetched on first navigation to it instead. The single
+// Suspense boundary around RouterProvider shows PageFallback during that fetch.
+const MainPage = lazy(() => import('./Pages/MainPageLayout'));
+const AuthPage = lazy(() => import('./Pages/AuthPage'));
+const KycPage = lazy(() => import('./Pages/KycPage'));
+const ReconcilePage = lazy(() => import('./Pages/ReconcilePage'));
+const TransactionHistoryPage = lazy(() => import('./Pages/TransactionHistoryPage'));
+const PayoutDetailPage = lazy(() => import('./Pages/PayoutDetailPage'));
+const StablecoinCallbackPage = lazy(() => import('./Pages/StablecoinCallbackPage'));
+const SettingsPage = lazy(() => import('./Pages/SettingsPage'));
+const ReferPage = lazy(() => import('./Pages/ReferPage'));
+const ReferralLandingPage = lazy(() => import('./Pages/ReferralLandingPage'));
+const InternationalBankingPage = lazy(() => import('./Pages/InternationalBankingPage'));
+const PayoutCalculatorPage = lazy(() => import('./Pages/PayoutCalculatorPage'));
+const DepositDetailsPage = lazy(() => import('./Pages/DepositDetailsPage'));
+const InvoicePage = lazy(() => import('./Pages/InvoicePage'));
+const InvoicesListPage = lazy(() => import('./Pages/InvoicesListPage'));
+
+// Mirrors ProtectedRoute's own "Checking session..." loading screen so a lazy
+// chunk fetch looks like the rest of the app, not a blank flash.
+function PageFallback() {
+  return (
+    <div className="flex items-center justify-center h-screen">
+      <p className="text-gray-600 text-lg">Loading...</p>
+    </div>
+  );
+}
+
+// Catches errors thrown while rendering any route - most importantly a
+// rejected lazy import(). That happens when someone has an old tab open and
+// we redeploy: the hashed chunk filenames change, their cached index.html
+// asks for a chunk that no longer exists, and the dynamic import rejects.
+// Without this the data router would show its bare default error page; here
+// we show a friendly message and a reload, which fetches the fresh
+// index.html + current chunk names.
+function RouteError() {
+  return (
+    <div className="flex flex-col items-center justify-center h-screen gap-4 px-6 text-center">
+      <p className="text-gray-800 text-lg font-medium">Something went wrong loading this page.</p>
+      <p className="text-gray-500 text-sm">This can happen right after an update. Reloading usually fixes it.</p>
+      <button
+        onClick={() => window.location.reload()}
+        className="px-4 py-2 rounded-lg bg-gray-900 text-white text-sm"
+      >
+        Reload
+      </button>
+    </div>
+  );
+}
+
+// Pathless root route: provides the single Suspense boundary for lazy route
+// chunks and owns the errorElement that catches their load failures.
+function RootLayout() {
+  return (
+    <Suspense fallback={<PageFallback />}>
+      <Outlet />
+    </Suspense>
+  );
+}
+
 const router = createBrowserRouter([
+  {
+    element: <RootLayout />,
+    errorElement: <RouteError />,
+    children: [
   {
     path: "/",
     element: <Navigate to="/auth" replace />,
@@ -159,6 +214,8 @@ const router = createBrowserRouter([
         <InternationalBankingPage />
       </ProtectedRoute>
     ),
+  },
+    ],
   },
 ]);
 
