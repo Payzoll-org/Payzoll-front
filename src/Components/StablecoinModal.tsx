@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { startStablecoinTos, acceptStablecoinTos, submitEntityStablecoinDocs } from "../services/stablecoinApi";
+import { startStablecoinTos, acceptStablecoinTos } from "../services/stablecoinApi";
 import { STABLECOIN_TOS_MESSAGE_TYPE } from "../Pages/StablecoinCallbackPage";
-import { useAuthStore } from "../Zustand/userStore";
 
 interface StablecoinModalProps {
   onClose: () => void;
   onComplete: () => void;
 }
 
-type Phase = "collect-docs" | "loading" | "ready" | "waiting" | "test-mode" | "completing" | "success" | "error";
+type Phase = "loading" | "ready" | "waiting" | "test-mode" | "completing" | "success" | "error";
 
 // XflowPay's testmode start_tos always returns a URL on this unresolvable
 // host instead of a real Bridge.xyz page (confirmed against the sandbox -
@@ -18,17 +17,14 @@ type Phase = "collect-docs" | "loading" | "ready" | "waiting" | "test-mode" | "c
 const TEST_MODE_TOS_HOST = "mock.bridge.tos";
 
 export default function StablecoinModal({ onClose, onComplete }: StablecoinModalProps) {
-  const userType = useAuthStore((s) => s.user?.userType);
-  // company / LLP must register an ownership structure document before the ToS
-  // flow (the incorporation cert is reused server-side). Every other type goes
-  // straight to the ToS, exactly as before.
-  const needsEntityDocs = userType === "company" || userType === "llp";
-
-  const [phase, setPhase] = useState<Phase>(needsEntityDocs ? "collect-docs" : "loading");
+  // Every business type now follows the same ToS-only flow: the one extra
+  // document company / LLP need (the ownership structure document) is collected
+  // during KYC and attached automatically when the capability is requested, so
+  // there's nothing to upload here.
+  const [phase, setPhase] = useState<Phase>("loading");
   const [tosUrl, setTosUrl] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [deferred, setDeferred] = useState(false);
-  const [ownershipFile, setOwnershipFile] = useState<File | null>(null);
   const handledRef = useRef(false);
   const popupRef = useRef<Window | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -48,27 +44,9 @@ export default function StablecoinModal({ onClose, onComplete }: StablecoinModal
   };
 
   useEffect(() => {
-    // company / LLP first collect the ownership structure document; everyone
-    // else starts the ToS flow immediately.
-    if (!needsEntityDocs) beginTos();
+    beginTos();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const handleSubmitDocs = async () => {
-    if (!ownershipFile) {
-      setErrorMessage("Please upload the ownership structure document");
-      setPhase("error");
-      return;
-    }
-    setPhase("loading");
-    try {
-      await submitEntityStablecoinDocs(ownershipFile);
-      beginTos();
-    } catch (error: any) {
-      setErrorMessage(error.message || "Failed to save the ownership structure document");
-      setPhase("error");
-    }
-  };
 
   const stopWatchingPopup = () => {
     if (pollRef.current) {
@@ -163,29 +141,6 @@ export default function StablecoinModal({ onClose, onComplete }: StablecoinModal
         </div>
 
         <div className="flex-1 relative">
-          {phase === "collect-docs" && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-8 text-center">
-              <p className="text-sm text-gray-700">
-                To accept stablecoins, our partner needs your company's
-                <span className="font-medium"> ownership structure document</span>
-                {" "}(a declaration of beneficial owners). Your Certificate of Incorporation is reused automatically.
-              </p>
-              <input
-                type="file"
-                accept="image/jpeg,image/png,application/pdf"
-                onChange={(e) => setOwnershipFile(e.target.files?.[0] ?? null)}
-                className="text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-900 file:px-3 file:py-1.5 file:text-white file:text-sm"
-              />
-              <button
-                onClick={handleSubmitDocs}
-                disabled={!ownershipFile}
-                className="px-6 h-11 bg-black text-white text-sm font-medium rounded-full hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100"
-              >
-                Continue
-              </button>
-            </div>
-          )}
-
           {phase === "loading" && (
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="w-6 h-6 border-2 border-gray-300 border-t-black rounded-full animate-spin" />

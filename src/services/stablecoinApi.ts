@@ -12,24 +12,6 @@ function assertData(response: Response, data: any) {
 }
 
 /**
- * company / LLP only: upload the ownership structure document (the incorporation
- * certificate is reused server-side) before starting the ToS flow.
- */
-export async function submitEntityStablecoinDocs(ownershipStructure: File) {
-  const formData = new FormData();
-  formData.append("ownershipStructure", ownershipStructure);
-
-  const response = await http(ROUTES.entityDocuments, {
-    method: "POST",
-    body: formData,
-  });
-
-  const data = await response.json();
-  assertData(response, data);
-  return data?.data?.account;
-}
-
-/**
  * Step 1: get the Bridge ToS URL to embed in an iframe.
  */
 export async function startStablecoinTos() {

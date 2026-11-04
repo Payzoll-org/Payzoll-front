@@ -43,9 +43,11 @@ export const API_ROUTES = {
     pan: "/api/business-identifiers/pan",
     address: "/api/business-identifiers/address",
     sourceOfIncome: "/api/business-identifiers/source-of-income",
-    // Company / LLP flow: address + CIN, and the Certificate of Incorporation.
+    // Company / LLP flow: address + CIN, the Certificate of Incorporation, and
+    // the ownership structure document (held for stablecoin, attached at activation).
     company: "/api/business-identifiers/company",
     incorporation: "/api/business-identifiers/incorporation",
+    ownershipStructure: "/api/business-identifiers/ownership-structure",
     // Partnership flow: address + GSTIN, and the Partnership deed.
     partnership: "/api/business-identifiers/partnership",
     partnershipDeed: "/api/business-identifiers/partnership-deed",
@@ -69,9 +71,6 @@ export const API_ROUTES = {
   stablecoin: {
     start: "/api/stablecoin/start",
     accept: "/api/stablecoin/accept",
-    // company / LLP: ownership structure doc (+ reuse of the incorporation
-    // cert) before the ToS flow.
-    entityDocuments: "/api/stablecoin/entity-documents",
   },
   partner: {
     create: "/api/partner",

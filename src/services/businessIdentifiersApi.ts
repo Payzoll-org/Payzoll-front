@@ -72,6 +72,26 @@ export async function uploadIncorporationCertificate(file: File) {
   return data?.data?.account;
 }
 
+/**
+ * company / LLP only: upload the ownership structure document during KYC. It's
+ * held server-side and attached to the account automatically when the
+ * stablecoin capability is requested at activation (no separate stablecoin
+ * upload step), mirroring the individual flow.
+ */
+export async function uploadOwnershipStructure(file: File) {
+  const formData = new FormData();
+  formData.append("ownershipStructure", file);
+
+  const response = await http(ROUTES.ownershipStructure, {
+    method: "POST",
+    body: formData,
+  });
+
+  const data = await response.json();
+  assertData(response, data);
+  return data?.data?.account;
+}
+
 export interface PartnershipBusinessIdentifiersPayload {
   addressLine1: string;
   addressLine2?: string;
