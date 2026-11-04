@@ -95,6 +95,8 @@ export interface KycProgressBusinessIdentifiers {
   cin?: string;
   legalName?: string;
   hasIncorporationFile?: boolean;
+  // company / LLP: ownership structure document already collected in KYC.
+  hasOwnershipFile?: boolean;
 }
 
 export interface KycProgressPerson {

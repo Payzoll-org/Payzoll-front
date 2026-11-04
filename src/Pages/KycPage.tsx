@@ -2622,6 +2622,7 @@ function EntityKycFlow({ entityType }: { entityType: EntityType }) {
             gstin: bi.gstin,
             legalName: bi.legalName ?? "",
             incorporationFileName: bi.hasIncorporationFile ? "Previously uploaded" : "",
+            ownershipFileName: bi.hasOwnershipFile ? "Previously uploaded" : "",
           });
           if (resumeStep === 2) resumeStep = 3;
         }
