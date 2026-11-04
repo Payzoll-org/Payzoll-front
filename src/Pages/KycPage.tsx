@@ -2396,7 +2396,19 @@ function EntityKycFlow({ entityType }: { entityType: EntityType }) {
             bankStatementFileName: bd.hasBankStatementFile ? "Previously uploaded" : undefined,
           });
           if (resumeStep === 4) {
-            resumeStep = 5;
+            // If the registered address / legal name on file no longer matches
+            // the bank account's billing details, resume at the bank step to
+            // reconfirm rather than at a stale summary (same guard as the live
+            // step 2 -> handoff above).
+            const bi = progress.businessIdentifiers;
+            const bankOutOfSync =
+              bi != null &&
+              (bi.addressLine1 !== bd.line1 ||
+                bi.city !== bd.city ||
+                bi.state !== bd.state ||
+                bi.zipcode !== bd.postalCode ||
+                (bi.legalName ?? "") !== bd.accountHolderName);
+            resumeStep = bankOutOfSync ? 4 : 5;
             setReachedSummary(true);
           }
         }
@@ -2463,6 +2475,23 @@ function EntityKycFlow({ entityType }: { entityType: EntityType }) {
                 onBack={() => setStep(1)}
                 onDone={(data) => {
                   setCompanyIdentifiers(data);
+                  // Same reasoning as the individual flow: a bank account's
+                  // billing address can't be edited in place on XflowPay, so if
+                  // the registered address (or legal name) just changed after a
+                  // bank account was already submitted, send the user back to
+                  // reconfirm it rather than activating with a stale address.
+                  const bankOutOfSync =
+                    bankDetails != null &&
+                    (data.addressLine1 !== bankDetails.line1 ||
+                      data.city !== bankDetails.city ||
+                      data.state !== bankDetails.state ||
+                      data.zipcode !== bankDetails.postalCode ||
+                      data.legalName !== bankDetails.accountHolderName);
+                  if (reachedSummary && bankOutOfSync) {
+                    toast.error("Your registered address or legal name changed - please reconfirm your payout bank account.");
+                    setStep(4);
+                    return;
+                  }
                   setStep(reachedSummary ? 5 : 3);
                 }}
               />
