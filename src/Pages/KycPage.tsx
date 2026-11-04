@@ -1459,6 +1459,8 @@ function SummaryStep({
   stepNumber = 4,
   totalSteps = 4,
   isCompany = false,
+  entityType,
+  persons = [],
 }: {
   aboutBusiness: AboutBusinessSummary;
   businessIdentifiers: BusinessIdentifiersSummary;
@@ -1470,6 +1472,12 @@ function SummaryStep({
   // Company accounts already added their directors/owners in the dedicated
   // step, so activation must NOT create a single owner person for them.
   isCompany?: boolean;
+  // When set (company/LLP/partnership), the identifiers section shows the
+  // entity's own labels (CIN/LLPIN/GSTIN + Legal name + its id document)
+  // instead of the individual PAN labels.
+  entityType?: EntityType;
+  // Directors/owners to list in the summary (entity flows only).
+  persons?: CompanyPerson[];
 }) {
   const [declared, setDeclared] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -1554,18 +1562,56 @@ function SummaryStep({
                 .filter(Boolean)
                 .join(", ")}
             />
-            <SummaryRow label="PAN number" value={businessIdentifiers.panNumber} />
-            <SummaryRow label="Name on PAN" value={businessIdentifiers.nameOnPan} />
-            <SummaryRow label="GST number" value={businessIdentifiers.gstin} />
-            <SummaryRow label="PAN document" value={businessIdentifiers.panFileName} />
-            <SummaryRow label="GST document" value={businessIdentifiers.gstFileName} />
-            <SummaryRow
-              label="Source of income document"
-              value={businessIdentifiers.sourceOfIncomeFileName}
-            />
+            {entityType ? (
+              <>
+                <SummaryRow
+                  label={entityType === "partnership" ? "GSTIN" : entityType === "llp" ? "LLPIN / CIN" : "CIN"}
+                  value={businessIdentifiers.panNumber}
+                />
+                <SummaryRow label="Legal name" value={businessIdentifiers.nameOnPan} />
+                <SummaryRow
+                  label={entityType === "partnership" ? "Partnership deed" : "Certificate of Incorporation"}
+                  value={businessIdentifiers.panFileName}
+                />
+              </>
+            ) : (
+              <>
+                <SummaryRow label="PAN number" value={businessIdentifiers.panNumber} />
+                <SummaryRow label="Name on PAN" value={businessIdentifiers.nameOnPan} />
+                <SummaryRow label="GST number" value={businessIdentifiers.gstin} />
+                <SummaryRow label="PAN document" value={businessIdentifiers.panFileName} />
+                <SummaryRow label="GST document" value={businessIdentifiers.gstFileName} />
+                <SummaryRow
+                  label="Source of income document"
+                  value={businessIdentifiers.sourceOfIncomeFileName}
+                />
+              </>
+            )}
           </SummarySection>
 
-          <SummarySection title="Bank details" onEdit={() => onEditStep(3)}>
+          {entityType && (
+            <SummarySection title="Directors & owners" onEdit={() => onEditStep(3)}>
+              {persons.length === 0 ? (
+                <SummaryRow label="People" value="None added" />
+              ) : (
+                persons.map((p) => (
+                  <SummaryRow
+                    key={p.id}
+                    label={p.fullName}
+                    value={[
+                      p.relationship?.director && "Director",
+                      p.relationship?.owner && "Owner",
+                      p.relationship?.representative && "Representative",
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  />
+                ))
+              )}
+            </SummarySection>
+          )}
+
+          <SummarySection title="Bank details" onEdit={() => onEditStep(entityType ? 4 : 3)}>
             <SummaryRow label="Currency" value={bankDetails.currency} />
             <SummaryRow label="Account number" value={bankDetails.accountNumber} />
             <SummaryRow
@@ -2360,9 +2406,10 @@ function EntityKycFlow({ entityType }: { entityType: EntityType }) {
       .catch(() => {});
   }, []);
 
-  // SummaryStep renders a BusinessIdentifiersSummary; map the company's CIN +
-  // incorporation into it so the review screen has something to show. (The
-  // labels there still read "PAN" - a company-specific summary is a follow-up.)
+  // SummaryStep renders a BusinessIdentifiersSummary; map the entity's
+  // identifier (CIN/LLPIN or GSTIN) + id document into its panNumber/panFileName
+  // slots. SummaryStep relabels them per entityType, so the review screen reads
+  // correctly (CIN/GSTIN, Legal name, Certificate of Incorporation / deed).
   const summaryIdentifiers: BusinessIdentifiersSummary | null = companyIdentifiers
     ? {
         addressLine1: companyIdentifiers.addressLine1,
@@ -2458,6 +2505,8 @@ function EntityKycFlow({ entityType }: { entityType: EntityType }) {
                 businessIdentifiers={summaryIdentifiers}
                 bankDetails={bankDetails}
                 isCompany
+                entityType={entityType}
+                persons={persons}
                 stepNumber={5}
                 totalSteps={totalSteps}
                 onEditStep={(editStep) => setStep(editStep)}
