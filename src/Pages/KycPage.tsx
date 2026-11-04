@@ -567,7 +567,10 @@ function AboutBusinessStep({
   totalSteps?: number;
 }) {
   const user = useAuthStore((s) => s.user);
-  const isSoleProprietorship = user?.userType === "soleproprietorship";
+  // Business industry (NAICS) is collected for every non-individual type -
+  // sole proprietorship and the entity types (company/LLP/partnership). It's
+  // not required for individuals.
+  const collectsIndustry = user?.userType !== "individual";
 
   const [website, setWebsite] = useState(initial?.website ?? "");
   const [productDescription, setProductDescription] = useState(initial?.productDescription ?? "");
@@ -584,11 +587,11 @@ function AboutBusinessStep({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!isSoleProprietorship) return;
+    if (!collectsIndustry) return;
     getIndustryCodes()
       .then(setIndustryOptions)
       .catch(() => {});
-  }, [isSoleProprietorship]);
+  }, [collectsIndustry]);
 
   const toggleCode = (code: string) => {
     setSelectedCodes((prev) =>
@@ -614,7 +617,7 @@ function AboutBusinessStep({
       return;
     }
 
-    if (isSoleProprietorship && !businessIndustry) {
+    if (collectsIndustry && !businessIndustry) {
       toast.error("Please select your business industry code");
       return;
     }
@@ -632,7 +635,7 @@ function AboutBusinessStep({
         productDescription: productDescription.trim(),
         dba: dba.trim(),
         purposeCode: selectedCodes.map((code) => ({ code })),
-        businessIndustry: isSoleProprietorship ? businessIndustry : undefined,
+        businessIndustry: collectsIndustry ? businessIndustry : undefined,
       });
 
       onDone({
@@ -645,7 +648,7 @@ function AboutBusinessStep({
         purposeLabels: selectedCodes.map(
           (code) => PURPOSE_CODE_OPTIONS.find((opt) => opt.code === code)?.label || code
         ),
-        businessIndustry: isSoleProprietorship ? businessIndustry : undefined,
+        businessIndustry: collectsIndustry ? businessIndustry : undefined,
       });
     } catch (error: any) {
       toast.error(error.message || "Failed to submit business details");
@@ -751,7 +754,7 @@ function AboutBusinessStep({
             )}
           </div>
 
-          {isSoleProprietorship && (
+          {collectsIndustry && (
             <IndustryCodeDropdown
               options={industryOptions}
               selectedCode={businessIndustry}
@@ -1879,6 +1882,23 @@ const emptyPersonForm = {
 
 // Step 3 for a company: add one or more directors / beneficial owners. XflowPay
 // needs KYC for owners with >25% ownership, or at least one director otherwise.
+interface StagedPerson {
+  tempId: string;
+  fullName: string;
+  dateOfBirth: string;
+  email: string;
+  panNumber: string;
+  isDirector: boolean;
+  isOwner: boolean;
+  isRepresentative: boolean;
+  addressLine1: string;
+  addressLine2: string;
+  city: string;
+  state: string;
+  zipcode: string;
+  panCard: File;
+}
+
 function DirectorsAndOwnersStep({
   initialPersons,
   onDone,
@@ -1892,22 +1912,32 @@ function DirectorsAndOwnersStep({
   stepNumber: number;
   totalSteps: number;
 }) {
-  const [persons, setPersons] = useState<CompanyPerson[]>(initialPersons ?? []);
-  const [form, setForm] = useState({ ...emptyPersonForm });
+  // Persons already created on XflowPay (a resumed session). XflowPay can't
+  // remove a person while the account is still in KYC, so these are shown as
+  // saved and aren't removable here - only staged (not-yet-created) people are.
+  const [committed, setCommitted] = useState<CompanyPerson[]>(initialPersons ?? []);
+  // People added this session: staged locally and only created on XflowPay at
+  // "Continue", so they can be removed first with no orphaned XflowPay records.
+  const [staged, setStaged] = useState<StagedPerson[]>([]);
+  const initialHasRep = (initialPersons ?? []).some((p) => p.relationship?.representative);
+  const [form, setForm] = useState({ ...emptyPersonForm, isRepresentative: !initialHasRep });
   const [panCard, setPanCard] = useState<File | null>(null);
-  const [adding, setAdding] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const panInputRef = useRef<HTMLInputElement>(null);
+
+  const hasRepresentative =
+    committed.some((p) => p.relationship?.representative) || staged.some((s) => s.isRepresentative);
 
   const setField = (key: keyof typeof form, value: string | boolean) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
-  const handleAdd = async () => {
+  const handleAdd = () => {
     if (!form.fullName.trim() || !form.dateOfBirth || !form.email.trim() || !form.panNumber.trim()) {
       toast.error("Please fill in name, date of birth, email and PAN");
       return;
     }
-    if (!form.isDirector && !form.isOwner) {
-      toast.error("Mark this person as a director, an owner, or both");
+    if (!form.isDirector && !form.isOwner && !form.isRepresentative) {
+      toast.error("Mark this person as a director, owner, or representative");
       return;
     }
     if (!form.addressLine1.trim() || !form.city.trim() || !form.state.trim() || !form.zipcode.trim()) {
@@ -1919,56 +1949,84 @@ function DirectorsAndOwnersStep({
       return;
     }
 
-    setAdding(true);
-    try {
-      const person = await addCompanyPerson({
-        fullName: form.fullName.trim(),
-        dateOfBirth: form.dateOfBirth,
-        email: form.email.trim(),
-        panNumber: form.panNumber.trim().toUpperCase(),
-        isDirector: form.isDirector,
-        isOwner: form.isOwner,
-        isRepresentative: form.isRepresentative,
-        addressLine1: form.addressLine1.trim(),
-        addressLine2: form.addressLine2.trim() || undefined,
-        city: form.city.trim(),
-        state: form.state.trim(),
-        zipcode: form.zipcode.trim(),
-        panCard,
-      });
-      setPersons((prev) => [...prev, person]);
-      setForm({ ...emptyPersonForm });
-      setPanCard(null);
-      if (panInputRef.current) panInputRef.current.value = "";
-      toast.success(`${person.fullName} added`);
-    } catch (error: any) {
-      toast.error(error.message || "Failed to add person");
-    } finally {
-      setAdding(false);
-    }
+    const newPerson: StagedPerson = {
+      tempId: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      fullName: form.fullName.trim(),
+      dateOfBirth: form.dateOfBirth,
+      email: form.email.trim(),
+      panNumber: form.panNumber.trim().toUpperCase(),
+      isDirector: form.isDirector,
+      isOwner: form.isOwner,
+      isRepresentative: form.isRepresentative,
+      addressLine1: form.addressLine1.trim(),
+      addressLine2: form.addressLine2.trim(),
+      city: form.city.trim(),
+      state: form.state.trim(),
+      zipcode: form.zipcode.trim(),
+      panCard,
+    };
+    const willHaveRep = hasRepresentative || form.isRepresentative;
+    setStaged((prev) => [...prev, newPerson]);
+    // Default the next person to representative only while none exists yet.
+    setForm({ ...emptyPersonForm, isRepresentative: !willHaveRep });
+    setPanCard(null);
+    if (panInputRef.current) panInputRef.current.value = "";
   };
 
-  const handleContinue = () => {
-    if (persons.length === 0) {
+  const handleRemoveStaged = (tempId: string) =>
+    setStaged((prev) => prev.filter((s) => s.tempId !== tempId));
+
+  const handleContinue = async () => {
+    if (committed.length + staged.length === 0) {
       toast.error("Add at least one director or owner before continuing");
       return;
     }
-    // XflowPay rejects company activation unless at least one person is a
+    // XflowPay rejects entity activation unless at least one person is a
     // Business Representative - enforce it here so the user doesn't only find
     // out at the final activation step.
-    if (!persons.some((p) => p.relationship?.representative)) {
+    if (!hasRepresentative) {
       toast.error("At least one person must be marked as a Business Representative");
       return;
     }
-    onDone(persons);
+
+    setSubmitting(true);
+    const created: CompanyPerson[] = [];
+    // Create each staged person on XflowPay. If one fails, keep it (and the
+    // rest) staged and move the already-created ones to committed, so a retry
+    // doesn't create duplicates.
+    for (let i = 0; i < staged.length; i++) {
+      const s = staged[i];
+      try {
+        const person = await addCompanyPerson({
+          fullName: s.fullName,
+          dateOfBirth: s.dateOfBirth,
+          email: s.email,
+          panNumber: s.panNumber,
+          isDirector: s.isDirector,
+          isOwner: s.isOwner,
+          isRepresentative: s.isRepresentative,
+          addressLine1: s.addressLine1,
+          addressLine2: s.addressLine2 || undefined,
+          city: s.city,
+          state: s.state,
+          zipcode: s.zipcode,
+          panCard: s.panCard,
+        });
+        created.push(person);
+      } catch (error: any) {
+        setCommitted((prev) => [...prev, ...created]);
+        setStaged(staged.slice(i));
+        setSubmitting(false);
+        toast.error(`${s.fullName}: ${error.message || "could not be saved"}`);
+        return;
+      }
+    }
+    setSubmitting(false);
+    onDone([...committed, ...created]);
   };
 
-  const roleLabel = (p: CompanyPerson) =>
-    [
-      p.relationship?.director && "Director",
-      p.relationship?.owner && "Owner",
-      p.relationship?.representative && "Representative",
-    ]
+  const roleLabel = (r: { director?: boolean; owner?: boolean; representative?: boolean }) =>
+    [r.director && "Director", r.owner && "Owner", r.representative && "Representative"]
       .filter(Boolean)
       .join(" · ");
 
@@ -1982,15 +2040,38 @@ function DirectorsAndOwnersStep({
       />
       <StepCard scrollable>
         <div className="flex flex-col gap-5 pb-4">
-          {persons.length > 0 && (
+          {committed.length > 0 && (
             <div className="flex flex-col gap-2">
-              {persons.map((p) => (
+              {committed.map((p) => (
                 <div key={p.id} className="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3">
                   <div>
                     <p className="text-sm font-semibold text-gray-900">{p.fullName}</p>
-                    <p className="text-xs text-gray-500">{roleLabel(p)} · {p.status}</p>
+                    <p className="text-xs text-gray-500">{roleLabel(p.relationship ?? {})} · saved</p>
                   </div>
                   <Check className="w-5 h-5 text-arc-gold-600" />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {staged.length > 0 && (
+            <div className="flex flex-col gap-2">
+              {staged.map((s) => (
+                <div key={s.tempId} className="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{s.fullName}</p>
+                    <p className="text-xs text-gray-500">
+                      {roleLabel({ director: s.isDirector, owner: s.isOwner, representative: s.isRepresentative })} · not saved yet
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleRemoveStaged(s.tempId)}
+                    disabled={submitting}
+                    className="text-gray-400 hover:text-red-600 disabled:opacity-40"
+                    aria-label={`Remove ${s.fullName}`}
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
               ))}
             </div>
@@ -2068,24 +2149,25 @@ function DirectorsAndOwnersStep({
 
             <button
               onClick={handleAdd}
-              disabled={adding}
+              disabled={submitting}
               className="self-start px-5 py-2 rounded-xl border border-gray-900 text-gray-900 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
             >
-              {adding ? "Adding…" : "+ Add person"}
+              + Add person
             </button>
           </div>
         </div>
       </StepCard>
 
       <div className="flex gap-3 mt-4 shrink-0">
-        <button onClick={onBack} className="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50">
+        <button onClick={onBack} disabled={submitting} className="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 disabled:opacity-50">
           Back
         </button>
         <button
           onClick={handleContinue}
-          className="px-6 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-medium hover:bg-black"
+          disabled={submitting}
+          className="px-6 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-medium hover:bg-black disabled:opacity-50"
         >
-          Continue
+          {submitting ? "Saving…" : "Continue"}
         </button>
       </div>
     </>
