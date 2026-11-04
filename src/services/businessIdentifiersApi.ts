@@ -72,6 +72,43 @@ export async function uploadIncorporationCertificate(file: File) {
   return data?.data?.account;
 }
 
+export interface PartnershipBusinessIdentifiersPayload {
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state: string;
+  zipcode: string;
+  // GSTIN is mandatory for a partnership -> business_details.ids.tax_gst.
+  gstin: string;
+}
+
+export async function submitPartnershipBusinessIdentifiers(
+  payload: PartnershipBusinessIdentifiersPayload
+) {
+  const response = await http(ROUTES.partnership, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+  assertData(response, data);
+  return data?.data?.account;
+}
+
+export async function uploadPartnershipDeed(file: File) {
+  const formData = new FormData();
+  formData.append("partnershipDeed", file);
+
+  const response = await http(ROUTES.partnershipDeed, {
+    method: "POST",
+    body: formData,
+  });
+
+  const data = await response.json();
+  assertData(response, data);
+  return data?.data?.account;
+}
+
 export async function uploadPanCard(file: File) {
   const formData = new FormData();
   formData.append("panCard", file);

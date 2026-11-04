@@ -696,6 +696,8 @@ export default function AuthPage() {
                       <option value="individual">Individual</option>
                       <option value="soleproprietorship">Sole Proprietorship</option>
                       <option value="company">Company</option>
+                      <option value="llp">LLP (Limited Liability Partnership)</option>
+                      <option value="partnership">Partnership</option>
                     </select>
                   </div>
                   <div className="flex flex-col w-full sm:w-1/2">

@@ -1,7 +1,7 @@
 import { http } from "../lib/httpClient";
 import { API_ROUTES } from "../config/apiConfig";
 
-export type TypeOfUser = "individual" | "soleproprietorship" | "company";
+export type TypeOfUser = "individual" | "soleproprietorship" | "company" | "llp" | "partnership";
 
 export type ReferralSource =
   | "Telegram"

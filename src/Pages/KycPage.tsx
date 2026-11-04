@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Check, ChevronsUpDown, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { submitAboutBusiness, getIndustryCodes, PURPOSE_CODE_OPTIONS, type IndustryCodeOption,} from "../services/aboutBusinessApi";
-import { submitBusinessIdentifiers, uploadPanCard, uploadAddressDocument, uploadSourceOfIncome, submitCompanyBusinessIdentifiers, uploadIncorporationCertificate,} from "../services/businessIdentifiersApi";
+import { submitBusinessIdentifiers, uploadPanCard, uploadAddressDocument, uploadSourceOfIncome, submitCompanyBusinessIdentifiers, uploadIncorporationCertificate, submitPartnershipBusinessIdentifiers, uploadPartnershipDeed,} from "../services/businessIdentifiersApi";
 import { submitInrBankAccount, submitEefcBankAccount,} from "../services/bankAccountApi";
 import { submitOwnerPerson, activateAccount, getKycProgress } from "../services/accountActivationApi";
 import { addCompanyPerson, type CompanyPerson } from "../services/personApi";
@@ -1617,41 +1617,78 @@ function SummaryStep({
    Company-only steps
    ====================================================================== */
 
+type EntityType = "company" | "llp" | "partnership";
+
 interface CompanyIdentifiersSummary {
   addressLine1: string;
   addressLine2?: string;
   city: string;
   state: string;
   zipcode: string;
-  cin: string;
+  // company / LLP carry a CIN/LLPIN; a partnership carries a GSTIN.
+  cin?: string;
+  gstin?: string;
   legalName: string;
+  // The id document on file: Certificate of Incorporation (company/LLP) or
+  // the Partnership deed (partnership).
   incorporationFileName: string;
 }
 
-// Step 2 for a company: registered address + CIN + Certificate of
-// Incorporation (the company's identity document). No individual PAN here -
-// each director/owner carries their own on the next step.
+// Per-entity labels/placeholders for the registration step.
+const ENTITY_IDENTIFIERS: Record<EntityType, { idLabel: string; idPlaceholder: string; docLabel: string; title: string; subtitle: string }> = {
+  company: {
+    idLabel: "CIN (Company Identification Number)",
+    idPlaceholder: "U72900KA2020PTC123456",
+    docLabel: "Certificate of Incorporation",
+    title: "Company registration & address",
+    subtitle: "Your registered office address and CIN, plus the Certificate of Incorporation",
+  },
+  llp: {
+    idLabel: "LLPIN / CIN",
+    idPlaceholder: "AAB-1234",
+    docLabel: "Certificate of Incorporation",
+    title: "LLP registration & address",
+    subtitle: "Your registered office address and LLPIN, plus the Certificate of Incorporation",
+  },
+  partnership: {
+    idLabel: "GSTIN",
+    idPlaceholder: "22AAAAA0000A1Z5",
+    docLabel: "Partnership deed",
+    title: "Partnership registration & address",
+    subtitle: "Your registered address and GSTIN, plus the Partnership deed",
+  },
+};
+
+// Step 2 for a company/LLP/partnership: registered address + the entity's
+// identifier (CIN/LLPIN, or GSTIN for a partnership) + its id document
+// (Certificate of Incorporation, or the Partnership deed). No individual PAN
+// here - each director/owner carries their own on the next step.
 function CompanyBusinessIdentifiersStep({
+  entityType,
   initial,
   onDone,
   onBack,
   stepNumber,
   totalSteps,
 }: {
+  entityType: EntityType;
   initial?: CompanyIdentifiersSummary | null;
   onDone: (data: CompanyIdentifiersSummary) => void;
   onBack: () => void;
   stepNumber: number;
   totalSteps: number;
 }) {
+  const cfg = ENTITY_IDENTIFIERS[entityType];
+  const isPartnership = entityType === "partnership";
   const [addressLine1, setAddressLine1] = useState(initial?.addressLine1 ?? "");
   const [addressLine2, setAddressLine2] = useState(initial?.addressLine2 ?? "");
   const [city, setCity] = useState(initial?.city ?? "");
   const [state, setState] = useState(initial?.state ?? "");
   const [zipcode, setZipcode] = useState(initial?.zipcode ?? "");
-  const [cin, setCin] = useState(initial?.cin ?? "");
+  // Holds the CIN/LLPIN for company/LLP, or the GSTIN for a partnership.
+  const [cin, setCin] = useState(initial?.cin ?? initial?.gstin ?? "");
   const [incorporationFile, setIncorporationFile] = useState<File | null>(null);
-  // Only ever read (the "On file: …" hint); a resumed cert is replaced by
+  // Only ever read (the "On file: …" hint); a resumed doc is replaced by
   // picking a new file, never re-set in state.
   const [incorporationFileName] = useState(initial?.incorporationFileName ?? "");
   const [loading, setLoading] = useState(false);
@@ -1659,41 +1696,43 @@ function CompanyBusinessIdentifiersStep({
   const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     if (!cin.trim() || !addressLine1.trim() || !city.trim() || !state.trim() || !zipcode.trim()) {
-      toast.error("Please fill in the CIN and the full registered address");
+      toast.error(`Please fill in the ${isPartnership ? "GSTIN" : "registration number"} and the full registered address`);
       return;
     }
     if (!incorporationFile && !incorporationFileName) {
-      toast.error("Please upload the Certificate of Incorporation");
+      toast.error(`Please upload the ${cfg.docLabel}`);
       return;
     }
 
     setLoading(true);
     try {
-      const account = await submitCompanyBusinessIdentifiers({
+      const address = {
         addressLine1: addressLine1.trim(),
         addressLine2: addressLine2.trim() || undefined,
         city: city.trim(),
         state: state.trim(),
         zipcode: zipcode.trim(),
-        cin: cin.trim().toUpperCase(),
-      });
+      };
+      const identifier = cin.trim().toUpperCase();
 
-      if (incorporationFile) {
-        await uploadIncorporationCertificate(incorporationFile);
+      let account;
+      if (isPartnership) {
+        account = await submitPartnershipBusinessIdentifiers({ ...address, gstin: identifier });
+        if (incorporationFile) await uploadPartnershipDeed(incorporationFile);
+      } else {
+        account = await submitCompanyBusinessIdentifiers({ ...address, cin: identifier });
+        if (incorporationFile) await uploadIncorporationCertificate(incorporationFile);
       }
 
       onDone({
-        addressLine1: addressLine1.trim(),
-        addressLine2: addressLine2.trim() || undefined,
-        city: city.trim(),
-        state: state.trim(),
-        zipcode: zipcode.trim(),
-        cin: cin.trim().toUpperCase(),
+        ...address,
+        cin: isPartnership ? undefined : identifier,
+        gstin: isPartnership ? identifier : undefined,
         legalName: account?.businessDetails?.legalName ?? "",
         incorporationFileName: incorporationFile ? incorporationFile.name : incorporationFileName,
       });
     } catch (error: any) {
-      toast.error(error.message || "Failed to submit company details");
+      toast.error(error.message || "Failed to submit business details");
     } finally {
       setLoading(false);
     }
@@ -1704,21 +1743,21 @@ function CompanyBusinessIdentifiersStep({
       <StepHeader
         step={stepNumber}
         totalSteps={totalSteps}
-        title="Company registration & address"
-        subtitle="Your registered office address and CIN, plus the Certificate of Incorporation"
+        title={cfg.title}
+        subtitle={cfg.subtitle}
       />
       <StepCard scrollable>
         <div className="flex flex-col gap-5 pb-4">
           <div className="flex flex-col">
             <label className="text-sm font-medium mb-1 text-gray-700">
-              CIN (Company Identification Number)
+              {cfg.idLabel}
             </label>
             <input
               className={inputClass}
               value={cin}
               onChange={(e) => setCin(e.target.value)}
-              placeholder="e.g. U72900KA2020PTC123456"
-              maxLength={21}
+              placeholder={`e.g. ${cfg.idPlaceholder}`}
+              maxLength={isPartnership ? 15 : 21}
             />
           </div>
 
@@ -1746,7 +1785,7 @@ function CompanyBusinessIdentifiersStep({
           </div>
 
           <div className="flex flex-col">
-            <label className="text-sm font-medium mb-1 text-gray-700">Certificate of Incorporation</label>
+            <label className="text-sm font-medium mb-1 text-gray-700">{cfg.docLabel}</label>
             <input
               type="file"
               accept="image/jpeg,image/png,application/pdf"
@@ -2244,11 +2283,11 @@ function DefaultKycFlow() {
 }
 
 /* ======================================================================
-   Company KYC flow (5 steps: About -> Company registration -> Directors &
-   Owners -> Bank -> Summary). Kept as its own component so the existing
-   individual/sole-proprietor flow above is untouched.
+   Entity KYC flow (company / LLP / partnership): 5 steps — About ->
+   Registration -> Directors & Owners -> Bank -> Summary. Kept as its own
+   component so the existing individual/sole-proprietor flow above is untouched.
    ====================================================================== */
-function CompanyKycFlow() {
+function EntityKycFlow({ entityType }: { entityType: EntityType }) {
   const navigate = useNavigate();
   const steps = SIDEBAR_STEPS_COMPANY;
   const totalSteps = steps.length;
@@ -2277,7 +2316,7 @@ function CompanyKycFlow() {
         }
 
         const bi = progress.businessIdentifiers;
-        if (bi && bi.cin) {
+        if (bi && (bi.cin || bi.gstin)) {
           setCompanyIdentifiers({
             addressLine1: bi.addressLine1,
             addressLine2: bi.addressLine2,
@@ -2285,6 +2324,7 @@ function CompanyKycFlow() {
             state: bi.state,
             zipcode: bi.zipcode,
             cin: bi.cin,
+            gstin: bi.gstin,
             legalName: bi.legalName ?? "",
             incorporationFileName: bi.hasIncorporationFile ? "Previously uploaded" : "",
           });
@@ -2330,7 +2370,7 @@ function CompanyKycFlow() {
         city: companyIdentifiers.city,
         state: companyIdentifiers.state,
         zipcode: companyIdentifiers.zipcode,
-        panNumber: companyIdentifiers.cin,
+        panNumber: companyIdentifiers.cin ?? companyIdentifiers.gstin ?? "",
         nameOnPan: companyIdentifiers.legalName,
         panFileName: companyIdentifiers.incorporationFileName,
         sourceOfIncomeFileName: "",
@@ -2369,6 +2409,7 @@ function CompanyKycFlow() {
             )}
             {step === 2 && (
               <CompanyBusinessIdentifiersStep
+                entityType={entityType}
                 initial={companyIdentifiers}
                 stepNumber={2}
                 totalSteps={totalSteps}
@@ -2444,10 +2485,15 @@ export default function KycPage() {
   const user = useAuthStore((s) => s.user);
 
   // userType can be stale right after login; refresh so the correct flow is
-  // chosen (company vs individual/sole-proprietor).
+  // chosen (entity vs individual/sole-proprietor).
   useEffect(() => {
     refreshCurrentUser().catch(() => {});
   }, []);
 
-  return user?.userType === "company" ? <CompanyKycFlow /> : <DefaultKycFlow />;
+  const entityType =
+    user?.userType === "company" || user?.userType === "llp" || user?.userType === "partnership"
+      ? (user.userType as EntityType)
+      : null;
+
+  return entityType ? <EntityKycFlow entityType={entityType} /> : <DefaultKycFlow />;
 }

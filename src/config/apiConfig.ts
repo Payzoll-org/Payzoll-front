@@ -43,9 +43,12 @@ export const API_ROUTES = {
     pan: "/api/business-identifiers/pan",
     address: "/api/business-identifiers/address",
     sourceOfIncome: "/api/business-identifiers/source-of-income",
-    // Company flow: address + CIN, and the Certificate of Incorporation.
+    // Company / LLP flow: address + CIN, and the Certificate of Incorporation.
     company: "/api/business-identifiers/company",
     incorporation: "/api/business-identifiers/incorporation",
+    // Partnership flow: address + GSTIN, and the Partnership deed.
+    partnership: "/api/business-identifiers/partnership",
+    partnershipDeed: "/api/business-identifiers/partnership-deed",
   },
   bankAccount: {
     list: "/api/bank-account",
