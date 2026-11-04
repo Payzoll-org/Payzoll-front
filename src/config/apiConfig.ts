@@ -69,6 +69,9 @@ export const API_ROUTES = {
   stablecoin: {
     start: "/api/stablecoin/start",
     accept: "/api/stablecoin/accept",
+    // company / LLP: ownership structure doc (+ reuse of the incorporation
+    // cert) before the ToS flow.
+    entityDocuments: "/api/stablecoin/entity-documents",
   },
   partner: {
     create: "/api/partner",
