@@ -31,7 +31,14 @@ export interface BankAccountDetails {
   iban: string | null;
   last4: string | null;
   number: string | null;
+  // Which rails the account supports ("all", etc.) - NOT checking/savings and
+  // NOT the entity type. For the displayed "Account Type" use entity_type.
   type: string | null;
+  // XflowPay's own classification of the receiving account - "business" or
+  // "individual". This is the authoritative source for the "Account Type" row
+  // (present on every activated xflow_receive address), independent of the
+  // locally-derived userType.
+  entity_type?: string | null;
 }
 
 export interface BankAccount {

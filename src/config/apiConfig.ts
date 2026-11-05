@@ -43,6 +43,14 @@ export const API_ROUTES = {
     pan: "/api/business-identifiers/pan",
     address: "/api/business-identifiers/address",
     sourceOfIncome: "/api/business-identifiers/source-of-income",
+    // Company / LLP flow: address + CIN, the Certificate of Incorporation, and
+    // the ownership structure document (held for stablecoin, attached at activation).
+    company: "/api/business-identifiers/company",
+    incorporation: "/api/business-identifiers/incorporation",
+    ownershipStructure: "/api/business-identifiers/ownership-structure",
+    // Partnership flow: address + GSTIN, and the Partnership deed.
+    partnership: "/api/business-identifiers/partnership",
+    partnershipDeed: "/api/business-identifiers/partnership-deed",
   },
   bankAccount: {
     list: "/api/bank-account",
@@ -51,6 +59,9 @@ export const API_ROUTES = {
   },
   person: {
     owner: "/api/person/owner",
+    // Company flow: add a director/owner, and list all persons on the account.
+    company: "/api/person/company",
+    list: "/api/person",
   },
   account: {
     activate: "/api/account/activate",

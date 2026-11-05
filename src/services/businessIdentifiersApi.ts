@@ -34,6 +34,101 @@ export async function submitBusinessIdentifiers(payload: BusinessIdentifiersPayl
   return data?.data?.account;
 }
 
+export interface CompanyBusinessIdentifiersPayload {
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state: string;
+  zipcode: string;
+  // Company registration number (CIN) - the company equivalent of the
+  // individual PAN. Goes to business_details.ids.business.
+  cin: string;
+}
+
+export async function submitCompanyBusinessIdentifiers(
+  payload: CompanyBusinessIdentifiersPayload
+) {
+  const response = await http(ROUTES.company, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+  assertData(response, data);
+  return data?.data?.account;
+}
+
+export async function uploadIncorporationCertificate(file: File) {
+  const formData = new FormData();
+  formData.append("incorporationCertificate", file);
+
+  const response = await http(ROUTES.incorporation, {
+    method: "POST",
+    body: formData,
+  });
+
+  const data = await response.json();
+  assertData(response, data);
+  return data?.data?.account;
+}
+
+/**
+ * company / LLP only: upload the ownership structure document during KYC. It's
+ * held server-side and attached to the account automatically when the
+ * stablecoin capability is requested at activation (no separate stablecoin
+ * upload step), mirroring the individual flow.
+ */
+export async function uploadOwnershipStructure(file: File) {
+  const formData = new FormData();
+  formData.append("ownershipStructure", file);
+
+  const response = await http(ROUTES.ownershipStructure, {
+    method: "POST",
+    body: formData,
+  });
+
+  const data = await response.json();
+  assertData(response, data);
+  return data?.data?.account;
+}
+
+export interface PartnershipBusinessIdentifiersPayload {
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state: string;
+  zipcode: string;
+  // GSTIN is mandatory for a partnership -> business_details.ids.tax_gst.
+  gstin: string;
+}
+
+export async function submitPartnershipBusinessIdentifiers(
+  payload: PartnershipBusinessIdentifiersPayload
+) {
+  const response = await http(ROUTES.partnership, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+  assertData(response, data);
+  return data?.data?.account;
+}
+
+export async function uploadPartnershipDeed(file: File) {
+  const formData = new FormData();
+  formData.append("partnershipDeed", file);
+
+  const response = await http(ROUTES.partnershipDeed, {
+    method: "POST",
+    body: formData,
+  });
+
+  const data = await response.json();
+  assertData(response, data);
+  return data?.data?.account;
+}
+
 export async function uploadPanCard(file: File) {
   const formData = new FormData();
   formData.append("panCard", file);

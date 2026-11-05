@@ -17,6 +17,10 @@ type Phase = "loading" | "ready" | "waiting" | "test-mode" | "completing" | "suc
 const TEST_MODE_TOS_HOST = "mock.bridge.tos";
 
 export default function StablecoinModal({ onClose, onComplete }: StablecoinModalProps) {
+  // Every business type now follows the same ToS-only flow: the one extra
+  // document company / LLP need (the ownership structure document) is collected
+  // during KYC and attached automatically when the capability is requested, so
+  // there's nothing to upload here.
   const [phase, setPhase] = useState<Phase>("loading");
   const [tosUrl, setTosUrl] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -25,7 +29,8 @@ export default function StablecoinModal({ onClose, onComplete }: StablecoinModal
   const popupRef = useRef<Window | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
+  const beginTos = () => {
+    setPhase("loading");
     startStablecoinTos()
       .then((url) => {
         setTosUrl(url);
@@ -36,6 +41,11 @@ export default function StablecoinModal({ onClose, onComplete }: StablecoinModal
         setErrorMessage(error.message || "Failed to start Terms of Service");
         setPhase("error");
       });
+  };
+
+  useEffect(() => {
+    beginTos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const stopWatchingPopup = () => {

@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { Check, ChevronsUpDown, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { submitAboutBusiness, getIndustryCodes, PURPOSE_CODE_OPTIONS, type IndustryCodeOption,} from "../services/aboutBusinessApi";
-import { submitBusinessIdentifiers, uploadPanCard, uploadAddressDocument, uploadSourceOfIncome,} from "../services/businessIdentifiersApi";
+import { submitBusinessIdentifiers, uploadPanCard, uploadAddressDocument, uploadSourceOfIncome, submitCompanyBusinessIdentifiers, uploadIncorporationCertificate, uploadOwnershipStructure, submitPartnershipBusinessIdentifiers, uploadPartnershipDeed,} from "../services/businessIdentifiersApi";
 import { submitInrBankAccount, submitEefcBankAccount,} from "../services/bankAccountApi";
 import { submitOwnerPerson, activateAccount, getKycProgress } from "../services/accountActivationApi";
+import { addCompanyPerson, type CompanyPerson } from "../services/personApi";
 import { refreshCurrentUser } from "../services/authApi";
 import { useAuthStore } from "../Zustand/userStore";
 import StablecoinModal from "../Components/StablecoinModal";
@@ -14,21 +15,33 @@ import payzollLogo from "../assets/payzoll.png";
 const inputClass =
   "px-1 py-2 focus:outline-none focus:ring-0 border-b-2 border-gray-300 focus:border-black transition text-sm lg:text-base";
 
-const TOTAL_STEPS = 4;
-
-const SIDEBAR_STEPS = [
+// Step labels differ by business type: a company has an extra "Directors &
+// Owners" step between identifiers and bank details (XflowPay needs a person
+// per director / beneficial owner). Everything that renders the journey reads
+// its length and labels from here so the two flows stay in sync.
+const SIDEBAR_STEPS_DEFAULT = [
   "Business Details",
   "Business Identifiers",
   "Bank Details",
   "Summary and Declaration",
 ];
 
+const SIDEBAR_STEPS_COMPANY = [
+  "Business Details",
+  "Business Identifiers",
+  "Directors & Owners",
+  "Bank Details",
+  "Summary and Declaration",
+];
+
 function StepHeader({
   step,
+  totalSteps,
   title,
   subtitle,
 }: {
-  step: 1 | 2 | 3 | 4;
+  step: number;
+  totalSteps: number;
   title: string;
   subtitle: string;
 }) {
@@ -39,7 +52,7 @@ function StepHeader({
           {step}
         </span>
         <span className="text-xs font-semibold text-arc-gold-600 tracking-wide">
-          STEP {step} OF {TOTAL_STEPS}
+          STEP {step} OF {totalSteps}
         </span>
       </div>
       <h2 className="text-xl lg:text-2xl font-semibold mb-1 text-gray-900">{title}</h2>
@@ -238,12 +251,18 @@ function IndustryCodeDropdown({
   onSelect,
   onClear,
   disabled,
+  loadingOptions = false,
+  loadError = null,
+  onRetry,
 }: {
   options: IndustryCodeOption[];
   selectedCode: string;
   onSelect: (code: string) => void;
   onClear: () => void;
   disabled: boolean;
+  loadingOptions?: boolean;
+  loadError?: string | null;
+  onRetry?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -263,16 +282,20 @@ function IndustryCodeDropdown({
 
   const selectedOption = options.find((opt) => opt.code === selectedCode);
   const normalizedQuery = query.trim().toLowerCase();
-  const filteredOptions =
+  // Show the list as soon as the dropdown opens (like the purpose-code
+  // picker), not only after the user types. There are ~1000 NAICS codes, so
+  // the visible rows are capped and the search narrows them.
+  const RESULT_CAP = 100;
+  const matchedOptions =
     normalizedQuery.length === 0
-      ? []
-      : options
-          .filter(
-            (option) =>
-              option.label.toLowerCase().includes(normalizedQuery) ||
-              option.code.toLowerCase().includes(normalizedQuery)
-          )
-          .slice(0, 100);
+      ? options
+      : options.filter(
+          (option) =>
+            option.label.toLowerCase().includes(normalizedQuery) ||
+            option.code.toLowerCase().includes(normalizedQuery)
+        );
+  const filteredOptions = matchedOptions.slice(0, RESULT_CAP);
+  const hiddenCount = matchedOptions.length - filteredOptions.length;
 
   return (
     <div className="flex flex-col relative" ref={containerRef}>
@@ -350,8 +373,27 @@ function IndustryCodeDropdown({
       {open && (
         <div className="absolute z-20 top-full mt-1 w-full bg-white border border-gray-200 rounded-sm shadow-lg overflow-hidden">
           <div className="max-h-72 overflow-y-auto">
-            {normalizedQuery.length === 0 ? (
-              <p className="px-3 py-3 text-sm text-gray-400">Type to search NAICS industry codes…</p>
+            {loadError ? (
+              <div className="px-3 py-3 text-sm">
+                <p className="text-red-600">Couldn't load industry codes.</p>
+                <p className="text-xs text-gray-400 mt-0.5 break-words">{loadError}</p>
+                {onRetry && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRetry();
+                    }}
+                    className="mt-2 px-3 py-1.5 bg-black text-white text-xs font-medium rounded-full"
+                  >
+                    Retry
+                  </button>
+                )}
+              </div>
+            ) : loadingOptions ? (
+              <p className="px-3 py-3 text-sm text-gray-400">Loading industry codes…</p>
+            ) : options.length === 0 ? (
+              <p className="px-3 py-3 text-sm text-gray-400">No industry codes available.</p>
             ) : (
               <>
                 <div className="flex items-center justify-between px-3 py-2 bg-arc-gold-50/60 sticky top-0">
@@ -359,7 +401,7 @@ function IndustryCodeDropdown({
                     <span className="w-1.5 h-1.5 rounded-full bg-arc-gold-500" />
                     Industry codes
                   </span>
-                  <span className="text-xs text-gray-400">{filteredOptions.length}</span>
+                  <span className="text-xs text-gray-400">{matchedOptions.length}</span>
                 </div>
                 <div className="divide-y divide-gray-100">
                   {filteredOptions.length === 0 ? (
@@ -395,6 +437,11 @@ function IndustryCodeDropdown({
                     })
                   )}
                 </div>
+                {hiddenCount > 0 && (
+                  <p className="px-3 py-2 text-xs text-gray-400 border-t border-gray-100 bg-white sticky bottom-0">
+                    Showing first {filteredOptions.length} of {matchedOptions.length} — type to narrow down.
+                  </p>
+                )}
               </>
             )}
           </div>
@@ -414,7 +461,7 @@ function StepCard({
   return (
     <div
       className={`rounded-2xl mt-5 min-h-0 ${
-        scrollable ? "flex-1 overflow-y-auto pr-1" : ""
+        scrollable ? "flex-1 overflow-y-auto pl-1 pr-1 pt-1.5" : ""
       }`}
     >
       {children}
@@ -424,9 +471,11 @@ function StepCard({
 
 function OnboardingSidebar({
   step,
+  steps,
   reachedSummary,
 }: {
-  step: 1 | 2 | 3 | 4;
+  step: number;
+  steps: string[];
   reachedSummary: boolean;
 }) {
   return (
@@ -438,11 +487,11 @@ function OnboardingSidebar({
       <p className="text-sm text-gray-500 mb-6">One-time KYC to unlock settlements.</p>
 
       <div className="flex mt-5 flex-col">
-        {SIDEBAR_STEPS.map((label, idx) => {
+        {steps.map((label, idx) => {
           const n = idx + 1;
           const isActive = n === step;
-          const isDone = n < step || (reachedSummary && n < 4);
-          const isLast = idx === SIDEBAR_STEPS.length - 1;
+          const isDone = n < step || (reachedSummary && n < steps.length);
+          const isLast = idx === steps.length - 1;
 
           return (
             <div key={label} className="flex  gap-4">
@@ -543,12 +592,19 @@ const OTHER_DESCRIPTION = "__other__";
 function AboutBusinessStep({
   initial,
   onDone,
+  stepNumber = 1,
+  totalSteps = 4,
 }: {
   initial?: AboutBusinessSummary | null;
   onDone: (data: AboutBusinessSummary) => void;
+  stepNumber?: number;
+  totalSteps?: number;
 }) {
   const user = useAuthStore((s) => s.user);
-  const isSoleProprietorship = user?.userType === "soleproprietorship";
+  // Business industry (NAICS) is collected for every non-individual type -
+  // sole proprietorship and the entity types (company/LLP/partnership). It's
+  // not required for individuals.
+  const collectsIndustry = user?.userType !== "individual";
 
   const [website, setWebsite] = useState(initial?.website ?? "");
   const [productDescription, setProductDescription] = useState(initial?.productDescription ?? "");
@@ -562,14 +618,33 @@ function AboutBusinessStep({
   const [selectedCodes, setSelectedCodes] = useState<string[]>(initial?.purposeCodes ?? []);
   const [businessIndustry, setBusinessIndustry] = useState(initial?.businessIndustry ?? "");
   const [industryOptions, setIndustryOptions] = useState<IndustryCodeOption[]>([]);
+  const [industryLoading, setIndustryLoading] = useState(false);
+  const [industryError, setIndustryError] = useState<string | null>(null);
+  const [industryReloadKey, setIndustryReloadKey] = useState(0);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!isSoleProprietorship) return;
+    if (!collectsIndustry) return;
+    let cancelled = false;
+    setIndustryLoading(true);
+    setIndustryError(null);
     getIndustryCodes()
-      .then(setIndustryOptions)
-      .catch(() => {});
-  }, [isSoleProprietorship]);
+      .then((codes) => {
+        if (cancelled) return;
+        setIndustryOptions(codes);
+        if (!codes.length) setIndustryError("The server returned no industry codes.");
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setIndustryError(err?.message || "Failed to load industry codes.");
+      })
+      .finally(() => {
+        if (!cancelled) setIndustryLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [collectsIndustry, industryReloadKey]);
 
   const toggleCode = (code: string) => {
     setSelectedCodes((prev) =>
@@ -595,7 +670,7 @@ function AboutBusinessStep({
       return;
     }
 
-    if (isSoleProprietorship && !businessIndustry) {
+    if (collectsIndustry && !businessIndustry) {
       toast.error("Please select your business industry code");
       return;
     }
@@ -613,7 +688,7 @@ function AboutBusinessStep({
         productDescription: productDescription.trim(),
         dba: dba.trim(),
         purposeCode: selectedCodes.map((code) => ({ code })),
-        businessIndustry: isSoleProprietorship ? businessIndustry : undefined,
+        businessIndustry: collectsIndustry ? businessIndustry : undefined,
       });
 
       onDone({
@@ -626,7 +701,7 @@ function AboutBusinessStep({
         purposeLabels: selectedCodes.map(
           (code) => PURPOSE_CODE_OPTIONS.find((opt) => opt.code === code)?.label || code
         ),
-        businessIndustry: isSoleProprietorship ? businessIndustry : undefined,
+        businessIndustry: collectsIndustry ? businessIndustry : undefined,
       });
     } catch (error: any) {
       toast.error(error.message || "Failed to submit business details");
@@ -638,7 +713,8 @@ function AboutBusinessStep({
   return (
     <>
       <StepHeader
-        step={1}
+        step={stepNumber}
+        totalSteps={totalSteps}
         title="Tell us about your business"
         subtitle="We use this to set up your account with our payment partner"
       />
@@ -731,13 +807,16 @@ function AboutBusinessStep({
             )}
           </div>
 
-          {isSoleProprietorship && (
+          {collectsIndustry && (
             <IndustryCodeDropdown
               options={industryOptions}
               selectedCode={businessIndustry}
               onSelect={setBusinessIndustry}
               onClear={() => setBusinessIndustry("")}
               disabled={loading}
+              loadingOptions={industryLoading}
+              loadError={industryError}
+              onRetry={() => setIndustryReloadKey((k) => k + 1)}
             />
           )}
 
@@ -796,10 +875,14 @@ function BusinessIdentifiersStep({
   initial,
   onDone,
   onBack,
+  stepNumber = 2,
+  totalSteps = 4,
 }: {
   initial?: BusinessIdentifiersSummary | null;
   onDone: (data: BusinessIdentifiersSummary) => void;
   onBack: () => void;
+  stepNumber?: number;
+  totalSteps?: number;
 }) {
   const user = useAuthStore((s) => s.user);
   const isSoleProprietorship = user?.userType === "soleproprietorship";
@@ -934,7 +1017,8 @@ function BusinessIdentifiersStep({
   return (
     <>
       <StepHeader
-        step={2}
+        step={stepNumber}
+        totalSteps={totalSteps}
         title="Current address & PAN details"
         subtitle="Provide your current address and PAN to verify your identity"
       />
@@ -1182,6 +1266,8 @@ function BankDetailsStep({
   accountHolderName,
   onDone,
   onBack,
+  stepNumber = 3,
+  totalSteps = 4,
 }: {
   initial?: BankDetailsSummary | null;
   // The physical address and the owner's name are each collected once, on
@@ -1191,6 +1277,8 @@ function BankDetailsStep({
   accountHolderName: string;
   onDone: (data: BankDetailsSummary) => void;
   onBack: () => void;
+  stepNumber?: number;
+  totalSteps?: number;
 }) {
   const [currency, setCurrency] = useState<Currency>(initial?.currency ?? "INR");
   const [ifsc, setIfsc] = useState(initial?.currency === "INR" ? initial.routingCode : "");
@@ -1259,7 +1347,8 @@ function BankDetailsStep({
   return (
     <>
       <StepHeader
-        step={3}
+        step={stepNumber}
+        totalSteps={totalSteps}
         title="Add your payout bank account"
         subtitle="We'll use this account to send your settlements"
       />
@@ -1426,12 +1515,28 @@ function SummaryStep({
   bankDetails,
   onEditStep,
   onDone,
+  stepNumber = 4,
+  totalSteps = 4,
+  isCompany = false,
+  entityType,
+  persons = [],
 }: {
   aboutBusiness: AboutBusinessSummary;
   businessIdentifiers: BusinessIdentifiersSummary;
   bankDetails: BankDetailsSummary;
-  onEditStep: (step: 1 | 2 | 3) => void;
+  onEditStep: (step: number) => void;
   onDone: () => void;
+  stepNumber?: number;
+  totalSteps?: number;
+  // Company accounts already added their directors/owners in the dedicated
+  // step, so activation must NOT create a single owner person for them.
+  isCompany?: boolean;
+  // When set (company/LLP/partnership), the identifiers section shows the
+  // entity's own labels (CIN/LLPIN/GSTIN + Legal name + its id document)
+  // instead of the individual PAN labels.
+  entityType?: EntityType;
+  // Directors/owners to list in the summary (entity flows only).
+  persons?: CompanyPerson[];
 }) {
   const [declared, setDeclared] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -1447,7 +1552,12 @@ function SummaryStep({
     setLoading(true);
 
     try {
-      await submitOwnerPerson();
+      // individual/sole-prop: create the single owner person from the account's
+      // own PAN. company: directors/owners were already created in the Directors
+      // & Owners step, so skip this and go straight to activation.
+      if (!isCompany) {
+        await submitOwnerPerson();
+      }
       await activateAccount();
       // Refresh the store right away so the dashboard shows the real,
       // just-submitted status ("verifying") the instant the user lands
@@ -1472,7 +1582,8 @@ function SummaryStep({
   return (
     <>
       <StepHeader
-        step={4}
+        step={stepNumber}
+        totalSteps={totalSteps}
         title="Review & confirm"
         subtitle="Check everything below, then activate your account"
       />
@@ -1510,18 +1621,56 @@ function SummaryStep({
                 .filter(Boolean)
                 .join(", ")}
             />
-            <SummaryRow label="PAN number" value={businessIdentifiers.panNumber} />
-            <SummaryRow label="Name on PAN" value={businessIdentifiers.nameOnPan} />
-            <SummaryRow label="GST number" value={businessIdentifiers.gstin} />
-            <SummaryRow label="PAN document" value={businessIdentifiers.panFileName} />
-            <SummaryRow label="GST document" value={businessIdentifiers.gstFileName} />
-            <SummaryRow
-              label="Source of income document"
-              value={businessIdentifiers.sourceOfIncomeFileName}
-            />
+            {entityType ? (
+              <>
+                <SummaryRow
+                  label={entityType === "partnership" ? "GSTIN" : entityType === "llp" ? "LLPIN / CIN" : "CIN"}
+                  value={businessIdentifiers.panNumber}
+                />
+                <SummaryRow label="Legal name" value={businessIdentifiers.nameOnPan} />
+                <SummaryRow
+                  label={entityType === "partnership" ? "Partnership deed" : "Certificate of Incorporation"}
+                  value={businessIdentifiers.panFileName}
+                />
+              </>
+            ) : (
+              <>
+                <SummaryRow label="PAN number" value={businessIdentifiers.panNumber} />
+                <SummaryRow label="Name on PAN" value={businessIdentifiers.nameOnPan} />
+                <SummaryRow label="GST number" value={businessIdentifiers.gstin} />
+                <SummaryRow label="PAN document" value={businessIdentifiers.panFileName} />
+                <SummaryRow label="GST document" value={businessIdentifiers.gstFileName} />
+                <SummaryRow
+                  label="Source of income document"
+                  value={businessIdentifiers.sourceOfIncomeFileName}
+                />
+              </>
+            )}
           </SummarySection>
 
-          <SummarySection title="Bank details" onEdit={() => onEditStep(3)}>
+          {entityType && (
+            <SummarySection title="Directors & owners" onEdit={() => onEditStep(3)}>
+              {persons.length === 0 ? (
+                <SummaryRow label="People" value="None added" />
+              ) : (
+                persons.map((p) => (
+                  <SummaryRow
+                    key={p.id}
+                    label={p.fullName}
+                    value={[
+                      p.relationship?.director && "Director",
+                      p.relationship?.owner && "Owner",
+                      p.relationship?.representative && "Representative",
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  />
+                ))
+              )}
+            </SummarySection>
+          )}
+
+          <SummarySection title="Bank details" onEdit={() => onEditStep(entityType ? 4 : 3)}>
             <SummaryRow label="Currency" value={bankDetails.currency} />
             <SummaryRow label="Account number" value={bankDetails.accountNumber} />
             <SummaryRow
@@ -1569,7 +1718,679 @@ function SummaryStep({
   );
 }
 
-export default function KycPage() {
+/* ======================================================================
+   Company-only steps
+   ====================================================================== */
+
+type EntityType = "company" | "llp" | "partnership";
+
+interface CompanyIdentifiersSummary {
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state: string;
+  zipcode: string;
+  // company / LLP carry a CIN/LLPIN; a partnership carries a GSTIN.
+  cin?: string;
+  gstin?: string;
+  legalName: string;
+  // The id document on file: Certificate of Incorporation (company/LLP) or
+  // the Partnership deed (partnership).
+  incorporationFileName: string;
+  // company / LLP only: the ownership structure document collected here for
+  // the stablecoin capability (attached automatically at activation).
+  ownershipFileName?: string;
+}
+
+// Per-entity labels/placeholders for the registration step.
+const ENTITY_IDENTIFIERS: Record<EntityType, { idLabel: string; idPlaceholder: string; docLabel: string; title: string; subtitle: string }> = {
+  company: {
+    idLabel: "CIN (Company Identification Number)",
+    idPlaceholder: "U72900KA2020PTC123456",
+    docLabel: "Certificate of Incorporation",
+    title: "Company registration & address",
+    subtitle: "Your registered office address and CIN, plus the Certificate of Incorporation",
+  },
+  llp: {
+    idLabel: "LLPIN / CIN",
+    idPlaceholder: "AAB-1234",
+    docLabel: "Certificate of Incorporation",
+    title: "LLP registration & address",
+    subtitle: "Your registered office address and LLPIN, plus the Certificate of Incorporation",
+  },
+  partnership: {
+    idLabel: "GSTIN",
+    idPlaceholder: "22AAAAA0000A1Z5",
+    docLabel: "Partnership deed",
+    title: "Partnership registration & address",
+    subtitle: "Your registered address and GSTIN, plus the Partnership deed",
+  },
+};
+
+// Step 2 for a company/LLP/partnership: registered address + the entity's
+// identifier (CIN/LLPIN, or GSTIN for a partnership) + its id document
+// (Certificate of Incorporation, or the Partnership deed). No individual PAN
+// here - each director/owner carries their own on the next step.
+function CompanyBusinessIdentifiersStep({
+  entityType,
+  initial,
+  onDone,
+  onBack,
+  stepNumber,
+  totalSteps,
+}: {
+  entityType: EntityType;
+  initial?: CompanyIdentifiersSummary | null;
+  onDone: (data: CompanyIdentifiersSummary) => void;
+  onBack: () => void;
+  stepNumber: number;
+  totalSteps: number;
+}) {
+  const cfg = ENTITY_IDENTIFIERS[entityType];
+  const isPartnership = entityType === "partnership";
+  // company / LLP also collect an ownership structure document here (held for
+  // the stablecoin capability). Partnership doesn't need it.
+  const collectsOwnership = entityType === "company" || entityType === "llp";
+  const [addressLine1, setAddressLine1] = useState(initial?.addressLine1 ?? "");
+  const [addressLine2, setAddressLine2] = useState(initial?.addressLine2 ?? "");
+  const [city, setCity] = useState(initial?.city ?? "");
+  const [state, setState] = useState(initial?.state ?? "");
+  const [zipcode, setZipcode] = useState(initial?.zipcode ?? "");
+  // Holds the CIN/LLPIN for company/LLP, or the GSTIN for a partnership.
+  const [cin, setCin] = useState(initial?.cin ?? initial?.gstin ?? "");
+  const [incorporationFile, setIncorporationFile] = useState<File | null>(null);
+  // Only ever read (the "On file: …" hint); a resumed doc is replaced by
+  // picking a new file, never re-set in state.
+  const [incorporationFileName] = useState(initial?.incorporationFileName ?? "");
+  const [ownershipFile, setOwnershipFile] = useState<File | null>(null);
+  const [ownershipFileName] = useState(initial?.ownershipFileName ?? "");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    if (!cin.trim() || !addressLine1.trim() || !city.trim() || !state.trim() || !zipcode.trim()) {
+      toast.error(`Please fill in the ${isPartnership ? "GSTIN" : "registration number"} and the full registered address`);
+      return;
+    }
+    if (!incorporationFile && !incorporationFileName) {
+      toast.error(`Please upload the ${cfg.docLabel}`);
+      return;
+    }
+    if (collectsOwnership && !ownershipFile && !ownershipFileName) {
+      toast.error("Please upload the ownership structure document");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const address = {
+        addressLine1: addressLine1.trim(),
+        addressLine2: addressLine2.trim() || undefined,
+        city: city.trim(),
+        state: state.trim(),
+        zipcode: zipcode.trim(),
+      };
+      const identifier = cin.trim().toUpperCase();
+
+      let account;
+      if (isPartnership) {
+        account = await submitPartnershipBusinessIdentifiers({ ...address, gstin: identifier });
+        if (incorporationFile) await uploadPartnershipDeed(incorporationFile);
+      } else {
+        account = await submitCompanyBusinessIdentifiers({ ...address, cin: identifier });
+        if (incorporationFile) await uploadIncorporationCertificate(incorporationFile);
+        if (ownershipFile) await uploadOwnershipStructure(ownershipFile);
+      }
+
+      onDone({
+        ...address,
+        cin: isPartnership ? undefined : identifier,
+        gstin: isPartnership ? identifier : undefined,
+        legalName: account?.businessDetails?.legalName ?? "",
+        incorporationFileName: incorporationFile ? incorporationFile.name : incorporationFileName,
+        ownershipFileName: ownershipFile ? ownershipFile.name : ownershipFileName,
+      });
+    } catch (error: any) {
+      toast.error(error.message || "Failed to submit business details");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <StepHeader
+        step={stepNumber}
+        totalSteps={totalSteps}
+        title={cfg.title}
+        subtitle={cfg.subtitle}
+      />
+      <StepCard scrollable>
+        <div className="flex flex-col gap-5 pb-4">
+          <div className="flex flex-col">
+            <label className="text-sm font-medium mb-1 text-gray-700">
+              {cfg.idLabel}
+            </label>
+            <input
+              className={inputClass}
+              value={cin}
+              onChange={(e) => setCin(e.target.value)}
+              placeholder={`e.g. ${cfg.idPlaceholder}`}
+              maxLength={isPartnership ? 15 : 21}
+            />
+          </div>
+
+          <div className="flex flex-col">
+            <label className="text-sm font-medium mb-1 text-gray-700">Registered address line 1</label>
+            <input className={inputClass} value={addressLine1} onChange={(e) => setAddressLine1(e.target.value)} />
+          </div>
+          <div className="flex flex-col">
+            <label className="text-sm font-medium mb-1 text-gray-700">Address line 2 (optional)</label>
+            <input className={inputClass} value={addressLine2} onChange={(e) => setAddressLine2(e.target.value)} />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="flex flex-col">
+              <label className="text-sm font-medium mb-1 text-gray-700">City</label>
+              <input className={inputClass} value={city} onChange={(e) => setCity(e.target.value)} />
+            </div>
+            <div className="flex flex-col">
+              <label className="text-sm font-medium mb-1 text-gray-700">State</label>
+              <input className={inputClass} value={state} onChange={(e) => setState(e.target.value)} />
+            </div>
+            <div className="flex flex-col">
+              <label className="text-sm font-medium mb-1 text-gray-700">Postal code</label>
+              <input className={inputClass} value={zipcode} onChange={(e) => setZipcode(e.target.value)} />
+            </div>
+          </div>
+
+          <div className="flex flex-col">
+            <label className="text-sm font-medium mb-1 text-gray-700">{cfg.docLabel}</label>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,application/pdf"
+              onChange={(e) => setIncorporationFile(e.target.files?.[0] ?? null)}
+              className="text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-900 file:px-3 file:py-1.5 file:text-white file:text-sm"
+            />
+            {incorporationFileName && !incorporationFile && (
+              <p className="text-xs text-gray-500 mt-1">On file: {incorporationFileName} — pick a new file to replace it.</p>
+            )}
+            <p className="text-xs text-gray-400 mt-1">JPEG, PNG or PDF, up to 10MB.</p>
+          </div>
+
+          {collectsOwnership && (
+            <div className="flex flex-col">
+              <label className="text-sm font-medium mb-1 text-gray-700">Ownership structure document</label>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,application/pdf"
+                onChange={(e) => setOwnershipFile(e.target.files?.[0] ?? null)}
+                className="text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-900 file:px-3 file:py-1.5 file:text-white file:text-sm"
+              />
+              {ownershipFileName && !ownershipFile && (
+                <p className="text-xs text-gray-500 mt-1">On file: {ownershipFileName} — pick a new file to replace it.</p>
+              )}
+              <p className="text-xs text-gray-400 mt-1">
+                A declaration of your beneficial owners. Required to accept stablecoins later; JPEG, PNG or PDF, up to 10MB.
+              </p>
+            </div>
+          )}
+        </div>
+      </StepCard>
+
+      <div className="flex gap-3 mt-4 shrink-0">
+        <button onClick={onBack} className="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50">
+          Back
+        </button>
+        <button
+          onClick={handleSubmit}
+          disabled={loading}
+          className="px-6 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-medium hover:bg-black disabled:opacity-50"
+        >
+          {loading ? "Saving…" : "Continue"}
+        </button>
+      </div>
+    </>
+  );
+}
+
+const emptyPersonForm = {
+  fullName: "",
+  dateOfBirth: "",
+  email: "",
+  panNumber: "",
+  isDirector: true,
+  isOwner: false,
+  isRepresentative: false,
+  addressLine1: "",
+  addressLine2: "",
+  city: "",
+  state: "",
+  zipcode: "",
+};
+
+// Step 3 for a company: add one or more directors / beneficial owners. XflowPay
+// needs KYC for owners with >25% ownership, or at least one director otherwise.
+interface StagedPerson {
+  tempId: string;
+  fullName: string;
+  dateOfBirth: string;
+  email: string;
+  panNumber: string;
+  isDirector: boolean;
+  isOwner: boolean;
+  isRepresentative: boolean;
+  addressLine1: string;
+  addressLine2: string;
+  city: string;
+  state: string;
+  zipcode: string;
+  panCard: File;
+}
+
+function DirectorsAndOwnersStep({
+  initialPersons,
+  onDone,
+  onBack,
+  stepNumber,
+  totalSteps,
+}: {
+  initialPersons?: CompanyPerson[] | null;
+  onDone: (persons: CompanyPerson[]) => void;
+  onBack: () => void;
+  stepNumber: number;
+  totalSteps: number;
+}) {
+  // Persons already created on XflowPay (a resumed session). XflowPay can't
+  // remove a person while the account is still in KYC, so these are shown as
+  // saved and aren't removable here - only staged (not-yet-created) people are.
+  const [committed, setCommitted] = useState<CompanyPerson[]>(initialPersons ?? []);
+  // People added this session: staged locally and only created on XflowPay at
+  // "Continue", so they can be removed first with no orphaned XflowPay records.
+  const [staged, setStaged] = useState<StagedPerson[]>([]);
+  const initialHasDirector = (initialPersons ?? []).some((p) => p.relationship?.director);
+  const initialHasOwner = (initialPersons ?? []).some((p) => p.relationship?.owner);
+  const initialHasRep = (initialPersons ?? []).some((p) => p.relationship?.representative);
+  // Default a role ON only while nothing covers it yet, so the first person
+  // added defaults to all three required roles (the common single-signatory
+  // case) and later people default to none.
+  const [form, setForm] = useState({
+    ...emptyPersonForm,
+    isDirector: !initialHasDirector,
+    isOwner: !initialHasOwner,
+    isRepresentative: !initialHasRep,
+  });
+  const [panCard, setPanCard] = useState<File | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const panInputRef = useRef<HTMLInputElement>(null);
+  // The add-person form is shown on its own; once a person is saved it
+  // collapses into the list above and the user re-opens a blank one with
+  // "Add another person". This makes it unmistakable that the details they
+  // just entered were captured (they appear as an "Added" card), instead of
+  // the form silently clearing and looking like nothing happened. Start open
+  // only when there's no one on file yet (a resumed session starts collapsed).
+  const [showForm, setShowForm] = useState((initialPersons ?? []).length === 0);
+
+  // XflowPay requires a company account to have at least one person in EACH
+  // of these relationships before it can be activated (one person can hold
+  // all three). Tracked across already-saved and still-staged people so the
+  // Continue button can enforce full coverage up front, rather than letting
+  // the user discover a missing role only at the final activation step.
+  const hasDirector =
+    committed.some((p) => p.relationship?.director) || staged.some((s) => s.isDirector);
+  const hasOwner =
+    committed.some((p) => p.relationship?.owner) || staged.some((s) => s.isOwner);
+  const hasRepresentative =
+    committed.some((p) => p.relationship?.representative) || staged.some((s) => s.isRepresentative);
+
+  const setField = (key: keyof typeof form, value: string | boolean) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
+
+  const handleAdd = () => {
+    if (!form.fullName.trim() || !form.dateOfBirth || !form.email.trim() || !form.panNumber.trim()) {
+      toast.error("Please fill in name, date of birth, email and PAN");
+      return;
+    }
+    // Validate PAN format up front (5 letters, 4 digits, 1 letter) so a bad
+    // value is caught here, not only when the person is pushed to XflowPay at
+    // Continue - which previously left an un-editable staged row behind.
+    if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(form.panNumber.trim().toUpperCase())) {
+      toast.error("Enter a valid PAN number (e.g. ABCDE1234F)");
+      return;
+    }
+    if (!form.isDirector && !form.isOwner && !form.isRepresentative) {
+      toast.error("Mark this person as a director, owner, or representative");
+      return;
+    }
+    if (!form.addressLine1.trim() || !form.city.trim() || !form.state.trim() || !form.zipcode.trim()) {
+      toast.error("Please fill in the person's home address");
+      return;
+    }
+    if (!panCard) {
+      toast.error("Please attach this person's PAN card");
+      return;
+    }
+
+    const newPerson: StagedPerson = {
+      tempId: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      fullName: form.fullName.trim(),
+      dateOfBirth: form.dateOfBirth,
+      email: form.email.trim(),
+      panNumber: form.panNumber.trim().toUpperCase(),
+      isDirector: form.isDirector,
+      isOwner: form.isOwner,
+      isRepresentative: form.isRepresentative,
+      addressLine1: form.addressLine1.trim(),
+      addressLine2: form.addressLine2.trim(),
+      city: form.city.trim(),
+      state: form.state.trim(),
+      zipcode: form.zipcode.trim(),
+      panCard,
+    };
+    const willHaveDirector = hasDirector || form.isDirector;
+    const willHaveOwner = hasOwner || form.isOwner;
+    const willHaveRep = hasRepresentative || form.isRepresentative;
+    setStaged((prev) => [...prev, newPerson]);
+    // Default the next person to cover only the roles still missing.
+    setForm({
+      ...emptyPersonForm,
+      isDirector: !willHaveDirector,
+      isOwner: !willHaveOwner,
+      isRepresentative: !willHaveRep,
+    });
+    setPanCard(null);
+    if (panInputRef.current) panInputRef.current.value = "";
+    // Collapse the form so the just-saved person is clearly shown in the list.
+    setShowForm(false);
+    toast.success(`${newPerson.fullName} added`);
+  };
+
+  // Open a fresh, blank add-person form pre-set to cover only the roles still
+  // missing across everyone added so far.
+  const openBlankForm = () => {
+    setForm({
+      ...emptyPersonForm,
+      isDirector: !hasDirector,
+      isOwner: !hasOwner,
+      isRepresentative: !hasRepresentative,
+    });
+    setPanCard(null);
+    if (panInputRef.current) panInputRef.current.value = "";
+    setShowForm(true);
+  };
+
+  const handleRemoveStaged = (tempId: string) =>
+    setStaged((prev) => prev.filter((s) => s.tempId !== tempId));
+
+  // Pull a staged person back into the form to edit them, then remove the row.
+  // Re-adding stages the corrected version. The PAN file can't be written back
+  // into a file <input>, so it's kept in state and shown by name below.
+  const handleEditStaged = (tempId: string) => {
+    const s = staged.find((p) => p.tempId === tempId);
+    if (!s) return;
+    setForm({
+      fullName: s.fullName,
+      dateOfBirth: s.dateOfBirth,
+      email: s.email,
+      panNumber: s.panNumber,
+      isDirector: s.isDirector,
+      isOwner: s.isOwner,
+      isRepresentative: s.isRepresentative,
+      addressLine1: s.addressLine1,
+      addressLine2: s.addressLine2,
+      city: s.city,
+      state: s.state,
+      zipcode: s.zipcode,
+    });
+    setPanCard(s.panCard);
+    if (panInputRef.current) panInputRef.current.value = "";
+    setStaged((prev) => prev.filter((p) => p.tempId !== tempId));
+    setShowForm(true);
+  };
+
+  const handleContinue = async () => {
+    // The form is open with details typed but not yet saved - clicking
+    // Continue here would silently drop them, exactly the confusion we're
+    // avoiding. Make the user save (or clear) first.
+    if (showForm && form.fullName.trim()) {
+      toast.error('You have unsaved details - click "Save details" first');
+      return;
+    }
+    if (committed.length + staged.length === 0) {
+      toast.error("Add at least one director or owner before continuing");
+      return;
+    }
+    // XflowPay rejects entity activation unless director, owner AND
+    // representative are each covered by at least one person (one person may
+    // hold all three). Enforce it here, naming exactly which role is missing,
+    // so the user doesn't hit the opaque "...must be present" error only at
+    // the final activation step.
+    const missingRoles = [
+      !hasDirector && "Director",
+      !hasOwner && "Owner",
+      !hasRepresentative && "Business Representative",
+    ].filter(Boolean);
+    if (missingRoles.length > 0) {
+      toast.error(
+        `Add a person for each required role. Missing: ${missingRoles.join(", ")}. One person can hold all of them.`
+      );
+      return;
+    }
+
+    setSubmitting(true);
+    const created: CompanyPerson[] = [];
+    // Create each staged person on XflowPay. If one fails, keep it (and the
+    // rest) staged and move the already-created ones to committed, so a retry
+    // doesn't create duplicates.
+    for (let i = 0; i < staged.length; i++) {
+      const s = staged[i];
+      try {
+        const person = await addCompanyPerson({
+          fullName: s.fullName,
+          dateOfBirth: s.dateOfBirth,
+          email: s.email,
+          panNumber: s.panNumber,
+          isDirector: s.isDirector,
+          isOwner: s.isOwner,
+          isRepresentative: s.isRepresentative,
+          addressLine1: s.addressLine1,
+          addressLine2: s.addressLine2 || undefined,
+          city: s.city,
+          state: s.state,
+          zipcode: s.zipcode,
+          panCard: s.panCard,
+        });
+        created.push(person);
+      } catch (error: any) {
+        setCommitted((prev) => [...prev, ...created]);
+        setStaged(staged.slice(i));
+        setSubmitting(false);
+        toast.error(`${s.fullName}: ${error.message || "could not be saved"}`);
+        return;
+      }
+    }
+    setSubmitting(false);
+    onDone([...committed, ...created]);
+  };
+
+  const roleLabel = (r: { director?: boolean; owner?: boolean; representative?: boolean }) =>
+    [r.director && "Director", r.owner && "Owner", r.representative && "Representative"]
+      .filter(Boolean)
+      .join(" · ");
+
+  return (
+    <>
+      <StepHeader
+        step={stepNumber}
+        totalSteps={totalSteps}
+        title="Directors & owners"
+        subtitle="Add each director and anyone owning more than 25% of the company"
+      />
+      <StepCard scrollable>
+        <div className="flex flex-col gap-5 pb-4">
+          {committed.length > 0 && (
+            <div className="flex flex-col gap-2">
+              {committed.map((p) => (
+                <div key={p.id} className="flex items-center justify-between rounded-sm border border-gray-200 px-4 py-3">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{p.fullName}</p>
+                    <p className="text-xs text-gray-500">{roleLabel(p.relationship ?? {})} · saved</p>
+                  </div>
+                  <Check className="w-5 h-5 text-arc-gold-600" />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {staged.length > 0 && (
+            <div className="flex flex-col gap-2">
+              {staged.map((s) => (
+                <div key={s.tempId} className="flex items-center justify-between rounded-sm border border-gray-200 px-4 py-3">
+                  <div className="flex items-center gap-2.5">
+                    <Check className="w-4 h-4 text-arc-gold-600 shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">{s.fullName}</p>
+                      <p className="text-xs text-gray-500">
+                        {roleLabel({ director: s.isDirector, owner: s.isOwner, representative: s.isRepresentative })} · Added
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => handleEditStaged(s.tempId)}
+                      disabled={submitting}
+                      className="text-sm font-medium text-gray-600 hover:text-gray-900 disabled:opacity-40"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleRemoveStaged(s.tempId)}
+                      disabled={submitting}
+                      className="text-gray-400 hover:text-red-600 disabled:opacity-40"
+                      aria-label={`Remove ${s.fullName}`}
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {showForm && (
+          <div className="rounded-xl border border-dashed border-gray-300 p-4 flex flex-col gap-4">
+            <p className="text-sm font-semibold text-gray-800">
+              {staged.length + committed.length > 0 ? "Add another director / owner" : "Add a director / owner"}
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-col">
+                <label className="text-sm font-medium mb-1 text-gray-700">Full name (as on PAN)</label>
+                <input className={inputClass} value={form.fullName} onChange={(e) => setField("fullName", e.target.value)} />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-sm font-medium mb-1 text-gray-700">Date of birth</label>
+                <input type="date" className={inputClass} value={form.dateOfBirth} onChange={(e) => setField("dateOfBirth", e.target.value)} />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-sm font-medium mb-1 text-gray-700">Email</label>
+                <input type="email" className={inputClass} value={form.email} onChange={(e) => setField("email", e.target.value)} />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-sm font-medium mb-1 text-gray-700">PAN number</label>
+                <input className={inputClass} value={form.panNumber} onChange={(e) => setField("panNumber", e.target.value)} placeholder="ABCDE1234F" />
+              </div>
+            </div>
+
+            <div className="flex gap-6">
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" checked={form.isDirector} onChange={(e) => setField("isDirector", e.target.checked)} />
+                Director
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" checked={form.isOwner} onChange={(e) => setField("isOwner", e.target.checked)} />
+                Owner ({">"}25%)
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" checked={form.isRepresentative} onChange={(e) => setField("isRepresentative", e.target.checked)} />
+                Representative
+              </label>
+            </div>
+            <p className="text-xs text-gray-400 -mt-2">
+              At least one person must be a Business Representative (often the same person as a director).
+            </p>
+
+            <div className="flex flex-col">
+              <label className="text-sm font-medium mb-1 text-gray-700">Home address line 1</label>
+              <input className={inputClass} value={form.addressLine1} onChange={(e) => setField("addressLine1", e.target.value)} />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="flex flex-col">
+                <label className="text-sm font-medium mb-1 text-gray-700">City</label>
+                <input className={inputClass} value={form.city} onChange={(e) => setField("city", e.target.value)} />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-sm font-medium mb-1 text-gray-700">State</label>
+                <input className={inputClass} value={form.state} onChange={(e) => setField("state", e.target.value)} />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-sm font-medium mb-1 text-gray-700">Postal code</label>
+                <input className={inputClass} value={form.zipcode} onChange={(e) => setField("zipcode", e.target.value)} />
+              </div>
+            </div>
+
+            <div className="flex flex-col">
+              <label className="text-sm font-medium mb-1 text-gray-700">PAN card</label>
+              <input
+                ref={panInputRef}
+                type="file"
+                accept="image/jpeg,image/png,application/pdf"
+                onChange={(e) => setPanCard(e.target.files?.[0] ?? null)}
+                className="text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-900 file:px-3 file:py-1.5 file:text-white file:text-sm"
+              />
+              {panCard && (
+                <p className="text-xs text-gray-500 mt-1">Attached: {panCard.name}</p>
+              )}
+            </div>
+
+            <button
+              onClick={handleAdd}
+              disabled={submitting}
+              className="self-end px-5 py-2 rounded-xl bg-gray-900 text-white text-sm font-medium hover:bg-black disabled:opacity-50"
+            >
+              Save details
+            </button>
+          </div>
+          )}
+
+          {!showForm && (
+            <button
+              onClick={openBlankForm}
+              disabled={submitting}
+              className="self-start px-5 py-2 rounded-xl border border-gray-900 text-gray-900 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
+            >
+              + Add another person
+            </button>
+          )}
+        </div>
+      </StepCard>
+
+      <div className="flex gap-3 mt-4 shrink-0">
+        <button onClick={onBack} disabled={submitting} className="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 disabled:opacity-50">
+          Back
+        </button>
+        <button
+          onClick={handleContinue}
+          disabled={submitting}
+          className="px-6 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-medium hover:bg-black disabled:opacity-50"
+        >
+          {submitting ? "Saving…" : "Continue"}
+        </button>
+      </div>
+    </>
+  );
+}
+
+function DefaultKycFlow() {
   const navigate = useNavigate();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [aboutBusiness, setAboutBusiness] = useState<AboutBusinessSummary | null>(null);
@@ -1631,8 +2452,11 @@ export default function KycPage() {
             city: bi.city,
             state: bi.state,
             zipcode: bi.zipcode,
-            panNumber: bi.panNumber,
-            nameOnPan: bi.nameOnPan,
+            // Company accounts have no individual PAN here (each director/owner
+            // carries their own) - coalesce so the existing summary type stays
+            // satisfied; the company UI uses CIN + the directors list instead.
+            panNumber: bi.panNumber ?? "",
+            nameOnPan: bi.nameOnPan ?? "",
             gstin: bi.gstin,
             // Real filenames aren't retrievable after the fact - these are
             // only ever shown as "On file: X - pick a new file to replace
@@ -1703,7 +2527,7 @@ export default function KycPage() {
       </header>
 
       <div className="flex flex-1 w-full min-h-0">
-        <OnboardingSidebar step={step} reachedSummary={reachedSummary} />
+        <OnboardingSidebar step={step} steps={SIDEBAR_STEPS_DEFAULT} reachedSummary={reachedSummary} />
 
         <main className="flex-1 flex justify-center py-4 lg:py-6 px-4 min-h-0">
           <div className="w-full max-w-2xl flex flex-col min-h-0">
@@ -1781,6 +2605,238 @@ export default function KycPage() {
                 aboutBusiness={aboutBusiness}
                 businessIdentifiers={businessIdentifiers}
                 bankDetails={bankDetails}
+                onEditStep={(editStep) => setStep(editStep as 1 | 2 | 3 | 4)}
+                onDone={() => setShowStablecoinModal(true)}
+              />
+            )}
+          </div>
+        </main>
+      </div>
+
+      {showStablecoinModal && (
+        <StablecoinModal
+          onClose={() => {
+            setShowStablecoinModal(false);
+            navigate("/dashboard");
+          }}
+          onComplete={() => refreshCurrentUser().catch(() => {})}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ======================================================================
+   Entity KYC flow (company / LLP / partnership): 5 steps — About ->
+   Registration -> Directors & Owners -> Bank -> Summary. Kept as its own
+   component so the existing individual/sole-proprietor flow above is untouched.
+   ====================================================================== */
+function EntityKycFlow({ entityType }: { entityType: EntityType }) {
+  const navigate = useNavigate();
+  const steps = SIDEBAR_STEPS_COMPANY;
+  const totalSteps = steps.length;
+  const [step, setStep] = useState<number>(1);
+  const [aboutBusiness, setAboutBusiness] = useState<AboutBusinessSummary | null>(null);
+  const [companyIdentifiers, setCompanyIdentifiers] = useState<CompanyIdentifiersSummary | null>(null);
+  const [persons, setPersons] = useState<CompanyPerson[]>([]);
+  const [bankDetails, setBankDetails] = useState<BankDetailsSummary | null>(null);
+  const [reachedSummary, setReachedSummary] = useState(false);
+  const [showStablecoinModal, setShowStablecoinModal] = useState(false);
+
+  useEffect(() => {
+    getKycProgress()
+      .then((progress) => {
+        let resumeStep = 1;
+
+        if (progress.aboutBusiness) {
+          const ab = progress.aboutBusiness;
+          setAboutBusiness({
+            ...ab,
+            purposeLabels: ab.purposeCodes.map(
+              (code) => PURPOSE_CODE_OPTIONS.find((opt) => opt.code === code)?.label ?? code
+            ),
+          });
+          resumeStep = 2;
+        }
+
+        const bi = progress.businessIdentifiers;
+        if (bi && (bi.cin || bi.gstin)) {
+          setCompanyIdentifiers({
+            addressLine1: bi.addressLine1,
+            addressLine2: bi.addressLine2,
+            city: bi.city,
+            state: bi.state,
+            zipcode: bi.zipcode,
+            cin: bi.cin,
+            gstin: bi.gstin,
+            legalName: bi.legalName ?? "",
+            incorporationFileName: bi.hasIncorporationFile ? "Previously uploaded" : "",
+            ownershipFileName: bi.hasOwnershipFile ? "Previously uploaded" : "",
+          });
+          if (resumeStep === 2) resumeStep = 3;
+        }
+
+        if (progress.persons && progress.persons.length > 0) {
+          setPersons(progress.persons as CompanyPerson[]);
+          if (resumeStep === 3) resumeStep = 4;
+        }
+
+        if (progress.bankDetails) {
+          const bd = progress.bankDetails;
+          setBankDetails({
+            currency: bd.currency as "INR" | "USD",
+            accountHolderName: bd.accountHolderName,
+            accountNumber: bd.accountNumber,
+            routingCode: bd.routingCode,
+            line1: bd.line1,
+            city: bd.city,
+            state: bd.state,
+            postalCode: bd.postalCode,
+            bankStatementFileName: bd.hasBankStatementFile ? "Previously uploaded" : undefined,
+          });
+          if (resumeStep === 4) {
+            // If the registered address / legal name on file no longer matches
+            // the bank account's billing details, resume at the bank step to
+            // reconfirm rather than at a stale summary (same guard as the live
+            // step 2 -> handoff above).
+            const bi = progress.businessIdentifiers;
+            const bankOutOfSync =
+              bi != null &&
+              (bi.addressLine1 !== bd.line1 ||
+                bi.city !== bd.city ||
+                bi.state !== bd.state ||
+                bi.zipcode !== bd.postalCode ||
+                (bi.legalName ?? "") !== bd.accountHolderName);
+            resumeStep = bankOutOfSync ? 4 : 5;
+            setReachedSummary(true);
+          }
+        }
+
+        setStep(resumeStep);
+      })
+      .catch(() => {});
+  }, []);
+
+  // SummaryStep renders a BusinessIdentifiersSummary; map the entity's
+  // identifier (CIN/LLPIN or GSTIN) + id document into its panNumber/panFileName
+  // slots. SummaryStep relabels them per entityType, so the review screen reads
+  // correctly (CIN/GSTIN, Legal name, Certificate of Incorporation / deed).
+  const summaryIdentifiers: BusinessIdentifiersSummary | null = companyIdentifiers
+    ? {
+        addressLine1: companyIdentifiers.addressLine1,
+        addressLine2: companyIdentifiers.addressLine2,
+        city: companyIdentifiers.city,
+        state: companyIdentifiers.state,
+        zipcode: companyIdentifiers.zipcode,
+        panNumber: companyIdentifiers.cin ?? companyIdentifiers.gstin ?? "",
+        nameOnPan: companyIdentifiers.legalName,
+        panFileName: companyIdentifiers.incorporationFileName,
+        sourceOfIncomeFileName: "",
+      }
+    : null;
+
+  return (
+    <div className="h-screen w-screen bg-gray-50 flex flex-col overflow-hidden">
+      <header className="w-full border-b border-gray-200 bg-white px-6 lg:px-10 py-3 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden">
+            <img src={payzollLogo} alt="Payzoll logo" className="w-full h-full object-contain p-1" />
+          </div>
+          <span className="font-semibold text-gray-900">Payzoll</span>
+        </div>
+        <button onClick={() => navigate("/dashboard")} className="text-sm text-gray-500 hover:text-black">
+          ← Back to dashboard
+        </button>
+      </header>
+
+      <div className="flex flex-1 w-full min-h-0">
+        <OnboardingSidebar step={step} steps={steps} reachedSummary={reachedSummary} />
+
+        <main className="flex-1 flex justify-center py-4 lg:py-6 px-4 min-h-0">
+          <div className="w-full max-w-2xl flex flex-col min-h-0">
+            {step === 1 && (
+              <AboutBusinessStep
+                initial={aboutBusiness}
+                stepNumber={1}
+                totalSteps={totalSteps}
+                onDone={(data) => {
+                  setAboutBusiness(data);
+                  setStep(reachedSummary ? 5 : 2);
+                }}
+              />
+            )}
+            {step === 2 && (
+              <CompanyBusinessIdentifiersStep
+                entityType={entityType}
+                initial={companyIdentifiers}
+                stepNumber={2}
+                totalSteps={totalSteps}
+                onBack={() => setStep(1)}
+                onDone={(data) => {
+                  setCompanyIdentifiers(data);
+                  // Same reasoning as the individual flow: a bank account's
+                  // billing address can't be edited in place on XflowPay, so if
+                  // the registered address (or legal name) just changed after a
+                  // bank account was already submitted, send the user back to
+                  // reconfirm it rather than activating with a stale address.
+                  const bankOutOfSync =
+                    bankDetails != null &&
+                    (data.addressLine1 !== bankDetails.line1 ||
+                      data.city !== bankDetails.city ||
+                      data.state !== bankDetails.state ||
+                      data.zipcode !== bankDetails.postalCode ||
+                      data.legalName !== bankDetails.accountHolderName);
+                  if (reachedSummary && bankOutOfSync) {
+                    toast.error("Your registered address or legal name changed - please reconfirm your payout bank account.");
+                    setStep(4);
+                    return;
+                  }
+                  setStep(reachedSummary ? 5 : 3);
+                }}
+              />
+            )}
+            {step === 3 && (
+              <DirectorsAndOwnersStep
+                initialPersons={persons}
+                stepNumber={3}
+                totalSteps={totalSteps}
+                onBack={() => setStep(2)}
+                onDone={(p) => {
+                  setPersons(p);
+                  setStep(reachedSummary ? 5 : 4);
+                }}
+              />
+            )}
+            {step === 4 && companyIdentifiers && (
+              <BankDetailsStep
+                initial={bankDetails}
+                stepNumber={4}
+                totalSteps={totalSteps}
+                address={{
+                  line1: companyIdentifiers.addressLine1,
+                  city: companyIdentifiers.city,
+                  state: companyIdentifiers.state,
+                  postalCode: companyIdentifiers.zipcode,
+                }}
+                accountHolderName={companyIdentifiers.legalName}
+                onBack={() => setStep(3)}
+                onDone={(data) => {
+                  setBankDetails(data);
+                  setReachedSummary(true);
+                  setStep(5);
+                }}
+              />
+            )}
+            {step === 5 && aboutBusiness && summaryIdentifiers && bankDetails && (
+              <SummaryStep
+                aboutBusiness={aboutBusiness}
+                businessIdentifiers={summaryIdentifiers}
+                bankDetails={bankDetails}
+                isCompany
+                entityType={entityType}
+                persons={persons}
+                stepNumber={5}
+                totalSteps={totalSteps}
                 onEditStep={(editStep) => setStep(editStep)}
                 onDone={() => setShowStablecoinModal(true)}
               />
@@ -1800,4 +2856,21 @@ export default function KycPage() {
       )}
     </div>
   );
+}
+
+export default function KycPage() {
+  const user = useAuthStore((s) => s.user);
+
+  // userType can be stale right after login; refresh so the correct flow is
+  // chosen (entity vs individual/sole-proprietor).
+  useEffect(() => {
+    refreshCurrentUser().catch(() => {});
+  }, []);
+
+  const entityType =
+    user?.userType === "company" || user?.userType === "llp" || user?.userType === "partnership"
+      ? (user.userType as EntityType)
+      : null;
+
+  return entityType ? <EntityKycFlow entityType={entityType} /> : <DefaultKycFlow />;
 }
