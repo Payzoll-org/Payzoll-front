@@ -4,16 +4,6 @@ import { AlertTriangle, Clock } from "lucide-react";
 import { useAuthStore } from "../Zustand/userStore";
 import { refreshCurrentUser } from "../services/authApi";
 
-// kycVerified flips server-side only when XflowPay's account.status.activated
-// webhook lands (Services/webhook.service.js) - review can take up to a
-// business day in production, so this polls the real backend state rather
-// than assuming/toggling anything client-side. 60s (not something
-// tighter like 20s) since review taking hours-to-a-day makes a faster
-// poll pure overhead - confirmed live this and StablecoinBanner's polling
-// combined were enough to exhaust the backend's shared rate limit budget
-// during normal use.
-const POLL_INTERVAL_MS = 60000;
-
 // Real XflowPay account.status values (api-reference.md "The Account
 // object") once activation has actually been submitted - "verifying" is
 // XflowPay reviewing it, same status this account sits in for however
@@ -29,13 +19,14 @@ export default function KycBanner() {
       return;
     }
 
-    const interval = setInterval(() => {
-      refreshCurrentUser().catch(() => {
-        // Transient network/auth hiccup - next poll retries, nothing to do here.
-      });
-    }, POLL_INTERVAL_MS);
-
-    return () => clearInterval(interval);
+    // Check once when the banner mounts - i.e. on page load / refresh (or when
+    // navigating back to a screen that shows it) - instead of polling. This
+    // /auth/me call self-heals the account status server-side (re-checks
+    // XflowPay and re-reads the user), so a single check per visit is enough to
+    // catch up; a refresh is all it takes to re-check.
+    refreshCurrentUser().catch(() => {
+      // Transient network/auth hiccup - a later refresh retries, nothing to do.
+    });
   }, [user?.id, user?.kycVerified]);
 
   if (!user || user.kycVerified) {

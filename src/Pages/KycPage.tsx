@@ -461,7 +461,7 @@ function StepCard({
   return (
     <div
       className={`rounded-2xl mt-5 min-h-0 ${
-        scrollable ? "flex-1 overflow-y-auto pr-1" : ""
+        scrollable ? "flex-1 overflow-y-auto pl-1 pr-1 pt-1.5" : ""
       }`}
     >
       {children}
@@ -2022,6 +2022,13 @@ function DirectorsAndOwnersStep({
   const [panCard, setPanCard] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const panInputRef = useRef<HTMLInputElement>(null);
+  // The add-person form is shown on its own; once a person is saved it
+  // collapses into the list above and the user re-opens a blank one with
+  // "Add another person". This makes it unmistakable that the details they
+  // just entered were captured (they appear as an "Added" card), instead of
+  // the form silently clearing and looking like nothing happened. Start open
+  // only when there's no one on file yet (a resumed session starts collapsed).
+  const [showForm, setShowForm] = useState((initialPersons ?? []).length === 0);
 
   // XflowPay requires a company account to have at least one person in EACH
   // of these relationships before it can be activated (one person can hold
@@ -2092,6 +2099,23 @@ function DirectorsAndOwnersStep({
     });
     setPanCard(null);
     if (panInputRef.current) panInputRef.current.value = "";
+    // Collapse the form so the just-saved person is clearly shown in the list.
+    setShowForm(false);
+    toast.success(`${newPerson.fullName} added`);
+  };
+
+  // Open a fresh, blank add-person form pre-set to cover only the roles still
+  // missing across everyone added so far.
+  const openBlankForm = () => {
+    setForm({
+      ...emptyPersonForm,
+      isDirector: !hasDirector,
+      isOwner: !hasOwner,
+      isRepresentative: !hasRepresentative,
+    });
+    setPanCard(null);
+    if (panInputRef.current) panInputRef.current.value = "";
+    setShowForm(true);
   };
 
   const handleRemoveStaged = (tempId: string) =>
@@ -2120,9 +2144,17 @@ function DirectorsAndOwnersStep({
     setPanCard(s.panCard);
     if (panInputRef.current) panInputRef.current.value = "";
     setStaged((prev) => prev.filter((p) => p.tempId !== tempId));
+    setShowForm(true);
   };
 
   const handleContinue = async () => {
+    // The form is open with details typed but not yet saved - clicking
+    // Continue here would silently drop them, exactly the confusion we're
+    // avoiding. Make the user save (or clear) first.
+    if (showForm && form.fullName.trim()) {
+      toast.error('You have unsaved details - click "Save details" first');
+      return;
+    }
     if (committed.length + staged.length === 0) {
       toast.error("Add at least one director or owner before continuing");
       return;
@@ -2198,7 +2230,7 @@ function DirectorsAndOwnersStep({
           {committed.length > 0 && (
             <div className="flex flex-col gap-2">
               {committed.map((p) => (
-                <div key={p.id} className="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3">
+                <div key={p.id} className="flex items-center justify-between rounded-sm border border-gray-200 px-4 py-3">
                   <div>
                     <p className="text-sm font-semibold text-gray-900">{p.fullName}</p>
                     <p className="text-xs text-gray-500">{roleLabel(p.relationship ?? {})} · saved</p>
@@ -2212,12 +2244,15 @@ function DirectorsAndOwnersStep({
           {staged.length > 0 && (
             <div className="flex flex-col gap-2">
               {staged.map((s) => (
-                <div key={s.tempId} className="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3">
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">{s.fullName}</p>
-                    <p className="text-xs text-gray-500">
-                      {roleLabel({ director: s.isDirector, owner: s.isOwner, representative: s.isRepresentative })} · not saved yet
-                    </p>
+                <div key={s.tempId} className="flex items-center justify-between rounded-sm border border-gray-200 px-4 py-3">
+                  <div className="flex items-center gap-2.5">
+                    <Check className="w-4 h-4 text-arc-gold-600 shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">{s.fullName}</p>
+                      <p className="text-xs text-gray-500">
+                        {roleLabel({ director: s.isDirector, owner: s.isOwner, representative: s.isRepresentative })} · Added
+                      </p>
+                    </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <button
@@ -2241,8 +2276,11 @@ function DirectorsAndOwnersStep({
             </div>
           )}
 
+          {showForm && (
           <div className="rounded-xl border border-dashed border-gray-300 p-4 flex flex-col gap-4">
-            <p className="text-sm font-semibold text-gray-800">Add a director / owner</p>
+            <p className="text-sm font-semibold text-gray-800">
+              {staged.length + committed.length > 0 ? "Add another director / owner" : "Add a director / owner"}
+            </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col">
@@ -2317,11 +2355,22 @@ function DirectorsAndOwnersStep({
             <button
               onClick={handleAdd}
               disabled={submitting}
-              className="self-start px-5 py-2 rounded-xl border border-gray-900 text-gray-900 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
+              className="self-end px-5 py-2 rounded-xl bg-gray-900 text-white text-sm font-medium hover:bg-black disabled:opacity-50"
             >
-              + Add person
+              Save details
             </button>
           </div>
+          )}
+
+          {!showForm && (
+            <button
+              onClick={openBlankForm}
+              disabled={submitting}
+              className="self-start px-5 py-2 rounded-xl border border-gray-900 text-gray-900 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
+            >
+              + Add another person
+            </button>
+          )}
         </div>
       </StepCard>
 

@@ -78,16 +78,40 @@ function DetailBlock({ title, children }: { title: string; children: React.React
   );
 }
 
+// Fallback labels for when XflowPay's own entity_type isn't present on the
+// account yet - derived from our local onboarding userType. Covers every
+// business type, so an entity account never falls through to "-".
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
+  individual: "Individual",
   soleproprietorship: "Business",
+  company: "Business",
+  llp: "Business",
+  partnership: "Business",
+};
+
+// XflowPay returns bank_account.entity_type as "business" | "individual".
+const ENTITY_TYPE_LABELS: Record<string, string> = {
+  business: "Business",
   individual: "Individual",
 };
+
+// Prefer XflowPay's authoritative entity_type; fall back to the locally
+// derived userType label so the row is populated even if the store's user
+// hasn't loaded userType yet.
+function resolveAccountType(
+  bank: BankAccountDetails,
+  userType: string | null | undefined
+): string {
+  const fromXflow = bank.entity_type && ENTITY_TYPE_LABELS[bank.entity_type.toLowerCase()];
+  if (fromXflow) return fromXflow;
+  return (userType && ACCOUNT_TYPE_LABELS[userType]) || "-";
+}
 
 export function LocalBankDetails({ account }: { account: BankAccount }) {
   const [rail, setRail] = useState<"local" | "swift">("local");
   const bank = account.bankAccount;
   const user = useAuthStore((s) => s.user);
-  const accountType = (user?.userType && ACCOUNT_TYPE_LABELS[user.userType]) || "-";
+  const accountType = bank ? resolveAccountType(bank, user?.userType) : "-";
 
   if (!bank) {
     return (
