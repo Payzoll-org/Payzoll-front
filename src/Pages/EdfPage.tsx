@@ -37,7 +37,6 @@ import {
   cleanText,
   computeEdfTotals,
   emptyEdf,
-  formatMoney,
   newRow,
   sectionOfError,
   summariseTotals,
