@@ -138,14 +138,15 @@ const sideBAr: React.FC<SideBarProps> = ({ collapsed = false, onToggleCollapse }
       icon: Clock,
       isFolder: false,
       route: '/invoices',
+      requiresKyc: true,
     },
     {
       id: 'edffilingportal',
       label: 'EDF Filing Portal',
       icon: FileText,
       isFolder: false,
-      disabled: true,
-      disabledReason: 'Coming soon',
+      route: '/edf',
+      requiresKyc: true,
     },
 
     {

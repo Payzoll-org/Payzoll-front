@@ -110,6 +110,16 @@ export const API_ROUTES = {
     nextNumber: "/api/invoice/next-number",
     prefill: "/api/invoice/prefill",
   },
+  edf: {
+    list: "/api/edf",
+    create: "/api/edf",
+    detail: (id: string) => `/api/edf/${id}`,
+    file: (id: string) => `/api/edf/${id}/file`,
+    record: (id: string) => `/api/edf/${id}/record`,
+    close: (id: string) => `/api/edf/${id}/close`,
+    nextNumber: "/api/edf/next-number",
+    prefill: "/api/edf/prefill",
+  },
   reconcile: {
     preview: "/api/reconcile/preview",
     submit: "/api/reconcile",

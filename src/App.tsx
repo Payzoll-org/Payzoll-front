@@ -31,6 +31,8 @@ const PayoutCalculatorPage = lazy(() => import('./Pages/PayoutCalculatorPage'));
 const DepositDetailsPage = lazy(() => import('./Pages/DepositDetailsPage'));
 const InvoicePage = lazy(() => import('./Pages/InvoicePage'));
 const InvoicesListPage = lazy(() => import('./Pages/InvoicesListPage'));
+const EdfPage = lazy(() => import('./Pages/EdfPage'));
+const EdfListPage = lazy(() => import('./Pages/EdfListPage'));
 
 // Mirrors ProtectedRoute's own "Checking session..." loading screen so a lazy
 // chunk fetch looks like the rest of the app, not a blank flash.
@@ -182,11 +184,13 @@ const router = createBrowserRouter([
     ),
   },
   {
-    // Invoices belong to the signed-in user (the API scopes every query to
-    // them), so plain auth is enough - no KYC gate.
+    // Invoicing requires a completed KYC, same as Reconcile/Withdraw/etc. The
+    // requiresKyc gate here is the route-level enforcement so typing /invoices
+    // (or /invoices/new, /invoices/:id) into the address bar can't bypass the
+    // sideBar.tsx button-level gate.
     path: "/invoices",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute requiresKyc>
         <InvoicesListPage />
       </ProtectedRoute>
     ),
@@ -194,7 +198,7 @@ const router = createBrowserRouter([
   {
     path: "/invoices/new",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute requiresKyc>
         <InvoicePage />
       </ProtectedRoute>
     ),
@@ -202,8 +206,35 @@ const router = createBrowserRouter([
   {
     path: "/invoices/:invoiceId",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute requiresKyc>
         <InvoicePage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    // EDF Filing Portal - export declarations, same completed-KYC gate as
+    // invoicing. The requiresKyc gate here is the route-level enforcement so
+    // typing /edf (or /edf/new, /edf/:id) can't bypass the sidebar's gate.
+    path: "/edf",
+    element: (
+      <ProtectedRoute requiresKyc>
+        <EdfListPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/edf/new",
+    element: (
+      <ProtectedRoute requiresKyc>
+        <EdfPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/edf/:edfId",
+    element: (
+      <ProtectedRoute requiresKyc>
+        <EdfPage />
       </ProtectedRoute>
     ),
   },
