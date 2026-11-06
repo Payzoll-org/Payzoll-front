@@ -182,11 +182,13 @@ const router = createBrowserRouter([
     ),
   },
   {
-    // Invoices belong to the signed-in user (the API scopes every query to
-    // them), so plain auth is enough - no KYC gate.
+    // Invoicing requires a completed KYC, same as Reconcile/Withdraw/etc. The
+    // requiresKyc gate here is the route-level enforcement so typing /invoices
+    // (or /invoices/new, /invoices/:id) into the address bar can't bypass the
+    // sideBar.tsx button-level gate.
     path: "/invoices",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute requiresKyc>
         <InvoicesListPage />
       </ProtectedRoute>
     ),
@@ -194,7 +196,7 @@ const router = createBrowserRouter([
   {
     path: "/invoices/new",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute requiresKyc>
         <InvoicePage />
       </ProtectedRoute>
     ),
@@ -202,7 +204,7 @@ const router = createBrowserRouter([
   {
     path: "/invoices/:invoiceId",
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute requiresKyc>
         <InvoicePage />
       </ProtectedRoute>
     ),

@@ -138,6 +138,7 @@ const sideBAr: React.FC<SideBarProps> = ({ collapsed = false, onToggleCollapse }
       icon: Clock,
       isFolder: false,
       route: '/invoices',
+      requiresKyc: true,
     },
     {
       id: 'edffilingportal',
