@@ -145,8 +145,8 @@ const sideBAr: React.FC<SideBarProps> = ({ collapsed = false, onToggleCollapse }
       label: 'EDF Filing Portal',
       icon: FileText,
       isFolder: false,
-      disabled: true,
-      disabledReason: 'Coming soon',
+      route: '/edf',
+      requiresKyc: true,
     },
 
     {
